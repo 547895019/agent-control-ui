@@ -47,18 +47,20 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
 
     setLoading(true);
     try {
-      const cfg = {
+      const cfg: Record<string, any> = {
+        id: form.id,
         name: form.name || form.id,
         workspace: form.workspace,
-        model: form.model,
-        description: form.description,
-        enabled: form.enabled,
         subagents: { allowAgents: ['*'] },
         tools: { profile: 'full' },
       };
-      const op = isEditing ? 'replace' : 'add';
-      await client.configPatch([{ op, path: `agents.${form.id}`, value: cfg }]);
-      await client.configApply();
+      if (form.model) cfg.model = form.model;
+      // config.patch merges partial config using mergeObjectArraysById (matches by `id`)
+      // and writes + restarts in one step. baseHash is required for optimistic concurrency.
+      const currentCfg = await client.configGet();
+      const baseHash = currentCfg?.hash;
+      if (!baseHash) throw new Error('Could not get config hash');
+      await client.configPatchRaw({ agents: { list: [cfg] } }, baseHash);
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'Failed to save agent');

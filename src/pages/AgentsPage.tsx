@@ -3,7 +3,8 @@ import { useAppStore } from '../stores/useAppStore';
 import { AgentForm } from '../components/agents/AgentForm';
 import { AgentFilesEditor } from '../components/agents/AgentFilesEditor';
 import { AgentSessionsViewer } from '../components/agents/AgentSessionsViewer';
-import { Plus, Pencil, Trash2, Bot, RefreshCw, FolderOpen, History } from 'lucide-react';
+import { AgentChat } from '../components/agents/AgentChat';
+import { Plus, Pencil, Trash2, Bot, RefreshCw, FolderOpen, History, MessageSquare } from 'lucide-react';
 
 const AVATAR_COLORS = [
   'bg-violet-500', 'bg-indigo-500', 'bg-blue-500', 'bg-cyan-500',
@@ -40,6 +41,7 @@ export function AgentsPage() {
   const [editingAgent, setEditingAgent] = useState<{ id: string; config: any } | undefined>();
   const [filesAgent, setFilesAgent] = useState<{ id: string; config: any } | null>(null);
   const [sessionsAgent, setSessionsAgent] = useState<{ id: string; config: any } | null>(null);
+  const [chatAgent, setChatAgent] = useState<{ id: string; config: any } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -149,6 +151,13 @@ export function AgentsPage() {
               {/* Actions */}
               <div className="flex items-center gap-1.5 pt-3 border-t border-slate-100" onClick={e => e.stopPropagation()}>
                 <button
+                  onClick={() => setChatAgent({ id, config })}
+                  className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                >
+                  <MessageSquare className="w-3 h-3" />
+                  聊天
+                </button>
+                <button
                   onClick={() => setSessionsAgent({ id, config })}
                   className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
                 >
@@ -199,6 +208,15 @@ export function AgentsPage() {
           agentName={sessionsAgent.config.name || sessionsAgent.id}
           workspace={sessionsAgent.config.workspace || ''}
           onClose={() => setSessionsAgent(null)}
+        />
+      )}
+
+      {chatAgent && (
+        <AgentChat
+          agentId={chatAgent.id}
+          agentName={chatAgent.config.name || chatAgent.id}
+          workspace={chatAgent.config.workspace || ''}
+          onClose={() => setChatAgent(null)}
         />
       )}
     </div>

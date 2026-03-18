@@ -3,10 +3,11 @@ import { client } from '../api/gateway';
 import { useAppStore } from '../stores/useAppStore';
 import { AgentFilesEditor } from '../components/agents/AgentFilesEditor';
 import { AgentSessionsViewer } from '../components/agents/AgentSessionsViewer';
+import { AgentChat } from '../components/agents/AgentChat';
 import { KnowledgeEditor } from '../components/knowledge/KnowledgeEditor';
 import {
   Building2, Plus, Pencil, Trash2, Users,
-  FolderOpen, History, X, Check, Download, Upload, Cloud, CloudOff, BookOpen,
+  FolderOpen, History, MessageSquare, X, Check, Download, Upload, Cloud, CloudOff, BookOpen,
 } from 'lucide-react';
 
 const ORG_KNOWLEDGE_DIR = '~/.openclaw/workspaces/knowledge';
@@ -246,6 +247,7 @@ export function OrgPage() {
   // Sub-modals
   const [filesAgent, setFilesAgent] = useState<{ id: string; config: any } | null>(null);
   const [sessionsAgent, setSessionsAgent] = useState<{ id: string; config: any } | null>(null);
+  const [chatAgent, setChatAgent] = useState<{ id: string; config: any } | null>(null);
   const [knowledgeModal, setKnowledgeModal] = useState<{ title: string; dirPath: string } | null>(null);
 
   // Load: try server file first, fall back to localStorage
@@ -629,6 +631,13 @@ export function OrgPage() {
                             {agentCfg && (
                               <>
                                 <button
+                                  onClick={() => setChatAgent({ id: member.agentId, config: agentCfg })}
+                                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                  title="发送消息"
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                </button>
+                                <button
                                   onClick={() => setFilesAgent({ id: member.agentId, config: agentCfg })}
                                   className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
                                   title="文件编辑"
@@ -704,6 +713,15 @@ export function OrgPage() {
           agentName={sessionsAgent.config.name || sessionsAgent.id}
           workspace={sessionsAgent.config.workspace || ''}
           onClose={() => setSessionsAgent(null)}
+        />
+      )}
+
+      {chatAgent && (
+        <AgentChat
+          agentId={chatAgent.id}
+          agentName={chatAgent.config.name || chatAgent.id}
+          workspace={chatAgent.config.workspace || ''}
+          onClose={() => setChatAgent(null)}
         />
       )}
 

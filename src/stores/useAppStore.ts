@@ -70,8 +70,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   deleteAgent: async (id: string) => {
     try {
-      await client.configPatchRaw({ agents: { [id]: null } });
-      await client.configApply();
+      // mergeObjectArraysById can only add/update, not remove array items.
+      // Work around: clear the list first (null deletes the key), then set the filtered list.
+      const cfg = await client.configGet();
+      const baseHash: string = cfg?.hash;
+      if (!baseHash) throw new Error('Could not get config hash');
+      const currentList: any[] = cfg?.config?.agents?.list ?? [];
+      const filteredList = currentList.filter((a: any) => a.id !== id);
+      // Two-step: clear list (null removes the key), then set filtered list.
+      // Step 2 does direct assignment (not mergeObjectArraysById) because list key is absent.
+      await client.configPatchRaw({ agents: { list: null } }, baseHash);
+      const cfg2 = await client.configGet();
+      const baseHash2: string = cfg2?.hash;
+      if (!baseHash2) throw new Error('Could not get config hash after clear');
+      await client.configPatchRaw({ agents: { list: filteredList } }, baseHash2);
       await get().fetchAgents();
     } catch (err) {
       console.error('Failed to delete agent:', err);

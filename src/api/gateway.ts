@@ -357,12 +357,11 @@ export class GatewayClient {
     return this.rpc('config.get', {});
   }
 
-  configPatch(ops: any[]): Promise<any> {
-    return this.rpc('config.patch', { ops });
-  }
-
-  configPatchRaw(raw: Record<string, any>): Promise<any> {
-    return this.rpc('config.patch', { raw });
+  // config.patch requires:
+  //   raw: JSON string of the partial config to merge
+  //   baseHash: the `hash` field from the most recent config.get response (optimistic concurrency)
+  configPatchRaw(raw: Record<string, any>, baseHash: string): Promise<any> {
+    return this.rpc('config.patch', { raw: JSON.stringify(raw), baseHash });
   }
 
   // Local file server (localfile-server.mjs) runs on port 19876 in dev mode.
@@ -409,8 +408,26 @@ export class GatewayClient {
     }
   }
 
-  configApply(): Promise<any> {
-    return this.rpc('config.apply');
+  // config.apply requires the FULL config as raw (not a partial patch).
+  // For partial updates, use configPatchRaw instead.
+  configApply(raw: Record<string, any>, baseHash: string): Promise<any> {
+    return this.rpc('config.apply', { raw: JSON.stringify(raw), baseHash });
+  }
+
+  agentsList(): Promise<any> {
+    return this.rpc('agents.list', {});
+  }
+
+  sessionsCompact(key: string): Promise<any> {
+    return this.rpc('sessions.compact', { key });
+  }
+
+  sessionsPatch(key: string, patch: Record<string, any>): Promise<any> {
+    return this.rpc('sessions.patch', { key, ...patch });
+  }
+
+  modelsList(): Promise<any> {
+    return this.rpc('models.list', {});
   }
 
   agentFilesGet(agentId: string, name: string): Promise<any> {
@@ -429,6 +446,24 @@ export class GatewayClient {
     return this.rpc('chat.history', { sessionKey, limit: limit ?? 200 });
   }
 
+  chatSend(
+    sessionKey: string,
+    message: string,
+    idempotencyKey?: string,
+    attachments?: Array<{ type: 'image'; mimeType: string; content: string }>,
+  ): Promise<{ runId: string }> {
+    return this.rpc('chat.send', {
+      sessionKey,
+      message,
+      idempotencyKey: idempotencyKey ?? `web_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      deliver: true,
+      ...(attachments && attachments.length > 0 ? { attachments } : {}),
+    });
+  }
+
+  chatAbort(sessionKey: string, runId: string): Promise<any> {
+    return this.rpc('chat.abort', { sessionKey, runId });
+  }
 
   async invokeTool(tool: string, params: Record<string, any>): Promise<any> {
     return this.rpc('tools.invoke', { tool, params });

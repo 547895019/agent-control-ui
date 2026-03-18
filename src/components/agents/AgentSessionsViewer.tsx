@@ -46,11 +46,6 @@ function extractContent(msg: any): ContentBlock[] {
   });
 }
 
-function isUserVisible(msg: any): boolean {
-  const role = msg?.message?.role ?? msg?.role;
-  return role === 'user' || role === 'assistant';
-}
-
 // ── sub-components ─────────────────────────────────────────────────────────────
 
 function ToolBlock({ name, args }: { name: string; args: string }) {
@@ -95,11 +90,11 @@ function ThinkingBlock({ text }: { text: string }) {
   );
 }
 
-function ChatMessage({ event }: { event: any }) {
-  const role = event?.message?.role ?? event?.role;
+function ChatMessage({ event }: { event: { role: 'user' | 'assistant'; content: any } }) {
+  const role = event.role;
   const blocks = extractContent(event);
   const isUser = role === 'user';
-  const ts = event.timestamp ? new Date(event.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) : '';
+  const ts = '';
 
   const textBlocks = blocks.filter(b => b.kind === 'text') as { kind: 'text'; text: string }[];
   const mainText = textBlocks.map(b => b.text).join('\n').trim();
@@ -153,14 +148,6 @@ interface AgentSessionsViewerProps {
   onClose: () => void;
 }
 
-/** 从 workspace 路径提取最后一级目录名，用作 sessions agentId
- *  e.g. "/home/user/.openclaw/workspaces/software-team/frontend" → "frontend"
- */
-function deriveSessionsAgentId(workspace: string, fallback: string): string {
-  const parts = workspace.replace(/\/+$/, '').split('/').filter(Boolean);
-  return parts.pop() || fallback;
-}
-
 function formatDate(iso?: string) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -172,48 +159,48 @@ function formatDate(iso?: string) {
   return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
 }
 
-export function AgentSessionsViewer({ agentId, agentName, workspace, onClose }: AgentSessionsViewerProps) {
-  // sessions.list 的 agentId 是 workspace 最后一级目录名
-  const sessionsAgentId = deriveSessionsAgentId(workspace, agentId);
+function parseHistory(res: any): { role: 'user' | 'assistant'; content: any }[] {
+  const raw: any[] = Array.isArray(res?.messages) ? res.messages : Array.isArray(res) ? res : [];
+  return raw.filter((e: any) => e?.role === 'user' || e?.role === 'assistant')
+    .map((e: any) => ({ role: e.role as 'user' | 'assistant', content: e.content ?? '' }));
+}
 
+export function AgentSessionsViewer({ agentId, agentName, workspace: _workspace, onClose }: AgentSessionsViewerProps) {
   const [sessions, setSessions] = useState<SessionMeta[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState('');
 
   const [activeKey, setActiveKey] = useState<string | null>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: any }[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [messagesError, setMessagesError] = useState('');
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // load sessions list
+  // load sessions list — same agentId as AgentChat
   useEffect(() => {
     setSessionsLoading(true);
     setSessionsError('');
-    client.sessionsList({ agentId: sessionsAgentId, limit: 50, includeLastMessage: true })
+    client.sessionsList({ agentId, limit: 50, includeLastMessage: true, includeDerivedTitles: true })
       .then(res => {
-        const list: SessionMeta[] = res?.sessions ?? [];
+        const list: SessionMeta[] = (res?.sessions ?? []).sort((a: SessionMeta, b: SessionMeta) =>
+          (b.updatedAt ?? '') > (a.updatedAt ?? '') ? 1 : -1
+        );
         setSessions(list);
+        if (list.length > 0) setActiveKey(list[0].key);
       })
       .catch(err => setSessionsError(err.message || 'Failed to load sessions'))
       .finally(() => setSessionsLoading(false));
   }, [agentId]);
 
-  // load messages when session selected
+  // load messages when session selected — same parsing as AgentChat
   useEffect(() => {
     if (!activeKey) return;
     setMessagesLoading(true);
     setMessagesError('');
     setMessages([]);
     client.chatHistory(activeKey, 300)
-      .then(res => {
-        // chat.history returns { messages: [{role, content, ...}] }
-        // NOT the JSONL event format { type:'message', message:{...} }
-        const raw: any[] = res?.events ?? res?.messages ?? (Array.isArray(res) ? res : []);
-        const visible = raw.filter((e: any) => isUserVisible(e));
-        setMessages(visible);
-      })
+      .then(res => setMessages(parseHistory(res)))
       .catch(err => setMessagesError(err.message || 'Failed to load messages'))
       .finally(() => setMessagesLoading(false));
   }, [activeKey]);
@@ -238,7 +225,6 @@ export function AgentSessionsViewer({ agentId, agentName, workspace, onClose }: 
           <div className="min-w-0">
             <span className="font-semibold text-slate-800 text-sm">{agentName}</span>
             <span className="text-slate-400 text-xs ml-2">历史对话</span>
-            <span className="text-slate-300 text-xs ml-1 font-mono">({sessionsAgentId})</span>
           </div>
           <button
             onClick={onClose}
@@ -335,7 +321,7 @@ export function AgentSessionsViewer({ agentId, agentName, workspace, onClose }: 
                     </div>
                   ) : (
                     messages.map((event, i) => (
-                      <ChatMessage key={event.id ?? i} event={event} />
+                      <ChatMessage key={i} event={event} />
                     ))
                   )}
                   <div ref={bottomRef} />
