@@ -189,7 +189,7 @@ export function AgentSessionsViewer({ agentId, agentName, workspace: _workspace,
         setSessions(list);
         if (list.length > 0) setActiveKey(list[0].key);
       })
-      .catch(err => setSessionsError(err.message || 'Failed to load sessions'))
+      .catch(err => setSessionsError(err.message || '加载会话失败'))
       .finally(() => setSessionsLoading(false));
   }, [agentId]);
 
@@ -201,7 +201,7 @@ export function AgentSessionsViewer({ agentId, agentName, workspace: _workspace,
     setMessages([]);
     client.chatHistory(activeKey, 300)
       .then(res => setMessages(parseHistory(res)))
-      .catch(err => setMessagesError(err.message || 'Failed to load messages'))
+      .catch(err => setMessagesError(err.message || '加载消息失败'))
       .finally(() => setMessagesLoading(false));
   }, [activeKey]);
 

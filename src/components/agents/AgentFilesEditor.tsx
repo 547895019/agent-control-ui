@@ -56,7 +56,7 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
       const missing = res?.file?.missing ?? false;
       setFile(name, { content, original: content, loaded: true, missing, loading: false });
     } catch (err: any) {
-      setFile(name, { loading: false, error: err.message || 'Failed to load file' });
+      setFile(name, { loading: false, error: err.message || '加载失败' });
     }
   }, [agentId, files]);
 
@@ -83,7 +83,7 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
       await client.agentFilesSet(agentId, activeFile, f.content);
       setFile(activeFile, { saving: false, original: f.content, missing: false, savedAt: Date.now() });
     } catch (err: any) {
-      setFile(activeFile, { saving: false, error: err.message || 'Failed to save' });
+      setFile(activeFile, { saving: false, error: err.message || '保存失败' });
     }
   };
 
@@ -145,7 +145,7 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
                   {!f.loading && dirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />}
                   {!f.loading && f.savedAt && !dirty && <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />}
                   {!f.loading && f.missing && !dirty && (
-                    <span className="text-[10px] text-slate-400 shrink-0">new</span>
+                    <span className="text-[10px] text-slate-400 shrink-0">新建</span>
                   )}
                 </button>
               );
@@ -158,9 +158,9 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
             <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-100 bg-slate-50 shrink-0">
               <span className="text-xs font-mono text-slate-500">{activeFile}</span>
               {current.missing && !isDirty && (
-                <span className="text-xs text-slate-400 italic">— file does not exist yet</span>
+                <span className="text-xs text-slate-400 italic">— 文件尚未创建</span>
               )}
-              {isDirty && <span className="text-xs text-amber-500">● unsaved changes</span>}
+              {isDirty && <span className="text-xs text-amber-500">● 未保存</span>}
               <div className="ml-auto flex items-center gap-2">
                 {current.error && (
                   <span className="flex items-center gap-1 text-xs text-red-500">
@@ -174,8 +174,8 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors disabled:opacity-50"
                 >
                   {current.saving
-                    ? <><Loader2 className="w-3 h-3 animate-spin" /> Saving…</>
-                    : <><Save className="w-3 h-3" /> Save</>
+                    ? <><Loader2 className="w-3 h-3 animate-spin" /> 保存中…</>
+                    : <><Save className="w-3 h-3" /> 保存</>
                   }
                 </button>
               </div>
@@ -192,7 +192,7 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
                 value={current.content}
                 onChange={e => setFile(activeFile, { content: e.target.value })}
                 spellCheck={false}
-                placeholder={`# ${activeFile.replace('.md', '')}\n\n(file is empty or does not exist — start typing to create it)`}
+                placeholder={`# ${activeFile.replace('.md', '')}\n\n（文件为空或尚未创建 — 输入内容即可创建）`}
               />
             )}
           </div>

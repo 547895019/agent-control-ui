@@ -26,7 +26,7 @@ function getInitials(id: string, name?: string) {
 }
 
 function ModelBadge({ model }: { model?: string | { primary: string; fallbacks?: string[] } }) {
-  if (!model) return <span className="text-slate-400 text-xs">Default</span>;
+  if (!model) return <span className="text-slate-400 text-xs">默认</span>;
   if (typeof model === 'string') {
     const short = model.split('/').pop() || model;
     return (
@@ -60,7 +60,7 @@ export function AgentsPage() {
   const agentList = Object.entries(agents);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm(`Delete agent "${id}"? This only removes the configuration.`)) return;
+    if (!window.confirm(`确认删除代理 "${id}"？此操作仅删除配置文件。`)) return;
     setDeleting(id);
     try {
       await deleteAgent(id);
@@ -80,9 +80,9 @@ export function AgentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-slate-800">Agents</h2>
+          <h2 className="text-xl font-semibold text-slate-800">代理</h2>
           <p className="text-slate-500 text-sm mt-0.5">
-            {agentList.length} agent{agentList.length !== 1 ? 's' : ''} configured
+            共 {agentList.length} 个代理
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -92,14 +92,14 @@ export function AgentsPage() {
             className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
+            刷新
           </button>
           <button
             onClick={() => { setEditingAgent(undefined); setShowForm(true); }}
             className="flex items-center gap-1.5 px-3 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
-            New Agent
+            新建代理
           </button>
         </div>
       </div>
@@ -110,13 +110,13 @@ export function AgentsPage() {
           <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
             <Bot className="w-8 h-8 text-slate-400" />
           </div>
-          <p className="text-slate-600 font-medium mb-1">No agents yet</p>
-          <p className="text-slate-400 text-sm mb-4">Create your first agent to get started</p>
+          <p className="text-slate-600 font-medium mb-1">暂无代理</p>
+          <p className="text-slate-400 text-sm mb-4">创建第一个代理开始使用</p>
           <button
             onClick={() => { setEditingAgent(undefined); setShowForm(true); }}
             className="text-sm text-indigo-600 hover:text-indigo-500 font-medium"
           >
-            + Create agent
+            + 创建代理
           </button>
         </div>
       ) : (
@@ -147,12 +147,12 @@ export function AgentsPage() {
               {/* Info */}
               <div className="space-y-1.5 mb-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400">Model</span>
+                  <span className="text-xs text-slate-400">模型</span>
                   <ModelBadge model={config.model} />
                 </div>
                 {config.workspace && (
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-slate-400 shrink-0">Workspace</span>
+                    <span className="text-xs text-slate-400 shrink-0">工作区</span>
                     <span className="text-xs text-slate-500 truncate font-mono" title={config.workspace}>
                       …/{config.workspace.split('/').pop()}
                     </span>
