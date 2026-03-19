@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { client } from '../api/gateway';
+import { useAppStore } from '../stores/useAppStore';
 import { Puzzle, RefreshCw, X, ChevronDown, ChevronRight, Eye, EyeOff } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -372,6 +373,7 @@ function SkillGroupSection({
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function SkillsPage() {
+  const { connectionStatus } = useAppStore();
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<SkillStatusReport | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -460,8 +462,8 @@ export function SkillsPage() {
     setApiKeyEdits(prev => ({ ...prev, [skillKey]: val }));
   }, []);
 
-  // Auto-load on mount
-  useEffect(() => { loadSkills(true); }, []);
+  // Auto-load when connected
+  useEffect(() => { if (connectionStatus === 'connected') loadSkills(true); }, [connectionStatus]);
 
   const filtered = useMemo(() => {
     const skills = report?.skills ?? [];

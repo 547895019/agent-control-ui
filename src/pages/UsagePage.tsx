@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { client } from '../api/gateway';
+import { useAppStore } from '../stores/useAppStore';
 import { BarChart2, RefreshCw, X } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -385,6 +386,7 @@ function SessionsTable({ sessions, chartMode }: {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function UsagePage() {
+  const { connectionStatus } = useAppStore();
   const [startDate, setStartDate] = useState(() => getIsoDate(new Date(Date.now() - 6 * 86400000)));
   const [endDate, setEndDate] = useState(() => getIsoDate(new Date()));
   const [chartMode, setChartMode] = useState<'tokens' | 'cost'>('tokens');
@@ -393,8 +395,8 @@ export function UsagePage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SessionsUsageResult | null>(null);
 
-  // Auto-load on mount
-  useEffect(() => { refresh(); }, []);
+  // Auto-load when connected
+  useEffect(() => { if (connectionStatus === 'connected') refresh(); }, [connectionStatus]);
 
   const applyPreset = useCallback((days: number) => {
     const r = presetRange(days);

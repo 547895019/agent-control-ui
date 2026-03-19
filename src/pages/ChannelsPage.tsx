@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { client } from '../api/gateway';
+import { useAppStore } from '../stores/useAppStore';
 import {
   RefreshCw, Loader2, AlertCircle, CheckCircle2, XCircle,
   Link as LinkIcon, Unlink,
@@ -411,6 +412,7 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export function ChannelsPage() {
+  const { connectionStatus } = useAppStore();
   const [loading, setLoading] = useState(false);
   const [probing, setProbing] = useState(false);
   const [snap, setSnap] = useState<ChannelsStatusSnapshot | null>(null);
@@ -431,7 +433,7 @@ export function ChannelsPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (connectionStatus === 'connected') load(); }, [connectionStatus]);
 
   const handleLogout = async (channelId: string, accountId?: string) => {
     try {
