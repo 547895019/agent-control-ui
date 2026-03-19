@@ -559,6 +559,25 @@ export class GatewayClient {
     return this.rpc('usage.cost', { utcOffset, ...params }, 30000);
   }
 
+  channelsStatus(params?: { probe?: boolean; timeoutMs?: number }): Promise<any> {
+    const timeout = (params?.timeoutMs ?? 10000) + 3000;
+    return this.rpc('channels.status', params ?? {}, timeout);
+  }
+
+  channelsLogout(params: { channel: string; accountId?: string }): Promise<any> {
+    return this.rpc('channels.logout', params);
+  }
+
+  webLoginStart(params?: { force?: boolean; timeoutMs?: number }): Promise<any> {
+    const timeout = (params?.timeoutMs ?? 30000) + 3000;
+    return this.rpc('web.login.start', params ?? {}, timeout);
+  }
+
+  webLoginWait(params?: { timeoutMs?: number }): Promise<any> {
+    const timeout = (params?.timeoutMs ?? 60000) + 3000;
+    return this.rpc('web.login.wait', params ?? {}, timeout);
+  }
+
   getConnectionState(): ConnectionState {
     if (!this.ws) return 'disconnected';
     if (this.reconnectTimer) return 'reconnecting';

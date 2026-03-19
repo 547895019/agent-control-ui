@@ -9,6 +9,7 @@ import { MonitorPage } from './pages/MonitorPage';
 import { CronPage } from './pages/CronPage';
 import { UsagePage } from './pages/UsagePage';
 import { SkillsPage } from './pages/SkillsPage';
+import { ChannelsPage } from './pages/ChannelsPage';
 
 function App() {
   const { token, connect, connectionStatus } = useAppStore();
@@ -34,6 +35,7 @@ function App() {
           <Route path="cron" element={<CronPage />} />
           <Route path="usage" element={<UsagePage />} />
           <Route path="skills" element={<SkillsPage />} />
+          <Route path="channels" element={<ChannelsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
