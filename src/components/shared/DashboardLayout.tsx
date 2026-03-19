@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/useAppStore';
 import {
-  Bot, ScrollText, LogOut, Building2, Clock,
+  Bot, ScrollText, LogOut, Building2, Clock, BarChart2, Puzzle,
   WifiOff, RefreshCw, AlertCircle, Loader2
 } from 'lucide-react';
 
@@ -58,6 +58,8 @@ const NAV_ITEMS = [
   { path: '/org', label: '组织', icon: Building2 },
   { path: '/cron', label: '定时', icon: Clock },
   { path: '/monitor', label: '日志', icon: ScrollText },
+  { path: '/usage', label: '用量', icon: BarChart2 },
+  { path: '/skills', label: '技能', icon: Puzzle },
 ];
 
 function StatusDot({ status }: { status: string }) {

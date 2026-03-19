@@ -329,7 +329,7 @@ export class GatewayClient {
     this.connectionStateHandlers.forEach(h => h(state));
   }
 
-  private rpc<T>(method: string, params: any = {}): Promise<T> {
+  private rpc<T>(method: string, params: any = {}, timeoutMs = 10000): Promise<T> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return Promise.reject(new Error("WebSocket not connected"));
     }
@@ -349,7 +349,7 @@ export class GatewayClient {
           this.pending.delete(id);
           reject(new Error("RPC Timeout"));
         }
-      }, 10000);
+      }, timeoutMs);
     });
   }
 
@@ -524,6 +524,39 @@ export class GatewayClient {
     deliveryStatuses?: string[];
   }): Promise<any> {
     return this.rpc('cron.runs', { scope: 'all', limit: 50, sortDir: 'desc', ...params });
+  }
+
+  skillsStatus(params?: { agentId?: string }): Promise<any> {
+    return this.rpc('skills.status', params ?? {});
+  }
+
+  skillsUpdate(skillKey: string, update: { enabled?: boolean; apiKey?: string; env?: Record<string, string> }): Promise<any> {
+    return this.rpc('skills.update', { skillKey, ...update });
+  }
+
+  skillsInstall(name: string, installId: string): Promise<any> {
+    // timeoutMs sent to server; RPC timeout is longer to wait for install to complete
+    return this.rpc('skills.install', { name, installId, timeoutMs: 120000 }, 130000);
+  }
+
+  usageGet(params: { startDate: string; endDate: string; utcOffset?: string; limit?: number; includeContextWeight?: boolean }): Promise<any> {
+    const offsetMin = new Date().getTimezoneOffset();
+    const sign = offsetMin <= 0 ? '+' : '-';
+    const abs = Math.abs(offsetMin);
+    const h = Math.floor(abs / 60);
+    const m = abs % 60;
+    const utcOffset = m === 0 ? `UTC${sign}${h}` : `UTC${sign}${h}:${String(m).padStart(2, '0')}`;
+    return this.rpc('sessions.usage', { limit: 1000, includeContextWeight: true, utcOffset, ...params }, 60000);
+  }
+
+  usageCost(params: { startDate: string; endDate: string; utcOffset?: string }): Promise<any> {
+    const offsetMin = new Date().getTimezoneOffset();
+    const sign = offsetMin <= 0 ? '+' : '-';
+    const abs = Math.abs(offsetMin);
+    const h = Math.floor(abs / 60);
+    const m = abs % 60;
+    const utcOffset = m === 0 ? `UTC${sign}${h}` : `UTC${sign}${h}:${String(m).padStart(2, '0')}`;
+    return this.rpc('usage.cost', { utcOffset, ...params }, 30000);
   }
 
   getConnectionState(): ConnectionState {

@@ -7,6 +7,8 @@ import { AgentsPage } from './pages/AgentsPage';
 import { OrgPage } from './pages/OrgPage';
 import { MonitorPage } from './pages/MonitorPage';
 import { CronPage } from './pages/CronPage';
+import { UsagePage } from './pages/UsagePage';
+import { SkillsPage } from './pages/SkillsPage';
 
 function App() {
   const { token, connect, connectionStatus } = useAppStore();
@@ -30,6 +32,8 @@ function App() {
           <Route path="org" element={<OrgPage />} />
           <Route path="monitor" element={<MonitorPage />} />
           <Route path="cron" element={<CronPage />} />
+          <Route path="usage" element={<UsagePage />} />
+          <Route path="skills" element={<SkillsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
