@@ -3,7 +3,7 @@ import { client } from '../api/gateway';
 import { useAppStore } from '../stores/useAppStore';
 import {
   RefreshCw, Loader2, AlertCircle, CheckCircle2, XCircle,
-  Link as LinkIcon, Unlink,
+  Link as LinkIcon, Unlink, Settings, ChevronDown, ChevronRight,
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -125,13 +125,114 @@ function ErrorBox({ msg }: { msg: string }) {
   );
 }
 
+// Collapsible config editor for a channel
+function ChannelConfigEditor({ channelId, configValue, configHash, onSaved }: {
+  channelId: string;
+  configValue: Record<string, any> | null;
+  configHash: string | null;
+  onSaved: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  // Sync textarea when config changes externally or panel opens
+  useEffect(() => {
+    if (open) {
+      setText(JSON.stringify(configValue ?? {}, null, 2));
+      setError(null);
+      setSuccess(false);
+    }
+  }, [open, configValue]);
+
+  const handleSave = async () => {
+    setError(null);
+    setSuccess(false);
+    let parsed: Record<string, any>;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      setError('JSON 格式错误，请检查后重试');
+      return;
+    }
+    if (!configHash) {
+      setError('未获得配置 Hash，请刷新后重试');
+      return;
+    }
+    setSaving(true);
+    try {
+      await client.configPatchRaw({ channels: { [channelId]: parsed } }, configHash);
+      setSuccess(true);
+      onSaved();
+      setTimeout(() => setSuccess(false), 2000);
+    } catch (e: any) {
+      setError(e.message || '保存失败');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="border-t border-slate-100 pt-3 mt-1">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors w-full text-left"
+      >
+        {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+        <Settings className="w-3.5 h-3.5" />
+        配置
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-2">
+          <textarea
+            value={text}
+            onChange={e => { setText(e.target.value); setError(null); setSuccess(false); }}
+            rows={8}
+            spellCheck={false}
+            className="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-indigo-400 resize-y"
+          />
+          {error && <ErrorBox msg={error} />}
+          {success && (
+            <p className="text-xs text-emerald-600 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> 已保存
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={saving || !configHash}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-50"
+            >
+              {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              保存
+            </button>
+            <button
+              onClick={() => { setText(JSON.stringify(configValue ?? {}, null, 2)); setError(null); }}
+              disabled={saving}
+              className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 rounded-lg transition-colors disabled:opacity-50"
+            >
+              重置
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // WhatsApp Card with QR login flow
-function WhatsAppCard({ channelId, status, accounts, label, onRefresh }: {
+function WhatsAppCard({ channelId, status, accounts, label, onRefresh, configValue, configHash, onConfigSaved }: {
   channelId: string;
   status: any;
   accounts: ChannelAccountSnapshot[];
   label: string;
   onRefresh: () => void;
+  configValue: Record<string, any> | null;
+  configHash: string | null;
+  onConfigSaved: () => void;
 }) {
   const [qrLoading, setQrLoading] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
@@ -279,12 +380,19 @@ function WhatsAppCard({ channelId, status, accounts, label, onRefresh }: {
           </button>
         )}
       </div>
+
+      <ChannelConfigEditor
+        channelId={channelId}
+        configValue={configValue}
+        configHash={configHash}
+        onSaved={onConfigSaved}
+      />
     </div>
   );
 }
 
 // Generic channel card (Telegram, Discord, Slack, etc.)
-function GenericChannelCard({ channelId, status, accounts, label, icon, onRefresh, onLogout }: {
+function GenericChannelCard({ channelId, status, accounts, label, icon, onRefresh, onLogout, configValue, configHash, onConfigSaved }: {
   channelId: string;
   status: any;
   accounts: ChannelAccountSnapshot[];
@@ -292,6 +400,9 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
   icon: string;
   onRefresh: () => void;
   onLogout: (accountId?: string) => Promise<void>;
+  configValue: Record<string, any> | null;
+  configHash: string | null;
+  onConfigSaved: () => void;
 }) {
   const [logoutId, setLogoutId] = useState<string | null>(null);
   const s = status || {};
@@ -405,6 +516,13 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
           ))}
         </div>
       )}
+
+      <ChannelConfigEditor
+        channelId={channelId}
+        configValue={configValue}
+        configHash={configHash}
+        onSaved={onConfigSaved}
+      />
     </div>
   );
 }
@@ -417,6 +535,20 @@ export function ChannelsPage() {
   const [probing, setProbing] = useState(false);
   const [snap, setSnap] = useState<ChannelsStatusSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Config state
+  const [configObj, setConfigObj] = useState<Record<string, any> | null>(null);
+  const [configHash, setConfigHash] = useState<string | null>(null);
+
+  const loadConfig = useCallback(async () => {
+    try {
+      const res: any = await client.configGet();
+      setConfigObj(res?.config ?? null);
+      setConfigHash(res?.hash ?? null);
+    } catch {
+      // non-fatal: config editor will show disabled state
+    }
+  }, []);
 
   const load = useCallback(async (probe = false) => {
     if (probe) setProbing(true);
@@ -433,7 +565,12 @@ export function ChannelsPage() {
     }
   }, []);
 
-  useEffect(() => { if (connectionStatus === 'connected') load(); }, [connectionStatus]);
+  useEffect(() => {
+    if (connectionStatus === 'connected') {
+      load();
+      loadConfig();
+    }
+  }, [connectionStatus]);
 
   const handleLogout = async (channelId: string, accountId?: string) => {
     try {
@@ -518,6 +655,9 @@ export function ChannelsPage() {
               || CHANNEL_LABELS_DEFAULT[channelId]
               || channelId;
             const icon = CHANNEL_ICONS[channelId] || '🔌';
+            const chCfg = (configObj?.channels as Record<string, any> | undefined)?.[channelId]
+              ?? (configObj?.[channelId] as Record<string, any> | undefined)
+              ?? null;
 
             if (channelId === 'whatsapp') {
               return (
@@ -528,6 +668,9 @@ export function ChannelsPage() {
                   accounts={accounts}
                   label={label}
                   onRefresh={() => load()}
+                  configValue={chCfg}
+                  configHash={configHash}
+                  onConfigSaved={loadConfig}
                 />
               );
             }
@@ -542,6 +685,9 @@ export function ChannelsPage() {
                 icon={icon}
                 onRefresh={() => load()}
                 onLogout={(accountId) => handleLogout(channelId, accountId)}
+                configValue={chCfg}
+                configHash={configHash}
+                onConfigSaved={loadConfig}
               />
             );
           })}
