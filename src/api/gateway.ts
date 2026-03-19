@@ -408,6 +408,16 @@ export class GatewayClient {
     }
   }
 
+  async deleteDir(dirPath: string): Promise<void> {
+    const res = await fetch(`${this.localFileBase}/?dir=${encodeURIComponent(dirPath)}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error ?? 'Delete dir failed');
+    }
+  }
+
   // config.apply requires the FULL config as raw (not a partial patch).
   // For partial updates, use configPatchRaw instead.
   configApply(raw: Record<string, any>, baseHash: string): Promise<any> {
@@ -467,6 +477,53 @@ export class GatewayClient {
 
   async invokeTool(tool: string, params: Record<string, any>): Promise<any> {
     return this.rpc('tools.invoke', { tool, params });
+  }
+
+  async logsTail(params?: { cursor?: number; limit?: number; maxBytes?: number }): Promise<{
+    file?: string;
+    cursor?: number;
+    lines?: string[];
+    truncated?: boolean;
+    reset?: boolean;
+  }> {
+    return this.rpc('logs.tail', params ?? {});
+  }
+
+  cronStatus(): Promise<any> {
+    return this.rpc('cron.status', {});
+  }
+
+  cronList(params?: { limit?: number; offset?: number; query?: string; includeDisabled?: boolean; enabled?: string; sortBy?: string; sortDir?: string }): Promise<any> {
+    return this.rpc('cron.list', { includeDisabled: true, limit: 200, ...params });
+  }
+
+  cronAdd(job: any): Promise<any> {
+    return this.rpc('cron.add', job);
+  }
+
+  cronUpdate(id: string, patch: any): Promise<any> {
+    return this.rpc('cron.update', { id, patch });
+  }
+
+  cronRemove(id: string): Promise<any> {
+    return this.rpc('cron.remove', { id });
+  }
+
+  cronRun(id: string, mode: 'force' | 'due' = 'force'): Promise<any> {
+    return this.rpc('cron.run', { id, mode });
+  }
+
+  cronRuns(params?: {
+    scope?: string;
+    id?: string;
+    limit?: number;
+    offset?: number;
+    sortDir?: string;
+    query?: string;
+    statuses?: string[];
+    deliveryStatuses?: string[];
+  }): Promise<any> {
+    return this.rpc('cron.runs', { scope: 'all', limit: 50, sortDir: 'desc', ...params });
   }
 
   getConnectionState(): ConnectionState {

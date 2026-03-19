@@ -1,16 +1,63 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/useAppStore';
 import {
-  Bot, FileCode2, Activity, LogOut, Building2,
+  Bot, ScrollText, LogOut, Building2, Clock,
   WifiOff, RefreshCw, AlertCircle, Loader2
 } from 'lucide-react';
+
+const BRAND_KEY = 'openclaw:brand';
+const DEFAULT_TITLE = 'OpenClaw';
+const DEFAULT_SUBTITLE = 'Control Panel';
+
+function useBrand() {
+  const [title, setTitleRaw] = useState(() => localStorage.getItem(BRAND_KEY + ':title') ?? DEFAULT_TITLE);
+  const [subtitle, setSubtitleRaw] = useState(() => localStorage.getItem(BRAND_KEY + ':subtitle') ?? DEFAULT_SUBTITLE);
+  const setTitle = (v: string) => { setTitleRaw(v); localStorage.setItem(BRAND_KEY + ':title', v); };
+  const setSubtitle = (v: string) => { setSubtitleRaw(v); localStorage.setItem(BRAND_KEY + ':subtitle', v); };
+  return { title, subtitle, setTitle, setSubtitle };
+}
+
+function BrandEditor({ title, subtitle, onSave, onCancel }: {
+  title: string; subtitle: string;
+  onSave: (t: string, s: string) => void;
+  onCancel: () => void;
+}) {
+  const [t, setT] = useState(title);
+  const [s, setS] = useState(subtitle);
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => ref.current?.focus(), []);
+  return (
+    <form
+      onSubmit={e => { e.preventDefault(); onSave(t.trim() || DEFAULT_TITLE, s.trim()); }}
+      className="space-y-1.5"
+    >
+      <input
+        ref={ref}
+        value={t}
+        onChange={e => setT(e.target.value)}
+        className="w-full bg-slate-800 border border-slate-600 text-white text-sm font-semibold px-2 py-1 rounded focus:outline-none focus:border-indigo-500"
+        placeholder="名称"
+      />
+      <input
+        value={s}
+        onChange={e => setS(e.target.value)}
+        className="w-full bg-slate-800 border border-slate-600 text-slate-400 text-xs px-2 py-1 rounded focus:outline-none focus:border-indigo-500"
+        placeholder="副标题"
+      />
+      <div className="flex gap-1 pt-0.5">
+        <button type="submit" className="flex-1 py-1 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded transition-colors">保存</button>
+        <button type="button" onClick={onCancel} className="flex-1 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">取消</button>
+      </div>
+    </form>
+  );
+}
 
 const NAV_ITEMS = [
   { path: '/agents', label: 'Agents', icon: Bot },
   { path: '/org', label: '组织', icon: Building2 },
-  { path: '/editor', label: 'Editor', icon: FileCode2 },
-  { path: '/monitor', label: 'Monitor', icon: Activity },
+  { path: '/cron', label: '定时', icon: Clock },
+  { path: '/monitor', label: '日志', icon: ScrollText },
 ];
 
 function StatusDot({ status }: { status: string }) {
@@ -49,23 +96,39 @@ function StatusDot({ status }: { status: string }) {
 export function DashboardLayout() {
   const location = useLocation();
   const { connectionStatus, disconnect } = useAppStore();
-  const currentPage = location.pathname.split('/')[1] || 'dashboard';
+  const { title, subtitle, setTitle, setSubtitle } = useBrand();
+  const [editingBrand, setEditingBrand] = useState(false);
 
   return (
     <div className="h-screen flex bg-slate-50">
       {/* Sidebar */}
       <aside className="w-56 bg-slate-900 flex flex-col shrink-0">
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-base">
-              🦞
+        <div className="px-4 py-4 border-b border-slate-800">
+          {editingBrand ? (
+            <div className="px-1">
+              <BrandEditor
+                title={title}
+                subtitle={subtitle}
+                onSave={(t, s) => { setTitle(t); setSubtitle(s); setEditingBrand(false); }}
+                onCancel={() => setEditingBrand(false)}
+              />
             </div>
-            <div>
-              <p className="text-white font-semibold text-sm leading-tight">OpenClaw</p>
-              <p className="text-slate-500 text-xs">Control Panel</p>
-            </div>
-          </div>
+          ) : (
+            <button
+              onClick={() => setEditingBrand(true)}
+              className="w-full flex items-center gap-2.5 text-left group rounded-lg px-1 py-0.5 hover:bg-slate-800 transition-colors"
+              title="点击编辑名称"
+            >
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-base shrink-0">
+                🦞
+              </div>
+              <div className="min-w-0">
+                <p className="text-white font-semibold text-sm leading-tight truncate">{title}</p>
+                {subtitle && <p className="text-slate-500 text-xs truncate">{subtitle}</p>}
+              </div>
+            </button>
+          )}
         </div>
 
         {/* Nav */}
@@ -102,23 +165,12 @@ export function DashboardLayout() {
             <LogOut className="w-4 h-4" />
             Disconnect
           </button>
+          <p className="px-3 pt-1 text-[10px] text-slate-600 font-mono">v{__BUILD_DATE__}</p>
         </div>
       </aside>
 
       {/* Main */}
       <main className="flex-1 overflow-hidden flex flex-col min-w-0">
-        {/* Top bar */}
-        <div className="h-12 border-b border-slate-200 bg-white flex items-center px-6 shrink-0 gap-2">
-          <span className="text-slate-400 text-sm">/</span>
-          <span className="text-slate-700 text-sm font-medium capitalize">{currentPage}</span>
-          {connectionStatus !== 'connected' && (
-            <div className="ml-auto">
-              <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                Gateway offline
-              </span>
-            </div>
-          )}
-        </div>
         <div className="flex-1 overflow-auto">
           <Outlet />
         </div>

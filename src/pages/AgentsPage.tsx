@@ -25,12 +25,24 @@ function getInitials(id: string, name?: string) {
   return src.slice(0, 2).toUpperCase();
 }
 
-function ModelBadge({ model }: { model?: string }) {
+function ModelBadge({ model }: { model?: string | { primary: string; fallbacks?: string[] } }) {
   if (!model) return <span className="text-slate-400 text-xs">Default</span>;
-  const short = model.split('/').pop() || model;
+  if (typeof model === 'string') {
+    const short = model.split('/').pop() || model;
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-mono border border-slate-200">
+        {short}
+      </span>
+    );
+  }
+  const short = (model.primary || '').split('/').pop() || model.primary;
+  const fbCount = model.fallbacks?.length ?? 0;
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-mono border border-slate-200">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-mono border border-slate-200">
       {short}
+      {fbCount > 0 && (
+        <span className="text-slate-400">+{fbCount}</span>
+      )}
     </span>
   );
 }

@@ -237,9 +237,11 @@ export interface AgentChatProps {
   agentName: string;
   workspace: string;
   onClose: () => void;
+  /** If set, auto-send this message once after the session history loads. */
+  autoSendMessage?: string;
 }
 
-export function AgentChat({ agentId, agentName, workspace: _workspace, onClose }: AgentChatProps) {
+export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, autoSendMessage }: AgentChatProps) {
   // Session keys must use the gateway format: "agent:<agentId>:<scope>"
   // so the gateway can parse the agentId and route to the correct agent.
   const defaultSessionKey = `agent:${agentId}:main`;
@@ -277,6 +279,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose }
   const streamTextRef = useRef('');
   const activeRunIdRef = useRef<string | null>(null);
   const preSendCountRef = useRef(0);
+  const autoSentRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const cmdListRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -389,6 +392,25 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose }
     const timer = setInterval(poll, 2000);
     return () => clearInterval(timer);
   }, [sending, sessionKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── auto-send initial message ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (!autoSendMessage || autoSentRef.current || histLoading || sending) return;
+    autoSentRef.current = true;
+    preSendCountRef.current = messages.length;
+    setMessages(prev => [...prev, { role: 'user', content: autoSendMessage }]);
+    setSending(true);
+    setSendError('');
+    streamTextRef.current = '';
+    setStreamText('');
+    client.chatSend(sessionKey, autoSendMessage).then(res => {
+      activeRunIdRef.current = res.runId;
+      setRunId(res.runId);
+    }).catch((e: any) => {
+      setSending(false);
+      setSendError(e.message || 'Failed to send');
+    });
+  }, [autoSendMessage, histLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── auto-scroll command list ──────────────────────────────────────────────────
   useEffect(() => {

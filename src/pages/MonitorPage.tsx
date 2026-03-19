@@ -1,134 +1,301 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { client } from '../api/gateway';
-import type { GatewayEvent } from '../api/gateway';
-import { Trash2, Pause, Play } from 'lucide-react';
+import { RefreshCw, Download, X } from 'lucide-react';
 
-const EVENT_COLORS: Record<string, string> = {
-  'event': 'text-indigo-400',
-  'res': 'text-emerald-400',
-  'req': 'text-amber-400',
-  'error': 'text-red-400',
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+
+type LogEntry = {
+  raw: string;
+  time?: string | null;
+  level?: LogLevel | null;
+  subsystem?: string | null;
+  message?: string | null;
 };
 
-function getEventColor(type: string) {
-  return EVENT_COLORS[type] || 'text-slate-400';
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const LEVELS: LogLevel[] = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
+const LEVELS_SET = new Set<string>(LEVELS);
+const LOG_BUFFER = 2000;
+
+const LEVEL_STYLES: Record<LogLevel, { chip: string; row: string; label: string }> = {
+  trace: { chip: 'text-slate-500 bg-slate-800 border-slate-700',      row: '',                        label: 'text-slate-500' },
+  debug: { chip: 'text-slate-400 bg-slate-800 border-slate-600',      row: '',                        label: 'text-slate-400' },
+  info:  { chip: 'text-sky-400   bg-sky-950/50  border-sky-800',      row: 'bg-sky-950/20',           label: 'text-sky-400'   },
+  warn:  { chip: 'text-amber-400 bg-amber-950/50 border-amber-700',   row: 'bg-amber-950/20',         label: 'text-amber-400' },
+  error: { chip: 'text-red-400   bg-red-950/50  border-red-700',      row: 'bg-red-950/20',           label: 'text-red-400'   },
+  fatal: { chip: 'text-red-300   bg-red-900/60  border-red-600',      row: 'bg-red-950/40',           label: 'text-red-300'   },
+};
+
+// ── Parsers ───────────────────────────────────────────────────────────────────
+
+function stripAnsi(text: string): string {
+  return text
+    .replace(/\x1b\]8;;.*?\x1b\\/g, '')
+    .replace(/\x1b\[[0-9;]*m/g, '');
 }
 
-function getEventBg(type: string) {
-  if (type === 'error') return 'border-l-red-500';
-  if (type === 'res') return 'border-l-emerald-600';
-  if (type === 'req') return 'border-l-amber-500';
-  return 'border-l-indigo-500';
+function normalizeLevel(value: unknown): LogLevel | null {
+  if (typeof value !== 'string') return null;
+  const l = value.toLowerCase();
+  return LEVELS_SET.has(l) ? (l as LogLevel) : null;
 }
 
-interface LogEntry extends GatewayEvent {
-  ts: number;
-  id: number;
+function parseMaybeJson(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== 'string') return null;
+  const t = value.trim();
+  if (!t.startsWith('{') || !t.endsWith('}')) return null;
+  try {
+    const p = JSON.parse(t);
+    return p && typeof p === 'object' ? (p as Record<string, unknown>) : null;
+  } catch { return null; }
 }
 
-let _id = 0;
+function parseLogLine(raw: string): LogEntry {
+  const clean = stripAnsi(raw);
+  if (!clean.trim()) return { raw: clean, message: clean };
+  try {
+    const obj = JSON.parse(clean) as Record<string, unknown>;
+    const meta = obj._meta && typeof obj._meta === 'object'
+      ? (obj._meta as Record<string, unknown>) : null;
+    const time = typeof obj.time === 'string' ? obj.time
+      : typeof meta?.date === 'string' ? (meta.date as string) : null;
+    const level = normalizeLevel(meta?.logLevelName ?? meta?.level);
+    const contextCandidate = typeof obj['0'] === 'string' ? obj['0']
+      : typeof meta?.name === 'string' ? (meta.name as string) : null;
+    const contextObj = parseMaybeJson(contextCandidate);
+    let subsystem: string | null = null;
+    if (contextObj) {
+      subsystem = typeof contextObj.subsystem === 'string' ? contextObj.subsystem
+        : typeof contextObj.module === 'string' ? contextObj.module : null;
+    }
+    if (!subsystem && contextCandidate && contextCandidate.length < 120) subsystem = contextCandidate;
+    let message: string | null = null;
+    if (typeof obj['1'] === 'string') message = obj['1'];
+    else if (typeof obj['2'] === 'string') message = obj['2'];
+    else if (!contextObj && typeof obj['0'] === 'string') message = obj['0'];
+    else if (typeof obj.message === 'string') message = obj.message;
+    return { raw: clean, time, level, subsystem, message: message ?? clean };
+  } catch {
+    return { raw: clean, message: clean };
+  }
+}
+
+function formatTime(value?: string | null): string {
+  if (!value) return '';
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? value : d.toLocaleTimeString();
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function MonitorPage() {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [paused, setPaused] = useState(false);
-  const pausedRef = useRef(false);
+  const [entries, setEntries] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [file, setFile] = useState<string | null>(null);
+  const [truncated, setTruncated] = useState(false);
+  const [cursor, setCursor] = useState<number | null>(null);
+  const [autoFollow, setAutoFollow] = useState(true);
+  const [filterText, setFilterText] = useState('');
+  const [levelFilters, setLevelFilters] = useState<Record<LogLevel, boolean>>(
+    Object.fromEntries(LEVELS.map(l => [l, true])) as Record<LogLevel, boolean>
+  );
+
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [autoScroll, setAutoScroll] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const cursorRef = useRef<number | null>(null);
+  cursorRef.current = cursor;
 
-  pausedRef.current = paused;
-
-  useEffect(() => {
-    const unsubscribe = client.onEvent((event) => {
-      if (pausedRef.current) return;
-      setLogs(prev => [...prev, { ...event, ts: Date.now(), id: _id++ }].slice(-200));
-    });
-    return unsubscribe;
+  const load = useCallback(async (reset?: boolean) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await client.logsTail({
+        cursor: reset ? undefined : (cursorRef.current ?? undefined),
+        limit: 500,
+        maxBytes: 512 * 1024,
+      });
+      const lines = Array.isArray(res.lines)
+        ? res.lines.filter((l): l is string => typeof l === 'string')
+        : [];
+      const parsed = lines.map(parseLogLine);
+      const shouldReset = reset || res.reset || cursorRef.current == null;
+      setEntries(prev => shouldReset ? parsed : [...prev, ...parsed].slice(-LOG_BUFFER));
+      if (typeof res.cursor === 'number') setCursor(res.cursor);
+      if (typeof res.file === 'string') setFile(res.file);
+      setTruncated(Boolean(res.truncated));
+    } catch (e: any) {
+      setError(e.message || '加载失败');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  // Initial load + polling every 3s
   useEffect(() => {
-    if (autoScroll && !paused) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [logs, autoScroll, paused]);
+    load(true);
+    const timer = setInterval(() => load(), 3000);
+    return () => clearInterval(timer);
+  }, [load]);
 
-  const formatTime = (ts: number) => {
-    const d = new Date(ts);
-    return d.toTimeString().slice(0, 8) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+  // Auto-follow scroll
+  useEffect(() => {
+    if (autoFollow) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [entries, autoFollow]);
+
+  const handleScroll = () => {
+    if (!scrollRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+    setAutoFollow(scrollHeight - scrollTop - clientHeight < 60);
+  };
+
+  const needle = filterText.trim().toLowerCase();
+  const filtered = entries.filter(e => {
+    if (e.level && !levelFilters[e.level]) return false;
+    if (!needle) return true;
+    return [e.message, e.subsystem, e.raw].filter(Boolean).join(' ').toLowerCase().includes(needle);
+  });
+
+  const handleExport = () => {
+    const text = filtered.map(e => e.raw).join('\n');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'gateway.log'; a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-950">
+    <div className="h-full flex flex-col bg-slate-950 text-slate-300">
+
       {/* Toolbar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-800 bg-slate-900 shrink-0">
-        <span className="text-slate-400 text-xs font-medium uppercase tracking-wide">Event Log</span>
-        <span className="text-slate-600 text-xs">{logs.length} events</span>
-        <div className="ml-auto flex items-center gap-2">
-          <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer">
+      <div className="shrink-0 px-4 py-2 border-b border-slate-800 bg-slate-900 flex items-center gap-3 flex-wrap">
+        <span className="text-slate-400 text-xs font-medium uppercase tracking-wide">网关日志</span>
+        <span className="text-slate-600 text-xs">
+          {filtered.length === entries.length ? `${entries.length} 条` : `${filtered.length} / ${entries.length} 条`}
+        </span>
+
+        {/* Level filter chips */}
+        <div className="flex gap-1 flex-wrap">
+          {LEVELS.map(level => {
+            const active = levelFilters[level];
+            const s = LEVEL_STYLES[level];
+            return (
+              <label
+                key={level}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-mono cursor-pointer transition-colors select-none ${
+                  active ? s.chip : 'text-slate-700 bg-slate-900 border-slate-800'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={active}
+                  onChange={e => setLevelFilters(prev => ({ ...prev, [level]: e.target.checked }))}
+                />
+                {level}
+              </label>
+            );
+          })}
+        </div>
+
+        {/* Right controls */}
+        <div className="flex items-center gap-2 ml-auto">
+          <div className="relative">
+            <input
+              value={filterText}
+              onChange={e => setFilterText(e.target.value)}
+              placeholder="搜索..."
+              className="bg-slate-800 border border-slate-700 text-slate-300 text-xs px-2.5 py-1 rounded w-36 focus:outline-none focus:border-indigo-500 placeholder-slate-600"
+            />
+            {filterText && (
+              <button
+                onClick={() => setFilterText('')}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+          <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer select-none">
             <input
               type="checkbox"
-              checked={autoScroll}
-              onChange={e => setAutoScroll(e.target.checked)}
+              checked={autoFollow}
+              onChange={e => setAutoFollow(e.target.checked)}
               className="w-3 h-3 accent-indigo-500"
             />
-            Auto-scroll
+            跟随
           </label>
           <button
-            onClick={() => setPaused(p => !p)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-              paused
-                ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-            }`}
+            onClick={() => load(true)}
+            disabled={loading}
+            className="flex items-center gap-1 px-2.5 py-1 rounded text-xs text-slate-400 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors disabled:opacity-50"
           >
-            {paused ? <><Play className="w-3 h-3" /> Resume</> : <><Pause className="w-3 h-3" /> Pause</>}
+            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+            刷新
           </button>
           <button
-            onClick={() => setLogs([])}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs text-slate-400 bg-slate-800 hover:bg-slate-700 transition-colors"
+            onClick={handleExport}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-1 px-2.5 py-1 rounded text-xs text-slate-400 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors disabled:opacity-50"
           >
-            <Trash2 className="w-3 h-3" />
-            Clear
+            <Download className="w-3 h-3" />
+            导出
           </button>
         </div>
       </div>
 
+      {/* Status bar */}
+      {(file || truncated || error) && (
+        <div className="shrink-0 px-4 py-1 bg-slate-900/80 border-b border-slate-800 flex items-center gap-4 text-[10px]">
+          {file && <span className="text-slate-600 font-mono truncate">{file}</span>}
+          {truncated && <span className="text-amber-500">日志已截断，仅显示最新部分</span>}
+          {error && <span className="text-red-400">{error}</span>}
+        </div>
+      )}
+
       {/* Log area */}
-      <div className="flex-1 overflow-auto font-mono text-xs">
-        {logs.length === 0 ? (
+      <div ref={scrollRef} className="flex-1 overflow-auto font-mono text-xs" onScroll={handleScroll}>
+        {entries.length === 0 && !loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="w-2 h-2 rounded-full bg-indigo-500 animate-ping mx-auto mb-3" />
-              <p className="text-slate-600">Waiting for events…</p>
+              <p className="text-slate-600">等待日志…</p>
             </div>
           </div>
         ) : (
-          <div className="divide-y divide-slate-900">
-            {logs.map(log => (
-              <div
-                key={log.id}
-                className={`flex gap-3 px-4 py-2 hover:bg-slate-900/50 border-l-2 ${getEventBg(log.type)}`}
-              >
-                <span className="text-slate-600 shrink-0 w-28">{formatTime(log.ts)}</span>
-                <span className={`shrink-0 w-14 ${getEventColor(log.type)}`}>
-                  [{log.type}]
-                </span>
-                <span className="text-slate-300 break-all leading-relaxed">
-                  {typeof log.data === 'object'
-                    ? JSON.stringify(log.data)
-                    : String(log.data ?? '')}
-                </span>
-              </div>
-            ))}
-          </div>
+          <table className="w-full border-collapse">
+            <tbody>
+              {filtered.map((entry, i) => {
+                const s = entry.level ? LEVEL_STYLES[entry.level] : null;
+                return (
+                  <tr
+                    key={i}
+                    className={`border-b border-slate-900/60 hover:bg-slate-800/30 ${s?.row ?? ''}`}
+                  >
+                    <td className="pl-4 pr-2 py-0.5 text-slate-600 whitespace-nowrap align-top w-24">
+                      {formatTime(entry.time)}
+                    </td>
+                    <td className={`px-2 py-0.5 whitespace-nowrap align-top w-12 ${s?.label ?? 'text-slate-600'}`}>
+                      {entry.level ?? ''}
+                    </td>
+                    <td className="px-2 py-0.5 text-slate-500 whitespace-nowrap align-top w-40 max-w-[10rem] truncate">
+                      {entry.subsystem ?? ''}
+                    </td>
+                    <td className="px-2 py-0.5 pr-4 text-slate-300 break-all leading-relaxed align-top">
+                      {entry.message ?? entry.raw}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
         <div ref={bottomRef} />
       </div>
-
-      {paused && (
-        <div className="shrink-0 px-4 py-2 bg-amber-500/10 border-t border-amber-500/20 text-amber-400 text-xs text-center">
-          Paused — new events are being dropped
-        </div>
-      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { client } from '../../api/gateway';
-import { X, AlertCircle, Loader2 } from 'lucide-react';
+import { X, AlertCircle, Loader2, Plus, Trash2 } from 'lucide-react';
 
 interface AgentFormProps {
   agent?: { id: string; config: any };
@@ -24,20 +24,32 @@ function Field({ label, required, hint, children }: {
 
 const inputCls = "w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition bg-white disabled:bg-slate-50 disabled:text-slate-500";
 
+function parseModelCfg(m: any): { primary: string; fallbacks: string[] } {
+  if (!m) return { primary: 'kimi-coding/k2p5', fallbacks: [] };
+  if (typeof m === 'string') return { primary: m, fallbacks: [] };
+  return { primary: m.primary || '', fallbacks: Array.isArray(m.fallbacks) ? [...m.fallbacks] : [] };
+}
+
 export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
   const isEditing = !!agent;
   const [form, setForm] = useState({
     id: agent?.id || '',
     name: agent?.config?.name || '',
     workspace: agent?.config?.workspace || '',
-    model: agent?.config?.model || 'kimi-coding/k2p5',
-    description: agent?.config?.description || '',
-    enabled: agent?.config?.enabled ?? true,
   });
+
+  const initModel = parseModelCfg(agent?.config?.model);
+  const [modelPrimary, setModelPrimary] = useState(initModel.primary);
+  const [modelFallbacks, setModelFallbacks] = useState<string[]>(initModel.fallbacks);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
+
+  const addFallback = () => setModelFallbacks(f => [...f, '']);
+  const removeFallback = (i: number) => setModelFallbacks(f => f.filter((_, idx) => idx !== i));
+  const setFallback = (i: number, v: string) => setModelFallbacks(f => f.map((x, idx) => idx === i ? v : x));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +66,12 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
         subagents: { allowAgents: ['*'] },
         tools: { profile: 'full' },
       };
-      if (form.model) cfg.model = form.model;
+      const fallbacks = modelFallbacks.map(f => f.trim()).filter(Boolean);
+      if (modelPrimary.trim()) {
+        cfg.model = fallbacks.length > 0
+          ? { primary: modelPrimary.trim(), fallbacks }
+          : modelPrimary.trim();
+      }
       // config.patch merges partial config using mergeObjectArraysById (matches by `id`)
       // and writes + restarts in one step. baseHash is required for optimistic concurrency.
       const currentCfg = await client.configGet();
@@ -120,33 +137,44 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
             />
           </Field>
 
-          <Field label="Model">
-            <input
-              className={inputCls}
-              value={form.model}
-              onChange={e => set('model', e.target.value)}
-              placeholder="e.g. kimi-coding/k2p5"
-            />
-          </Field>
-
-          <Field label="Description">
-            <textarea
-              className={`${inputCls} h-20 resize-none`}
-              value={form.description}
-              onChange={e => set('description', e.target.value)}
-              placeholder="Brief description of this agent's purpose…"
-            />
-          </Field>
-
-          <label className="flex items-center gap-2.5 cursor-pointer">
-            <div
-              onClick={() => set('enabled', !form.enabled)}
-              className={`relative w-9 h-5 rounded-full transition-colors ${form.enabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
-            >
-              <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.enabled ? 'translate-x-4' : ''}`} />
+          <Field label="Model" hint="支持 provider/model 格式，可添加 Fallback 模型">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  className={`${inputCls} flex-1`}
+                  value={modelPrimary}
+                  onChange={e => setModelPrimary(e.target.value)}
+                  placeholder="e.g. kimi-coding/k2p5"
+                />
+              </div>
+              {modelFallbacks.map((fb, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 w-16 shrink-0 text-right">fallback {i + 1}</span>
+                  <input
+                    className={`${inputCls} flex-1`}
+                    value={fb}
+                    onChange={e => setFallback(i, e.target.value)}
+                    placeholder="e.g. openai/gpt-4o"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFallback(i)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addFallback}
+                className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-500 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Fallback
+              </button>
             </div>
-            <span className="text-sm text-slate-700">Enabled</span>
-          </label>
+          </Field>
 
           {/* Footer */}
           <div className="flex justify-end gap-2 pt-2">

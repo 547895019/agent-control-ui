@@ -1,5 +1,5 @@
 import { createServer } from 'http';
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, unlinkSync, statSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 
@@ -70,6 +70,20 @@ const server = createServer((req, res) => {
   }
 
   if (req.method === 'DELETE') {
+    // Delete directory: DELETE /?dir=path
+    if (url.searchParams.has('dir')) {
+      const dirPath = resolvePath(url.searchParams.get('dir') ?? '');
+      try {
+        rmSync(dirPath, { recursive: true, force: true });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+      return;
+    }
+    // Delete file: DELETE /?path=path
     try {
       unlinkSync(filePath);
       res.writeHead(200, { 'Content-Type': 'application/json' });
