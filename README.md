@@ -40,13 +40,52 @@ openclaw-ui update
 
 ## 从源码安装
 
+适合需要二次开发或无法访问 npm registry 的场景。
+
 ```bash
+# 1. 克隆仓库
+git clone https://github.com/547895019/agent-control-ui.git
+cd agent-control-ui
+
+# 2. 安装依赖
 npm install
+
+# 3. 构建生产包
+npm run build
+
+# 4. 注册系统服务并启动（需要 sudo）
+node bin/cli.mjs install
 ```
+
+访问 `http://服务器IP:8080`，在登录页输入后端地址和 Token。
+
+**自定义端口：**
+```bash
+PORT=3000 node bin/cli.mjs install
+```
+
+**从源码更新版本：**
+```bash
+git pull
+npm install
+npm run build
+sudo systemctl restart openclaw-ui
+```
+
+**常用管理命令：**
+```bash
+sudo systemctl status  openclaw-ui
+sudo systemctl stop    openclaw-ui
+sudo systemctl restart openclaw-ui
+sudo journalctl -u openclaw-ui -f   # 查看日志
+```
+
+---
 
 ## 开发模式
 
 ```bash
+npm install
 npm run dev
 ```
 
