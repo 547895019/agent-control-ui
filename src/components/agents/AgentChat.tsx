@@ -149,17 +149,17 @@ function getCompletions(filter: string): SlashCmd[] {
 function ToolBlock({ name, args }: { name: string; args: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="mt-1 rounded-lg border border-slate-200 bg-slate-50 text-xs overflow-hidden">
+    <div className="mt-1 rounded-lg border border-white/20 bg-white/8 text-xs overflow-hidden">
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-slate-500 hover:bg-slate-100 transition-colors text-left"
+        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-white/50 hover:bg-white/10 transition-colors text-left"
       >
         {open ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
         <Wrench className="w-3 h-3 shrink-0 text-amber-500" />
         <span className="font-mono">{name}</span>
       </button>
       {open && args && (
-        <pre className="px-3 py-2 text-slate-600 overflow-x-auto leading-relaxed border-t border-slate-200 whitespace-pre-wrap font-mono">
+        <pre className="px-3 py-2 text-white/70 overflow-x-auto leading-relaxed border-t border-white/20 whitespace-pre-wrap font-mono">
           {args}
         </pre>
       )}
@@ -171,16 +171,16 @@ function ThinkingBlock({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   if (!text.trim()) return null;
   return (
-    <div className="mt-1 rounded-lg border border-indigo-100 bg-indigo-50/50 text-xs overflow-hidden">
+    <div className="mt-1 rounded-lg border border-indigo-500/20 bg-indigo-500/10 text-xs overflow-hidden">
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-indigo-400 hover:bg-indigo-50 transition-colors text-left"
+        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-indigo-300 hover:bg-indigo-500/15 transition-colors text-left"
       >
         {open ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
         <span className="italic">思考过程</span>
       </button>
       {open && (
-        <p className="px-3 py-2 text-indigo-600 leading-relaxed border-t border-indigo-100 whitespace-pre-wrap">
+        <p className="px-3 py-2 text-indigo-300 leading-relaxed border-t border-indigo-500/20 whitespace-pre-wrap">
           {text}
         </p>
       )}
@@ -204,13 +204,13 @@ function ChatBubble({ role, content }: { role: 'user' | 'assistant'; content: an
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 ${
-        isUser ? 'bg-indigo-100' : 'bg-slate-100'
+        isUser ? 'bg-indigo-500/30' : 'bg-white/10'
       }`}>
-        {isUser ? <User className="w-3.5 h-3.5 text-indigo-600" /> : <Bot className="w-3.5 h-3.5 text-slate-500" />}
+        {isUser ? <User className="w-3.5 h-3.5 text-indigo-300" /> : <Bot className="w-3.5 h-3.5 text-white/50" />}
       </div>
       <div className={`max-w-[78%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
         {imageBlocks.map((b, i) => (
-          <img key={i} src={b.dataUrl} alt="attachment" className="max-w-xs max-h-64 rounded-xl object-cover border border-slate-200" />
+          <img key={i} src={b.dataUrl} alt="attachment" className="max-w-xs max-h-64 rounded-xl object-cover border border-white/20" />
         ))}
         {displayText && (
           <div className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
@@ -799,15 +799,15 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
       <div className="glass-heavy rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 shrink-0">
-          <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
-            <MessageSquare className="w-4 h-4 text-indigo-600" />
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/10 shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-indigo-500/30 flex items-center justify-center shrink-0">
+            <MessageSquare className="w-4 h-4 text-indigo-300" />
           </div>
           <div className="min-w-0 flex-1">
             <span className="font-semibold text-white text-sm">{agentName}</span>
-            <span className="text-slate-400 text-xs ml-2 truncate hidden sm:inline">{sessionTitle}</span>
+            <span className="text-white/40 text-xs ml-2 truncate hidden sm:inline">{sessionTitle}</span>
           </div>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0">
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -816,17 +816,17 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
         <div className="flex flex-1 min-h-0">
 
           {/* Session sidebar — hidden in focus mode */}
-          <div className={`w-48 shrink-0 border-r border-slate-100 flex flex-col transition-all ${focusMode ? 'hidden' : ''}`}>
-            <div className="px-3 py-2 border-b border-slate-50">
-              <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">会话列表</span>
+          <div className={`w-48 shrink-0 border-r border-white/10 flex flex-col transition-all ${focusMode ? 'hidden' : ''}`}>
+            <div className="px-3 py-2 border-b border-white/8">
+              <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider">会话列表</span>
             </div>
             <div className="flex-1 overflow-y-auto">
               {sessionsLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                  <Loader2 className="w-4 h-4 animate-spin text-white/40" />
                 </div>
               ) : sessions.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-6 px-3">暂无会话</p>
+                <p className="text-xs text-white/40 text-center py-6 px-3">暂无会话</p>
               ) : (
                 sessions.map(s => {
                   const title = s.derivedTitle ?? s.title ?? s.key.slice(0, 12) + '…';
@@ -836,25 +836,25 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                     <button
                       key={s.key}
                       onClick={() => setActiveKey(s.key)}
-                      className={`w-full text-left px-3 py-2.5 border-b border-slate-50 transition-colors ${
+                      className={`w-full text-left px-3 py-2.5 border-b border-white/8 transition-colors ${
                         isActive
-                          ? 'bg-indigo-50 border-l-2 border-l-indigo-500'
-                          : 'hover:bg-slate-50 border-l-2 border-l-transparent'
+                          ? 'bg-indigo-500/15 border-l-2 border-l-indigo-400'
+                          : 'hover:bg-white/8 border-l-2 border-l-transparent'
                       }`}
                     >
-                      <p className={`text-xs font-medium truncate ${isActive ? 'text-indigo-700' : 'text-slate-700'}`}>
+                      <p className={`text-xs font-medium truncate ${isActive ? 'text-indigo-300' : 'text-white/80'}`}>
                         {title}
                       </p>
-                      {date && <p className="text-[10px] text-slate-400 mt-0.5">{date}</p>}
+                      {date && <p className="text-[10px] text-white/40 mt-0.5">{date}</p>}
                     </button>
                   );
                 })
               )}
             </div>
-            <div className="border-t border-slate-100 p-2">
+            <div className="border-t border-white/10 p-2">
               <button
                 onClick={handleNewSession}
-                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-white/40 hover:text-indigo-300 hover:bg-indigo-500/15 rounded-lg transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 新建会话
@@ -869,18 +869,18 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               {histLoading ? (
                 <div className="flex items-center justify-center py-16">
-                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                  <Loader2 className="w-5 h-5 animate-spin text-white/40" />
                 </div>
               ) : histError ? (
-                <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg text-sm text-amber-600">
+                <div className="flex items-center gap-2 p-3 bg-amber-500/15 rounded-lg text-sm text-amber-300">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   {histError} — 开始发送消息即可开启新会话
                 </div>
               ) : messages.length === 0 && !streamText ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <Bot className="w-12 h-12 text-slate-200 mb-3" />
-                  <p className="text-sm text-slate-400">向 {agentName} 发送消息开始对话</p>
-                  <p className="text-xs text-slate-300 mt-1">输入 / 查看快捷命令</p>
+                  <Bot className="w-12 h-12 text-white/20 mb-3" />
+                  <p className="text-sm text-white/40">向 {agentName} 发送消息开始对话</p>
+                  <p className="text-xs text-white/30 mt-1">输入 / 查看快捷命令</p>
                 </div>
               ) : (
                 messages.map((msg, i) => (
@@ -891,12 +891,12 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
               {/* Streaming bubble */}
               {streamText && (
                 <div className="flex gap-3">
-                  <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 bg-slate-100">
-                    <Bot className="w-3.5 h-3.5 text-slate-500" />
+                  <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 bg-white/10">
+                    <Bot className="w-3.5 h-3.5 text-white/50" />
                   </div>
                   <div className="max-w-[78%] bg-white/10 text-white/85 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap">
                     {streamText}
-                    <span className="inline-block w-0.5 h-3.5 bg-slate-400 ml-0.5 align-middle animate-pulse" />
+                    <span className="inline-block w-0.5 h-3.5 bg-white/50 ml-0.5 align-middle animate-pulse" />
                   </div>
                 </div>
               )}
@@ -904,14 +904,14 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
               {/* Typing indicator */}
               {sending && !streamText && (
                 <div className="flex gap-3">
-                  <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 bg-slate-100">
-                    <Bot className="w-3.5 h-3.5 text-slate-500" />
+                  <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 bg-white/10">
+                    <Bot className="w-3.5 h-3.5 text-white/50" />
                   </div>
-                  <div className="bg-slate-100 rounded-2xl rounded-tl-sm px-3.5 py-3">
+                  <div className="bg-white/10 rounded-2xl rounded-tl-sm px-3.5 py-3">
                     <div className="flex gap-1 items-center">
-                      <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <span className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                     </div>
                   </div>
                 </div>
@@ -922,14 +922,14 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
 
             {/* Error bar */}
             {sendError && (
-              <div className="px-5 py-2 bg-red-50 text-xs text-red-600 flex items-center gap-2 shrink-0">
+              <div className="px-5 py-2 bg-red-500/15 text-xs text-red-300 flex items-center gap-2 shrink-0">
                 <AlertCircle className="w-3 h-3 shrink-0" />
                 {sendError}
               </div>
             )}
 
             {/* Input area */}
-            <div className="px-4 pb-4 pt-2 shrink-0 border-t border-slate-100 relative">
+            <div className="px-4 pb-4 pt-2 shrink-0 border-t border-white/10 relative">
 
               {/* Slash command dropdown */}
               {showCmds && (
@@ -938,25 +938,25 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                   {/* ── Args mode: show argOptions for the selected command ── */}
                   {cmdMode === 'args' && argCmd && filteredArgs.length > 0 && (
                     <>
-                      <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
-                        <span className="text-[10px] font-semibold text-indigo-500 font-mono">{argCmd.cmd}</span>
-                        <span className="text-[10px] text-slate-400">{argCmd.desc}</span>
-                        <span className="ml-auto text-[10px] text-slate-300">Tab 填入 · Enter 执行</span>
+                      <div className="px-3 py-1.5 bg-white/8 border-b border-white/10 flex items-center gap-2">
+                        <span className="text-[10px] font-semibold text-indigo-300 font-mono">{argCmd.cmd}</span>
+                        <span className="text-[10px] text-white/40">{argCmd.desc}</span>
+                        <span className="ml-auto text-[10px] text-white/30">Tab 填入 · Enter 执行</span>
                       </div>
                       {filteredArgs.map((arg, i) => (
                         <button
                           key={arg}
                           onClick={() => selectArg(arg, true)}
                           className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
-                            i === cmdIdx ? 'bg-indigo-50' : 'hover:bg-slate-50'
+                            i === cmdIdx ? 'bg-indigo-500/15' : 'hover:bg-white/8'
                           }`}
                         >
                           <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${
-                            i === cmdIdx ? 'bg-indigo-100' : 'bg-slate-100'
+                            i === cmdIdx ? 'bg-indigo-500/30' : 'bg-white/10'
                           }`}>
-                            <Hash className={`w-2.5 h-2.5 ${i === cmdIdx ? 'text-indigo-600' : 'text-slate-400'}`} />
+                            <Hash className={`w-2.5 h-2.5 ${i === cmdIdx ? 'text-indigo-300' : 'text-white/40'}`} />
                           </div>
-                          <span className={`text-xs font-mono font-medium ${i === cmdIdx ? 'text-indigo-700' : 'text-slate-700'}`}>
+                          <span className={`text-xs font-mono font-medium ${i === cmdIdx ? 'text-indigo-300' : 'text-white/80'}`}>
                             {arg}
                           </span>
                         </button>
@@ -972,8 +972,8 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                       if (c.category !== lastCat) {
                         lastCat = c.category;
                         items.push(
-                          <div key={`cat-${c.category}`} className="px-3 py-1 bg-slate-50 border-b border-slate-100">
-                            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                          <div key={`cat-${c.category}`} className="px-3 py-1 bg-white/8 border-b border-white/10">
+                            <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
                               {CATEGORY_LABELS[c.category]}
                             </span>
                           </div>
@@ -984,22 +984,22 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                           key={c.cmd}
                           onClick={() => tabCompleteCmd(c)}
                           className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
-                            i === cmdIdx ? 'bg-indigo-50' : 'hover:bg-slate-50'
+                            i === cmdIdx ? 'bg-indigo-500/15' : 'hover:bg-white/8'
                           }`}
                         >
                           <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${
-                            i === cmdIdx ? 'bg-indigo-100' : 'bg-slate-100'
+                            i === cmdIdx ? 'bg-indigo-500/30' : 'bg-white/10'
                           }`}>
-                            <Hash className={`w-2.5 h-2.5 ${i === cmdIdx ? 'text-indigo-600' : 'text-slate-400'}`} />
+                            <Hash className={`w-2.5 h-2.5 ${i === cmdIdx ? 'text-indigo-300' : 'text-white/40'}`} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <span className={`text-xs font-medium font-mono ${i === cmdIdx ? 'text-indigo-700' : 'text-slate-700'}`}>
-                              {c.cmd}{c.args ? <span className="text-slate-400 font-normal ml-1">{c.args}</span> : null}
+                            <span className={`text-xs font-medium font-mono ${i === cmdIdx ? 'text-indigo-300' : 'text-white/80'}`}>
+                              {c.cmd}{c.args ? <span className="text-white/40 font-normal ml-1">{c.args}</span> : null}
                             </span>
-                            <span className="text-[11px] text-slate-400 ml-2">{c.desc}</span>
+                            <span className="text-[11px] text-white/40 ml-2">{c.desc}</span>
                           </div>
                           {!c.executeLocal && (
-                            <span className="text-[10px] text-slate-300 shrink-0">agent</span>
+                            <span className="text-[10px] text-white/30 shrink-0">agent</span>
                           )}
                         </button>
                       );
@@ -1027,11 +1027,11 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                       <img
                         src={att.dataUrl}
                         alt="attachment"
-                        className="w-16 h-16 object-cover rounded-lg border border-slate-200"
+                        className="w-16 h-16 object-cover rounded-lg border border-white/20"
                       />
                       <button
                         onClick={() => setAttachments(prev => prev.filter(a => a.id !== att.id))}
-                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-slate-700 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px] leading-none"
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px] leading-none"
                       >
                         ×
                       </button>
@@ -1041,7 +1041,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
               )}
 
               <div
-                className="flex items-end gap-2 border border-slate-200 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-indigo-400 focus-within:border-indigo-400 transition-all"
+                className="flex items-end gap-2 border border-white/20 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-white/40 focus-within:border-white/40 transition-all"
                 onDragOver={e => e.preventDefault()}
                 onDrop={handleDrop}
               >
@@ -1049,7 +1049,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={sending}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-slate-100 transition-colors shrink-0 disabled:opacity-40"
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-300 hover:bg-white/10 transition-colors shrink-0 disabled:opacity-40"
                   title="附加图片"
                 >
                   <Paperclip className="w-4 h-4" />
@@ -1069,7 +1069,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                 {sending ? (
                   <button
                     onClick={handleAbort}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50 transition-colors shrink-0"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-red-300 hover:bg-red-500/20 transition-colors shrink-0"
                     title="停止"
                   >
                     <Square className="w-4 h-4" />
