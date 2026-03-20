@@ -137,7 +137,8 @@ createServer((req, res) => {
     });
 
     const write = (s) => res.write(s);
-    const env   = { ...process.env, FORCE_COLOR: '0' };
+    // NODE_ENV=production causes npm ci to skip devDependencies (tsc, vite, etc.)
+    const env   = { ...process.env, FORCE_COLOR: '0', NODE_ENV: 'development' };
 
     // Step runner for npm steps
     const npmSteps = [
