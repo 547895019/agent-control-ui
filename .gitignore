@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Compiled vite config (not needed in repo, can shadow vite.config.ts)
+vite.config.js
+vite.config.d.ts
+vite.config.tsbuildinfo
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

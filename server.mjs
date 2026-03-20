@@ -141,6 +141,11 @@ createServer((req, res) => {
     const env   = { ...process.env, FORCE_COLOR: '0', NODE_ENV: 'development' };
 
     // Step runner for npm steps
+    // Remove stale compiled vite config so Vite always uses vite.config.ts
+    for (const f of ['vite.config.js', 'vite.config.d.ts']) {
+      try { (await import('node:fs')).unlinkSync(join(__dirname, f)); } catch {}
+    }
+
     const npmSteps = [
       ['npm', ['ci', '--prefer-offline', '--no-fund', '--no-audit']],
       ['npm', ['run', 'build']],
