@@ -158,6 +158,12 @@ export function AgentsPage() {
                     </span>
                   </div>
                 )}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-400 shrink-0">工具权限</span>
+                  <span className="text-xs text-slate-500 font-mono">
+                    {config.tools?.profile ?? '默认'}
+                  </span>
+                </div>
               </div>
 
               {/* Actions */}

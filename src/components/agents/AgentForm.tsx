@@ -30,6 +30,15 @@ function parseModelCfg(m: any): { primary: string; fallbacks: string[] } {
   return { primary: m.primary || '', fallbacks: Array.isArray(m.fallbacks) ? [...m.fallbacks] : [] };
 }
 
+const TOOL_PROFILES = [
+  { id: 'minimal',   label: '最小',   hint: '仅基础读写' },
+  { id: 'coding',    label: '编程',   hint: '文件 + 执行' },
+  { id: 'messaging', label: '消息',   hint: '消息收发' },
+  { id: 'full',      label: '完整',   hint: '所有工具' },
+] as const;
+
+type ToolProfile = typeof TOOL_PROFILES[number]['id'];
+
 export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
   const isEditing = !!agent;
   const [form, setForm] = useState({
@@ -41,6 +50,9 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
   const initModel = parseModelCfg(agent?.config?.model);
   const [modelPrimary, setModelPrimary] = useState(initModel.primary);
   const [modelFallbacks, setModelFallbacks] = useState<string[]>(initModel.fallbacks);
+  const [toolsProfile, setToolsProfile] = useState<ToolProfile>(
+    (agent?.config?.tools?.profile as ToolProfile) ?? 'full'
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -64,7 +76,7 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
         name: form.name || form.id,
         workspace: form.workspace,
         subagents: { allowAgents: ['*'] },
-        tools: { profile: 'full' },
+        tools: { profile: toolsProfile },
       };
       const fallbacks = modelFallbacks.map(f => f.trim()).filter(Boolean);
       if (modelPrimary.trim()) {
@@ -173,6 +185,29 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
                 <Plus className="w-3.5 h-3.5" />
                 添加备用模型
               </button>
+            </div>
+          </Field>
+
+          <Field label="工具权限" hint="控制代理可以使用哪些工具">
+            <div className="flex gap-1.5 flex-wrap">
+              {TOOL_PROFILES.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setToolsProfile(p.id)}
+                  title={p.hint}
+                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
+                    toolsProfile === p.id
+                      ? 'bg-indigo-600 text-white border-indigo-600 font-medium'
+                      : 'bg-white text-slate-600 border-slate-300 hover:border-indigo-400 hover:text-indigo-600'
+                  }`}
+                >
+                  {p.label}
+                  <span className={`ml-1 ${toolsProfile === p.id ? 'text-indigo-200' : 'text-slate-400'}`}>
+                    · {p.hint}
+                  </span>
+                </button>
+              ))}
             </div>
           </Field>
 
