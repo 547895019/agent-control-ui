@@ -136,12 +136,12 @@ export function KnowledgeEditor({ title, dirPath, onClose }: KnowledgeEditorProp
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[80vh] flex flex-col overflow-hidden">
+      <div className="glass-heavy rounded-2xl w-full max-w-5xl h-[80vh] flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 shrink-0">
           <BookOpen className="w-4 h-4 text-indigo-500 shrink-0" />
-          <span className="font-semibold text-slate-800 text-sm">{title}</span>
+          <span className="font-semibold text-white text-sm">{title}</span>
           <span className="text-slate-400 text-xs font-mono hidden sm:block truncate">{dirPath}</span>
           <div className="ml-auto shrink-0">
             <button
@@ -278,7 +278,7 @@ export function KnowledgeEditor({ title, dirPath, onClose }: KnowledgeEditorProp
                   </div>
                 ) : (
                   <textarea
-                    className="flex-1 w-full px-4 py-3 font-mono text-sm text-slate-800 bg-white resize-none focus:outline-none leading-relaxed"
+                    className="flex-1 w-full px-4 py-3 font-mono text-sm text-emerald-300 bg-slate-950 resize-none focus:outline-none leading-relaxed"
                     value={content}
                     onChange={e => setContent(e.target.value)}
                     spellCheck={false}

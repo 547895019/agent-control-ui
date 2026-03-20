@@ -1481,7 +1481,7 @@ export function OrgPage() {
       <div className="flex flex-col h-full">
 
         {/* Header */}
-        <div className="border-b border-white/10 bg-white px-6 py-3.5 shrink-0 relative z-10">
+        <div className="border-b border-white/10 bg-white/10 backdrop-blur-xl px-6 py-3.5 shrink-0 relative z-10">
           <div className="flex items-center gap-3">
 
             {/* Org switcher */}

@@ -93,13 +93,13 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
   return (
     <>
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[80vh] flex flex-col overflow-hidden">
+      <div className="glass-heavy rounded-2xl w-full max-w-5xl h-[80vh] flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
-            <span className="font-semibold text-slate-800 text-sm truncate">{agentName}</span>
+            <span className="font-semibold text-white text-sm truncate">{agentName}</span>
             <span className="text-slate-400 text-xs font-mono truncate hidden sm:block">
               {workspace.length > 50 ? '…' + workspace.slice(-47) : workspace}
             </span>
@@ -188,7 +188,7 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
               </div>
             ) : (
               <textarea
-                className="flex-1 w-full px-4 py-3 font-mono text-sm text-slate-800 bg-white resize-none focus:outline-none leading-relaxed"
+                className="flex-1 w-full px-4 py-3 font-mono text-sm text-emerald-300 bg-slate-950 resize-none focus:outline-none leading-relaxed"
                 value={current.content}
                 onChange={e => setFile(activeFile, { content: e.target.value })}
                 spellCheck={false}

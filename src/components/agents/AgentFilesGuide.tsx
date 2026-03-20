@@ -13,7 +13,7 @@ export function AgentFilesGuide({ initialFile, onClose }: AgentFilesGuideProps) 
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[82vh] flex flex-col overflow-hidden">
+      <div className="glass-heavy rounded-2xl w-full max-w-4xl h-[82vh] flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 shrink-0 bg-slate-50">
@@ -21,7 +21,7 @@ export function AgentFilesGuide({ initialFile, onClose }: AgentFilesGuideProps) 
             <FileText className="w-4 h-4 text-indigo-600" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-slate-800">核心文件操作指南</h2>
+            <h2 className="text-sm font-semibold text-white">核心文件操作指南</h2>
             <p className="text-xs text-slate-400">了解每个文件的用途、格式和最佳实践</p>
           </div>
           <button

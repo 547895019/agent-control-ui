@@ -422,7 +422,7 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
       className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
         active
           ? 'bg-indigo-100 text-indigo-700 border-indigo-300'
-          : 'bg-white text-white/50 border-white/10 hover:text-white/80'
+          : 'bg-white/10 text-white/50 border-white/10 hover:text-white/80'
       }`}
     >
       {label}

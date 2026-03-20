@@ -122,7 +122,7 @@ function ChatMessage({ event }: { event: { role: 'user' | 'assistant'; content: 
           <div className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
             isUser
               ? 'bg-indigo-600 text-white rounded-tr-sm'
-              : 'bg-slate-100 text-slate-800 rounded-tl-sm'
+              : 'bg-white/10 text-white/85 rounded-tl-sm'
           }`}>
             {displayText}
           </div>
@@ -215,7 +215,7 @@ export function AgentSessionsViewer({ agentId, agentName, workspace: _workspace,
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden">
+      <div className="glass-heavy rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 shrink-0">
@@ -223,7 +223,7 @@ export function AgentSessionsViewer({ agentId, agentName, workspace: _workspace,
             <MessageSquare className="w-4 h-4 text-indigo-600" />
           </div>
           <div className="min-w-0">
-            <span className="font-semibold text-slate-800 text-sm">{agentName}</span>
+            <span className="font-semibold text-white text-sm">{agentName}</span>
             <span className="text-slate-400 text-xs ml-2">历史对话</span>
           </div>
           <button
@@ -290,7 +290,7 @@ export function AgentSessionsViewer({ agentId, agentName, workspace: _workspace,
           </div>
 
           {/* Chat panel */}
-          <div className="flex-1 flex flex-col min-w-0 bg-white">
+          <div className="flex-1 flex flex-col min-w-0">
             {!activeKey ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                 <MessageSquare className="w-12 h-12 text-slate-200 mb-3" />

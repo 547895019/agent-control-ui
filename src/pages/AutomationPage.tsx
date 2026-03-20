@@ -1082,7 +1082,7 @@ export function AutomationPage() {
               className={`flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors ${
                 showHelp
                   ? 'text-indigo-600 border-indigo-300 bg-indigo-50'
-                  : 'text-white/50 border-white/10 bg-white hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50'
+                  : 'text-white/50 border-white/10 bg-white/10 hover:text-white hover:border-white/30 hover:bg-white/15'
               }`}
               title="使用说明"
             >
@@ -1101,7 +1101,7 @@ export function AutomationPage() {
                   key={t.id}
                   onClick={() => setTab(t.id)}
                   className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg font-medium transition-all ${
-                    active ? 'bg-white text-white shadow-sm' : 'text-white/50 hover:text-white/80'
+                    active ? 'bg-white/20 text-white shadow-sm' : 'text-white/50 hover:text-white/80'
                   }`}
                 >
                   <Icon className="w-4 h-4" />

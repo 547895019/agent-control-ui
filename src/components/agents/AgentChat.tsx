@@ -214,7 +214,7 @@ function ChatBubble({ role, content }: { role: 'user' | 'assistant'; content: an
         ))}
         {displayText && (
           <div className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-            isUser ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'
+            isUser ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white/10 text-white/85 rounded-tl-sm'
           }`}>
             {displayText}
           </div>
@@ -796,7 +796,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
   // ── render ────────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
+      <div className="glass-heavy rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 shrink-0">
@@ -804,7 +804,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
             <MessageSquare className="w-4 h-4 text-indigo-600" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="font-semibold text-slate-800 text-sm">{agentName}</span>
+            <span className="font-semibold text-white text-sm">{agentName}</span>
             <span className="text-slate-400 text-xs ml-2 truncate hidden sm:inline">{sessionTitle}</span>
           </div>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0">
@@ -894,7 +894,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                   <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 bg-slate-100">
                     <Bot className="w-3.5 h-3.5 text-slate-500" />
                   </div>
-                  <div className="max-w-[78%] bg-slate-100 text-slate-800 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap">
+                  <div className="max-w-[78%] bg-white/10 text-white/85 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap">
                     {streamText}
                     <span className="inline-block w-0.5 h-3.5 bg-slate-400 ml-0.5 align-middle animate-pulse" />
                   </div>
@@ -933,7 +933,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
 
               {/* Slash command dropdown */}
               {showCmds && (
-                <div ref={cmdListRef} className="absolute left-4 right-4 bottom-full mb-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden z-10 max-h-72 overflow-y-auto">
+                <div ref={cmdListRef} className="absolute left-4 right-4 bottom-full mb-1 glass-heavy rounded-xl overflow-hidden z-10 max-h-72 overflow-y-auto">
 
                   {/* ── Args mode: show argOptions for the selected command ── */}
                   {cmdMode === 'args' && argCmd && filteredArgs.length > 0 && (
@@ -1063,7 +1063,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                   disabled={sending}
                   placeholder="输入消息… (Enter 发送 · / 查看命令 · 可粘贴图片)"
                   rows={1}
-                  className="flex-1 resize-none text-sm text-slate-800 placeholder-slate-400 focus:outline-none leading-relaxed bg-transparent disabled:opacity-60"
+                  className="flex-1 resize-none text-sm text-white placeholder-white/40 focus:outline-none leading-relaxed bg-transparent disabled:opacity-60"
                   style={{ maxHeight: '8rem', overflowY: 'auto' }}
                 />
                 {sending ? (

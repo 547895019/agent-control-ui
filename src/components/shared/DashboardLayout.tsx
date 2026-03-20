@@ -184,7 +184,7 @@ export function DashboardLayout() {
 
       {/* Main */}
       <main className="relative z-10 flex-1 overflow-hidden flex flex-col min-w-0">
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 min-h-0 overflow-auto">
           <Outlet />
         </div>
       </main>
