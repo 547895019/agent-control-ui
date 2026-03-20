@@ -4,21 +4,18 @@
  * Replaces `npx serve` so the process can rebuild and restart itself.
  */
 import { createServer } from 'node:http';
-import { createReadStream, statSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { createReadStream, statSync, readFileSync } from 'node:fs';
 import { join, extname } from 'node:path';
-import { spawn, execSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PORT   = Number(process.env.PORT) || 8080;
 const DIST   = join(__dirname, 'dist');
-const TF     = join(__dirname, '.update-token');
 
-// Generate or load update token
-const UPDATE_TOKEN = existsSync(TF)
-  ? readFileSync(TF, 'utf8').trim()
-  : (() => { const t = randomBytes(24).toString('hex'); writeFileSync(TF, t); return t; })();
+// Generate a fresh token on each startup — frontend fetches it via /self/config
+const UPDATE_TOKEN = randomBytes(24).toString('hex');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',

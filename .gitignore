@@ -9,6 +9,8 @@ lerna-debug.log*
 
 node_modules
 dist-ssr
+.update-token
+agent-control-ui.tgz
 *.local
 
 # Compiled vite config (not needed in repo, can shadow vite.config.ts)
