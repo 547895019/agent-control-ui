@@ -6,6 +6,11 @@ import {
   WifiOff, RefreshCw, AlertCircle, Loader2, Zap, Users, ArrowUpCircle, X, RotateCcw,
 } from 'lucide-react';
 
+// Safe accessor — older builds may not have APP_VERSION substituted by Vite
+const APP_VERSION: string = (() => {
+  try { return APP_VERSION; } catch { return __BUILD_DATE__; }
+})();
+
 const BRAND_KEY = 'openclaw:brand';
 const DEFAULT_TITLE = 'OpenClaw';
 const DEFAULT_SUBTITLE = 'Control Panel';
@@ -196,7 +201,7 @@ function UpdateModal({ onClose }: { onClose: () => void }) {
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-sm">更新版本</p>
             {commit && (
-              <p className="text-white/35 text-xs font-mono mt-0.5">当前：v{__APP_VERSION__} · {commit}</p>
+              <p className="text-white/35 text-xs font-mono mt-0.5">当前：v{APP_VERSION} · {commit}</p>
             )}
           </div>
           <button
@@ -367,7 +372,7 @@ export function DashboardLayout() {
             Disconnect
           </button>
           <div className="px-3 pt-1 flex items-center justify-between">
-            <span className="text-[10px] text-white/20 font-mono">v{__APP_VERSION__}</span>
+            <span className="text-[10px] text-white/20 font-mono">v{APP_VERSION}</span>
             <button
               onClick={() => setShowUpdate(true)}
               title="更新版本"
