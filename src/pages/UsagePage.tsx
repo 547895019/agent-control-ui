@@ -184,7 +184,7 @@ function DailyChart({ data, selectedDays, chartMode, onSelectDay }: {
                   : hasErrors
                   ? 'bg-orange-300 hover:bg-orange-400'
                   : val > 0
-                  ? 'bg-slate-300 hover:bg-indigo-300'
+                  ? 'bg-white/20 hover:bg-indigo-300'
                   : 'bg-white/10 hover:bg-white/15'
               }`}
               style={{ height: val > 0 ? `${pct}%` : '2px', alignSelf: 'flex-end' }}
@@ -362,7 +362,7 @@ function SessionsTable({ sessions, chartMode }: {
               <tr key={s.key} className="border-b border-slate-50 hover:bg-white/5">
                 <td className="py-1.5 pr-3 max-w-[180px]">
                   <span
-                    className="font-mono text-indigo-600 cursor-pointer hover:underline block truncate"
+                    className="font-mono text-indigo-300 cursor-pointer hover:underline block truncate"
                     onClick={() => navigator.clipboard?.writeText(s.key)}
                     title={`${s.key}\n(点击复制)`}
                   >
@@ -507,9 +507,9 @@ export function UsagePage() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 flex items-center justify-between">
+        <div className="bg-red-500/15 border border-red-500/30 text-red-300 text-sm rounded-xl px-4 py-3 flex items-center justify-between">
           <span>{error}</span>
-          <button onClick={() => setError(null)}><X className="w-4 h-4 text-red-400 hover:text-red-600" /></button>
+          <button onClick={() => setError(null)}><X className="w-4 h-4 text-red-400 hover:text-red-300" /></button>
         </div>
       )}
 
@@ -540,7 +540,7 @@ export function UsagePage() {
               sub={selectedDays.length > 0
                 ? `已筛选 ${selectedDays.length} 天`
                 : `${result.sessions.length} 个会话`}
-              accent="text-indigo-700"
+              accent="text-indigo-300"
             />
             <StatCard
               label="估算费用"
@@ -561,7 +561,7 @@ export function UsagePage() {
             <div className="flex items-center flex-wrap gap-2">
               <span className="text-xs text-white/50">按天筛选：</span>
               {[...selectedDays].sort().map(d => (
-                <span key={d} className="flex items-center gap-1 bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full">
+                <span key={d} className="flex items-center gap-1 bg-indigo-500/20 text-indigo-300 text-xs px-2 py-1 rounded-full">
                   {d}
                   <button onClick={() => toggleDay(d)} className="hover:text-indigo-900 leading-none">×</button>
                 </span>

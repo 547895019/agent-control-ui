@@ -142,12 +142,12 @@ function StatusChips({ skill }: { skill: SkillStatusEntry }) {
       <span className={`px-1.5 py-0.5 text-[10px] rounded font-medium ${
         skill.eligible
           ? 'bg-emerald-100 text-emerald-700'
-          : 'bg-amber-100 text-amber-700'
+          : 'bg-amber-500/20 text-amber-300'
       }`}>
         {skill.eligible ? 'eligible' : 'blocked'}
       </span>
       {skill.disabled && (
-        <span className="px-1.5 py-0.5 text-[10px] rounded bg-amber-100 text-amber-700 font-medium">
+        <span className="px-1.5 py-0.5 text-[10px] rounded bg-amber-500/20 text-amber-300 font-medium">
           disabled
         </span>
       )}
@@ -191,7 +191,7 @@ function SkillCard({
               href={skill.homepage}
               target="_blank"
               rel="noreferrer"
-              className="ml-2 text-indigo-500 hover:text-indigo-700 text-xs"
+              className="ml-2 text-indigo-500 hover:text-indigo-300 text-xs"
             >
               ↗
             </a>
@@ -235,7 +235,7 @@ function SkillCard({
           <button
             onClick={() => onInstall(firstInstall.id)}
             disabled={busy}
-            className="px-3 py-1.5 text-xs rounded-lg font-medium bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-colors disabled:opacity-50 whitespace-nowrap"
+            className="px-3 py-1.5 text-xs rounded-lg font-medium bg-amber-500/15 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             {busy ? 'Installing…' : firstInstall.label}
           </button>
@@ -528,10 +528,10 @@ export function SkillsPage() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 flex items-center justify-between">
+        <div className="bg-red-500/15 border border-red-500/30 text-red-300 text-sm rounded-xl px-4 py-3 flex items-center justify-between">
           <span>{error}</span>
           <button onClick={() => setError(null)}>
-            <X className="w-4 h-4 text-red-400 hover:text-red-600" />
+            <X className="w-4 h-4 text-red-400 hover:text-red-300" />
           </button>
         </div>
       )}

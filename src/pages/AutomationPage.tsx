@@ -36,10 +36,10 @@ function SectionCard({ title, children }: { title: string; children: React.React
 
 function ErrorBanner({ msg, onDismiss }: { msg: string; onDismiss?: () => void }) {
   return (
-    <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+    <div className="flex items-start gap-2 p-3 bg-red-500/15 border border-red-500/30 rounded-lg text-sm text-red-300">
       <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
       <span className="flex-1">{msg}</span>
-      {onDismiss && <button onClick={onDismiss} className="text-red-400 hover:text-red-600"><X className="w-3.5 h-3.5" /></button>}
+      {onDismiss && <button onClick={onDismiss} className="text-red-400 hover:text-red-300"><X className="w-3.5 h-3.5" /></button>}
     </div>
   );
 }
@@ -66,15 +66,15 @@ const HELP_CONTENT: Record<HelpTabId, React.ReactNode> = {
       <div>
         <h4 className="font-semibold text-white mb-2">两种动作类型</h4>
         <div className="space-y-2">
-          <div className="flex gap-2.5 p-3 bg-indigo-50 rounded-lg">
-            <span className="text-indigo-600 font-mono text-xs bg-indigo-100 px-2 py-0.5 rounded h-fit shrink-0">agent</span>
+          <div className="flex gap-2.5 p-3 bg-indigo-500/15 rounded-lg">
+            <span className="text-indigo-300 font-mono text-xs bg-indigo-500/20 px-2 py-0.5 rounded h-fit shrink-0">agent</span>
             <p className="text-white/70 text-xs leading-relaxed">
               触发 Agent 执行任务，Agent 处理完后可把结果推送到频道（WhatsApp、Slack 等）。
               <br /><span className="text-white/40">适合需要 AI 处理后回复的场景。</span>
             </p>
           </div>
-          <div className="flex gap-2.5 p-3 bg-amber-50 rounded-lg">
-            <span className="text-amber-700 font-mono text-xs bg-amber-100 px-2 py-0.5 rounded h-fit shrink-0">wake</span>
+          <div className="flex gap-2.5 p-3 bg-amber-500/15 rounded-lg">
+            <span className="text-amber-300 font-mono text-xs bg-amber-500/20 px-2 py-0.5 rounded h-fit shrink-0">wake</span>
             <p className="text-white/70 text-xs leading-relaxed">
               只唤醒 Agent，往主会话加一条系统通知，不开独立任务。
               <br /><span className="text-white/40">适合轻量提醒、不需要 AI 回复的场景。</span>
@@ -158,7 +158,7 @@ const HELP_CONTENT: Record<HelpTabId, React.ReactNode> = {
             { event: 'gateway:startup', desc: '网关服务启动时触发（只执行一次）' },
           ].map(({ event, desc }) => (
             <div key={event} className="flex gap-2 text-xs">
-              <code className="text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-mono shrink-0 h-fit">{event}</code>
+              <code className="text-indigo-300 bg-indigo-500/15 px-1.5 py-0.5 rounded font-mono shrink-0 h-fit">{event}</code>
               <span className="text-white/50 leading-relaxed">{desc}</span>
             </div>
           ))}
@@ -194,7 +194,7 @@ const HELP_CONTENT: Record<HelpTabId, React.ReactNode> = {
         </div>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700 leading-relaxed">
+      <div className="bg-amber-500/15 border border-amber-500/30 rounded-lg p-3 text-xs text-amber-300 leading-relaxed">
         ⚠️ <span className="font-medium">注意</span>：启用 Hooks 后必须设置认证 Token，否则任何人都可以触发你的 Agent。
       </div>
     </div>
@@ -268,11 +268,11 @@ const HELP_CONTENT: Record<HelpTabId, React.ReactNode> = {
       <div>
         <h4 className="font-semibold text-white mb-2">添加插件步骤</h4>
         <div className="space-y-1 text-xs text-white/50">
-          <p className="flex gap-2"><span className="text-indigo-600 font-bold shrink-0">1.</span>在下方输入框输入插件 ID，点击"添加"</p>
-          <p className="flex gap-2"><span className="text-indigo-600 font-bold shrink-0">2.</span>勾选"启用"开关</p>
-          <p className="flex gap-2"><span className="text-indigo-600 font-bold shrink-0">3.</span>点击展开配置权限和参数（如需要）</p>
-          <p className="flex gap-2"><span className="text-indigo-600 font-bold shrink-0">4.</span>点击页面底部"保存"按钮</p>
-          <p className="flex gap-2"><span className="text-indigo-600 font-bold shrink-0">5.</span>重启 Gateway 服务使插件生效</p>
+          <p className="flex gap-2"><span className="text-indigo-300 font-bold shrink-0">1.</span>在下方输入框输入插件 ID，点击"添加"</p>
+          <p className="flex gap-2"><span className="text-indigo-300 font-bold shrink-0">2.</span>勾选"启用"开关</p>
+          <p className="flex gap-2"><span className="text-indigo-300 font-bold shrink-0">3.</span>点击展开配置权限和参数（如需要）</p>
+          <p className="flex gap-2"><span className="text-indigo-300 font-bold shrink-0">4.</span>点击页面底部"保存"按钮</p>
+          <p className="flex gap-2"><span className="text-indigo-300 font-bold shrink-0">5.</span>重启 Gateway 服务使插件生效</p>
         </div>
       </div>
     </div>
@@ -542,17 +542,17 @@ function CommandsTab() {
         <div className="flex flex-col items-center justify-center py-16 text-center gap-2 text-white/40">
           <Webhook className="w-10 h-10 opacity-30" />
           <p className="text-sm">暂无命令映射</p>
-          <button onClick={() => { setEditingMapping(newMapping()); setShowForm(true); }} className="text-xs text-indigo-600 hover:text-indigo-500">+ 创建第一个</button>
+          <button onClick={() => { setEditingMapping(newMapping()); setShowForm(true); }} className="text-xs text-indigo-300 hover:text-indigo-500">+ 创建第一个</button>
         </div>
       ) : (
         <div className="space-y-2">
           {mappings.map(m => (
-            <div key={m.id} className="glass rounded-2xl px-4 py-3 flex items-start gap-3 hover:border-indigo-200 transition-colors">
+            <div key={m.id} className="glass rounded-2xl px-4 py-3 flex items-start gap-3 hover:border-indigo-500/30 transition-colors">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium text-white">{m.name || m.id}</span>
                   <span className="text-xs font-mono text-white/40 bg-white/10 px-1.5 py-0.5 rounded">{m.id}</span>
-                  {m.action && <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${m.action === 'agent' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-700'}`}>{m.action}</span>}
+                  {m.action && <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${m.action === 'agent' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-amber-500/20 text-amber-300'}`}>{m.action}</span>}
                 </div>
                 <div className="flex items-center gap-3 mt-1 flex-wrap">
                   {m.match?.path && <span className="text-xs text-white/50 font-mono">{m.match.path}</span>}
@@ -564,10 +564,10 @@ function CommandsTab() {
                 )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <button onClick={() => { setEditingMapping(m); setShowForm(true); }} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-600 hover:bg-indigo-50">
+                <button onClick={() => { setEditingMapping(m); setShowForm(true); }} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-300 hover:bg-indigo-500/15">
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => handleDelete(m.id)} disabled={saving} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-red-500 hover:bg-red-50">
+                <button onClick={() => handleDelete(m.id)} disabled={saving} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-red-500 hover:bg-red-500/20">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -765,18 +765,18 @@ function HooksTab() {
                   <div key={i} className="flex items-center gap-3 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">{h.event}</span>
+                        <span className="text-xs font-mono text-indigo-300 bg-indigo-500/15 px-1.5 py-0.5 rounded">{h.event}</span>
                         <span className="text-xs text-white/50 font-mono truncate">{h.module}</span>
                       </div>
                       {h.export && <span className="text-[11px] text-white/40">导出: {h.export}</span>}
                     </div>
                     <div className="flex gap-1 shrink-0">
                       <button onClick={() => { setEditingHandler(h); setEditingHandlerIdx(i); setShowHandlerForm(true); }}
-                        className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-indigo-600 hover:bg-indigo-50">
+                        className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-indigo-300 hover:bg-indigo-500/15">
                         <Pencil className="w-3 h-3" />
                       </button>
                       <button onClick={() => setHandlers(prev => prev.filter((_, idx) => idx !== i))}
-                        className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-red-500 hover:bg-red-50">
+                        className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-red-500 hover:bg-red-500/20">
                         <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
@@ -784,7 +784,7 @@ function HooksTab() {
                 ))}
                 <button
                   onClick={() => { setEditingHandler({ event: '', module: '' }); setEditingHandlerIdx(null); setShowHandlerForm(true); }}
-                  className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-500"
+                  className="flex items-center gap-1.5 text-xs text-indigo-300 hover:text-indigo-500"
                 >
                   <Plus className="w-3.5 h-3.5" /> 添加处理器
                 </button>
@@ -844,7 +844,7 @@ function PluginEntryRow({ entry, onChange, onRemove }: {
             className="w-4 h-4 accent-indigo-600 shrink-0" />
           <span className="text-sm font-mono text-white/80 truncate">{entry.id}</span>
         </label>
-        <button onClick={onRemove} className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-red-500 hover:bg-red-50 shrink-0">
+        <button onClick={onRemove} className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-red-500 hover:bg-red-500/20 shrink-0">
           <Trash2 className="w-3 h-3" />
         </button>
       </div>
@@ -1032,7 +1032,7 @@ function PluginsTab() {
                   placeholder="输入插件 ID 后按 Enter 或点击添加"
                 />
                 <button onClick={addEntry} disabled={!newPluginId.trim()}
-                  className="flex items-center gap-1 px-3 py-2 text-xs text-indigo-600 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 rounded-lg disabled:opacity-40">
+                  className="flex items-center gap-1 px-3 py-2 text-xs text-indigo-300 border border-indigo-500/30 bg-indigo-500/15 hover:bg-indigo-500/20 rounded-lg disabled:opacity-40">
                   <Plus className="w-3.5 h-3.5" /> 添加
                 </button>
               </div>
@@ -1081,7 +1081,7 @@ export function AutomationPage() {
               onClick={() => setShowHelp(v => !v)}
               className={`flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors ${
                 showHelp
-                  ? 'text-indigo-600 border-indigo-300 bg-indigo-50'
+                  ? 'text-indigo-300 border-indigo-500/40 bg-indigo-500/15'
                   : 'text-white/50 border-white/10 bg-white/10 hover:text-white hover:border-white/30 hover:bg-white/15'
               }`}
               title="使用说明"

@@ -280,7 +280,7 @@ function runStatusLabel(status?: string): string {
 
 function runStatusColor(status?: string): string {
   if (status === 'ok') return 'text-emerald-600';
-  if (status === 'error') return 'text-red-600';
+  if (status === 'error') return 'text-red-300';
   if (status === 'skipped') return 'text-white/40';
   return 'text-white/40';
 }
@@ -295,7 +295,7 @@ function deliveryStatusLabel(s?: string): string {
 
 function deliveryStatusColor(s?: string): string {
   if (s === 'delivered') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if (s === 'not-delivered') return 'bg-red-50 text-red-600 border-red-200';
+  if (s === 'not-delivered') return 'bg-red-500/15 text-red-300 border-red-500/30';
   return 'bg-white/10 text-white/50 border-white/10';
 }
 
@@ -312,7 +312,7 @@ function usageSummary(usage?: CronRunEntry['usage']): string | null {
 function RunStatusBadge({ status }: { status?: string }) {
   if (!status) return <span className="text-white/40 text-xs">-</span>;
   if (status === 'ok') return <span className="inline-flex items-center gap-1 text-emerald-600 text-xs"><CheckCircle2 className="w-3 h-3" />成功</span>;
-  if (status === 'error') return <span className="inline-flex items-center gap-1 text-red-600 text-xs"><XCircle className="w-3 h-3" />失败</span>;
+  if (status === 'error') return <span className="inline-flex items-center gap-1 text-red-300 text-xs"><XCircle className="w-3 h-3" />失败</span>;
   if (status === 'skipped') return <span className="inline-flex items-center gap-1 text-white/40 text-xs"><SkipForward className="w-3 h-3" />跳过</span>;
   if (status === 'running') return <span className="inline-flex items-center gap-1 text-amber-500 text-xs"><RefreshCw className="w-3 h-3 animate-spin" />运行中</span>;
   return <span className="text-white/40 text-xs">{status}</span>;
@@ -386,7 +386,7 @@ function RunEntryCard({ entry }: { entry: CronRunEntry }) {
           )}
           {entry.sessionKey && (
             <button
-              className="text-indigo-500 hover:text-indigo-600 flex items-center gap-0.5 ml-auto"
+              className="text-indigo-500 hover:text-indigo-300 flex items-center gap-0.5 ml-auto"
               onClick={() => navigator.clipboard?.writeText(entry.sessionKey!)}
               title={`Session: ${entry.sessionKey}`}
             >
@@ -421,7 +421,7 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
       onClick={onClick}
       className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
         active
-          ? 'bg-indigo-100 text-indigo-700 border-indigo-300'
+          ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
           : 'bg-white/10 text-white/50 border-white/10 hover:text-white/80'
       }`}
     >
@@ -598,7 +598,7 @@ function RunsPanel({ selectedJob, onClose }: { selectedJob: CronJob | null; onCl
 
       {/* Error */}
       {error && (
-        <div className="shrink-0 px-4 py-1.5 bg-red-50 border-b border-red-200 text-red-600 text-xs flex items-center gap-2">
+        <div className="shrink-0 px-4 py-1.5 bg-red-500/15 border-b border-red-500/30 text-red-300 text-xs flex items-center gap-2">
           <span className="flex-1">{error}</span>
           <button onClick={() => setError(null)} className="underline">关闭</button>
         </div>
@@ -943,7 +943,7 @@ function CronJobModal({ initial, agents, onSave, onClose }: {
               {form.failureAlertMode === 'disabled' && <p className="text-white/40 text-xs">此任务失败时不发送告警通知。</p>}
             </>)}
 
-            {error && <p className="text-red-600 text-xs pt-1">{error}</p>}
+            {error && <p className="text-red-300 text-xs pt-1">{error}</p>}
           </div>
 
           <div className="flex justify-end gap-2 px-5 py-3 border-t border-white/10 shrink-0">
@@ -1060,7 +1060,7 @@ export function CronPage() {
           onClick={() => { setSelectedJob(null); setPanelMode(p => p === 'runs' ? 'none' : 'runs'); }}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border transition-colors ${
             panelMode === 'runs'
-              ? 'text-indigo-600 bg-indigo-50 border-indigo-300'
+              ? 'text-indigo-300 bg-indigo-500/15 border-indigo-500/40'
               : 'text-white/50 bg-white hover:bg-white/5 border-white/10'
           }`}
         >
@@ -1078,7 +1078,7 @@ export function CronPage() {
       </div>
 
       {error && (
-        <div className="shrink-0 px-4 py-1.5 bg-red-50 border-b border-red-200 text-red-600 text-xs flex items-center gap-2">
+        <div className="shrink-0 px-4 py-1.5 bg-red-500/15 border-b border-red-500/30 text-red-300 text-xs flex items-center gap-2">
           <span className="flex-1">{error}</span>
           <button onClick={() => setError(null)} className="underline">关闭</button>
         </div>
@@ -1095,7 +1095,7 @@ export function CronPage() {
                 <div className="text-center">
                   <Clock className="w-10 h-10 text-white/30 mx-auto mb-3" />
                   <p className="text-white/40 text-sm">暂无定时任务</p>
-                  <button onClick={() => setModal({ mode: 'add' })} className="mt-3 text-xs text-indigo-500 hover:text-indigo-700">+ 新建任务</button>
+                  <button onClick={() => setModal({ mode: 'add' })} className="mt-3 text-xs text-indigo-500 hover:text-indigo-300">+ 新建任务</button>
                 </div>
               </div>
             ) : (
@@ -1118,7 +1118,7 @@ export function CronPage() {
                         selectedJob?.id === job.id ? 'bg-indigo-500/15' : 'hover:bg-white/5'
                       } ${!job.enabled ? 'opacity-50' : ''}`}>
                       <td className="pl-4 pr-2 py-2.5">
-                        <span className={`w-1.5 h-1.5 rounded-full inline-block ${job.enabled ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full inline-block ${job.enabled ? 'bg-emerald-500' : 'bg-white/20'}`} />
                       </td>
                       <td className="px-2 py-2.5">
                         <p className="text-white font-medium truncate max-w-[140px]">{job.name}</p>
@@ -1143,7 +1143,7 @@ export function CronPage() {
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button title="删除" onClick={() => setConfirmDelete(job)}
-                            className="p-1.5 rounded text-white/40 hover:text-red-600 hover:bg-white/10 transition-colors">
+                            className="p-1.5 rounded text-white/40 hover:text-red-300 hover:bg-white/10 transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>

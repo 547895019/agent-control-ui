@@ -328,7 +328,7 @@ function DeleteOrgModal({ org, orgAgentIds, onConfirm, onClose }: DeleteOrgModal
               </div>
             </label>
 
-            <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors border-red-200 hover:bg-red-50">
+            <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors border-red-500/30 hover:bg-red-500/20">
               <input
                 type="radio"
                 checked={deleteFiles}
@@ -336,9 +336,9 @@ function DeleteOrgModal({ org, orgAgentIds, onConfirm, onClose }: DeleteOrgModal
                 className="mt-0.5 shrink-0 accent-red-500"
               />
               <div>
-                <p className="text-sm font-medium text-red-600">彻底删除目录文件</p>
+                <p className="text-sm font-medium text-red-300">彻底删除目录文件</p>
                 <p className="text-xs text-red-400 mt-0.5">
-                  同时删除 <code className="font-mono bg-red-50 px-1 rounded">{org.dir}</code> 下的所有文件和子目录
+                  同时删除 <code className="font-mono bg-red-500/15 px-1 rounded">{org.dir}</code> 下的所有文件和子目录
                 </p>
               </div>
             </label>
@@ -346,7 +346,7 @@ function DeleteOrgModal({ org, orgAgentIds, onConfirm, onClose }: DeleteOrgModal
 
           {/* Remove agents checkbox */}
           {orgAgentIds.length > 0 && (
-            <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors border-amber-200 hover:bg-amber-50">
+            <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors border-amber-500/30 hover:bg-amber-500/20">
               <input
                 type="checkbox"
                 checked={removeAgents}
@@ -354,17 +354,17 @@ function DeleteOrgModal({ org, orgAgentIds, onConfirm, onClose }: DeleteOrgModal
                 className="mt-0.5 shrink-0 accent-amber-500"
               />
               <div className="min-w-0">
-                <p className="text-sm font-medium text-amber-700">
+                <p className="text-sm font-medium text-amber-300">
                   同时从主配置移除 {orgAgentIds.length} 个 Agent
                 </p>
                 <p className="text-xs text-amber-500 mt-0.5">
                   将从{' '}
-                  <code className="font-mono bg-amber-50 px-1 rounded">~/.openclaw/openclaw.json</code>{' '}
+                  <code className="font-mono bg-amber-500/15 px-1 rounded">~/.openclaw/openclaw.json</code>{' '}
                   中删除以下 Agent：
                 </p>
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {orgAgentIds.map(id => (
-                    <code key={id} className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-mono">
+                    <code key={id} className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono">
                       {id}
                     </code>
                   ))}
@@ -376,18 +376,18 @@ function DeleteOrgModal({ org, orgAgentIds, onConfirm, onClose }: DeleteOrgModal
           {/* Destructive warning + confirm input */}
           {deleteFiles && (
             <div className="space-y-3">
-              <div className="flex items-start gap-2.5 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2.5 p-3 bg-red-500/15 border border-red-500/30 rounded-lg">
                 <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-red-600 leading-relaxed">
+                <p className="text-xs text-red-300 leading-relaxed">
                   <strong>此操作不可恢复！</strong> 将永久删除{' '}
-                  <code className="bg-red-100 px-1 rounded font-mono">{org.dir}</code>{' '}
+                  <code className="bg-red-500/20 px-1 rounded font-mono">{org.dir}</code>{' '}
                   目录下的所有文件和子目录，包括 organization.json、全部 agent workspace 文件及知识库内容。
                 </p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-white/70 mb-1.5">
                   请输入组织 ID{' '}
-                  <code className="font-mono bg-white/10 px-1 py-0.5 rounded text-red-600">{org.id}</code>{' '}
+                  <code className="font-mono bg-white/10 px-1 py-0.5 rounded text-red-300">{org.id}</code>{' '}
                   以确认
                 </label>
                 <input
@@ -472,7 +472,7 @@ function OrgSetupModal({ entry, agents, onStart, onSkip }: OrgSetupModalProps) {
           <div>
             <label className="block text-xs font-medium text-white/70 mb-1.5">选择执行的 Agent</label>
             {agentList.length === 0 ? (
-              <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+              <p className="text-xs text-amber-300 bg-amber-500/15 px-3 py-2 rounded-lg">
                 暂无配置的 Agent，请先在 Agents 页面创建 Agent，或点击「跳过」手动配置。
               </p>
             ) : (
@@ -606,7 +606,7 @@ function OrgGeneratingModal({ agentId: _agentId, agentName, sessionKey, prompt, 
               ? <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
               : <Loader2 className="w-4 h-4 animate-spin text-indigo-500 shrink-0" />
           }
-          <h3 className={`font-semibold text-sm ${status === 'done' ? 'text-emerald-700' : status === 'error' ? 'text-red-600' : 'text-white'}`}>
+          <h3 className={`font-semibold text-sm ${status === 'done' ? 'text-emerald-700' : status === 'error' ? 'text-red-300' : 'text-white'}`}>
             {statusLabel}
           </h3>
           {status !== 'sending' && status !== 'running' && (
@@ -617,7 +617,7 @@ function OrgGeneratingModal({ agentId: _agentId, agentName, sessionKey, prompt, 
         </div>
 
         {/* Output */}
-        <div className="flex-1 overflow-y-auto p-4 bg-slate-950 font-mono text-xs text-slate-200 leading-relaxed whitespace-pre-wrap min-h-0">
+        <div className="flex-1 overflow-y-auto p-4 bg-slate-950 font-mono text-xs text-white/20 leading-relaxed whitespace-pre-wrap min-h-0">
           {output
             ? output
             : <span className="text-white/50">等待 Agent 响应…</span>
@@ -641,8 +641,8 @@ function OrgGeneratingModal({ agentId: _agentId, agentName, sessionKey, prompt, 
           </div>
         )}
         {status === 'error' && (
-          <div className="shrink-0 border-t border-red-100 bg-red-50 px-5 py-3 flex items-center justify-between">
-            <span className="text-sm text-red-600 flex items-center gap-2">
+          <div className="shrink-0 border-t border-red-500/20 bg-red-500/15 px-5 py-3 flex items-center justify-between">
+            <span className="text-sm text-red-300 flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
               {errorMsg}
             </span>
@@ -832,9 +832,9 @@ function MergeConfigModal({ agents, onConfirm, onClose }: MergeConfigModalProps)
               </div>
 
               {error && (
-                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2 p-3 bg-red-500/15 border border-red-500/30 rounded-lg">
                   <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-600">{error}</p>
+                  <p className="text-sm text-red-300">{error}</p>
                 </div>
               )}
             </>
@@ -1453,7 +1453,7 @@ export function OrgPage() {
   if (orgsIndex.orgs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <div className="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center mb-4">
+        <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center mb-4">
           <Building2 className="w-8 h-8 text-indigo-400" />
         </div>
         <p className="text-white/80 font-medium mb-1">尚未添加任何组织</p>
@@ -1488,7 +1488,7 @@ export function OrgPage() {
             <div className="relative" ref={orgDropdownRef}>
               <button
                 onClick={() => setOrgDropdownOpen(v => !v)}
-                className="flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-lg border border-white/10 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors text-sm"
+                className="flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-lg border border-white/10 hover:border-indigo-500/40 hover:bg-indigo-50/50 transition-colors text-sm"
               >
                 <span
                   className="w-2.5 h-2.5 rounded-full shrink-0"
@@ -1512,7 +1512,7 @@ export function OrgPage() {
                       >
                         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: o.color ?? '#6366f1' }} />
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium truncate ${o.id === orgsIndex.activeOrgId ? 'text-indigo-700' : 'text-white/80'}`}>{o.name}</p>
+                          <p className={`text-sm font-medium truncate ${o.id === orgsIndex.activeOrgId ? 'text-indigo-300' : 'text-white/80'}`}>{o.name}</p>
                           <p className="text-xs text-white/40 font-mono truncate">{o.dir}</p>
                         </div>
                         {o.id === orgsIndex.activeOrgId && <Check className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
@@ -1526,7 +1526,7 @@ export function OrgPage() {
                         {orgsIndex.orgs.length > 1 && (
                           <button
                             onClick={e => { e.stopPropagation(); setDeleteOrgModal(o); setOrgDropdownOpen(false); }}
-                            className="w-6 h-6 flex items-center justify-center rounded text-white/30 hover:text-red-500 hover:bg-red-50 shrink-0"
+                            className="w-6 h-6 flex items-center justify-center rounded text-white/30 hover:text-red-500 hover:bg-red-500/20 shrink-0"
                             title="删除"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -1538,7 +1538,7 @@ export function OrgPage() {
                   <div className="border-t border-white/8 p-2">
                     <button
                       onClick={() => { setAddOrgModal({ mode: 'add' }); setOrgDropdownOpen(false); }}
-                      className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-white/40 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                      className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-white/40 hover:text-indigo-300 hover:bg-indigo-500/15 transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                       添加组织
@@ -1649,7 +1649,7 @@ export function OrgPage() {
                     return (
                       <button
                         onClick={() => setCompanyModalOpen(true)}
-                        className="w-full text-left text-xs text-white/40 hover:text-indigo-600 transition-colors py-0.5"
+                        className="w-full text-left text-xs text-white/40 hover:text-indigo-300 transition-colors py-0.5"
                       >
                         + 设置主负责人
                       </button>
@@ -1672,21 +1672,21 @@ export function OrgPage() {
                           <>
                             <button
                               onClick={() => setChatAgent({ id: leadId, config: leadCfg })}
-                              className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                              className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-indigo-300 hover:bg-indigo-500/15 transition-colors"
                               title="发送消息"
                             >
                               <MessageSquare className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setFilesAgent({ id: leadId, config: leadCfg })}
-                              className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                              className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-indigo-500 hover:bg-indigo-500/15 transition-colors"
                               title="文件编辑"
                             >
                               <FolderOpen className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setSessionsAgent({ id: leadId, config: leadCfg })}
-                              className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                              className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-indigo-500 hover:bg-indigo-500/15 transition-colors"
                               title="历史对话"
                             >
                               <History className="w-3.5 h-3.5" />
@@ -1695,7 +1695,7 @@ export function OrgPage() {
                         ) : (
                           <button
                             onClick={() => setQuickConfigAgent({ agentId: leadId, name: leadId, workspace: activeOrg!.dir })}
-                            className="w-6 h-6 flex items-center justify-center rounded text-amber-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                            className="w-6 h-6 flex items-center justify-center rounded text-amber-500 hover:text-amber-300 hover:bg-amber-500/20 transition-colors"
                             title="配置到网关"
                           >
                             <Settings className="w-3.5 h-3.5" />
@@ -1703,7 +1703,7 @@ export function OrgPage() {
                         )}
                         <button
                           onClick={() => saveOrg({ ...org, company: { ...org.company, leadAgentId: undefined } })}
-                          className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-red-500 hover:bg-red-500/20 transition-colors"
                           title="移除主负责人"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1713,7 +1713,7 @@ export function OrgPage() {
                   );
                 })()}
                 {org.company.leadAgentId && !agents[org.company.leadAgentId] && (
-                  <span className="text-[10px] text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block">
+                  <span className="text-[10px] text-amber-500 bg-amber-500/15 px-1.5 py-0.5 rounded mt-1 inline-block">
                     未在网关配置
                   </span>
                 )}
@@ -1733,7 +1733,7 @@ export function OrgPage() {
                         onClick={() => setSelectedTeamId(team.id)}
                         className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors ${
                           selectedTeam?.id === team.id
-                            ? 'bg-indigo-50 text-indigo-700'
+                            ? 'bg-indigo-500/15 text-indigo-300'
                             : 'text-white/70 hover:bg-white/5'
                         }`}
                       >
@@ -1767,7 +1767,7 @@ export function OrgPage() {
               <div className="border-t border-white/8 p-2">
                 <button
                   onClick={() => setTeamModal({ mode: 'add' })}
-                  className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-white/40 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-white/40 hover:text-indigo-300 hover:bg-indigo-500/15 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   添加团队
@@ -1779,7 +1779,7 @@ export function OrgPage() {
             <div className="flex-1 overflow-y-auto">
               {!selectedTeam ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                  <Building2 className="w-12 h-12 text-slate-200 mb-3" />
+                  <Building2 className="w-12 h-12 text-white/20 mb-3" />
                   <p className="text-sm text-white/40 mb-1">尚未创建任何团队</p>
                   <p className="text-xs text-white/30">点击左侧「添加团队」开始搭建组织架构</p>
                 </div>
@@ -1809,7 +1809,7 @@ export function OrgPage() {
                     </button>
                     <button
                       onClick={() => setMemberModal({ teamId: selectedTeam.id })}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors shrink-0"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-indigo-300 bg-indigo-500/15 hover:bg-indigo-500/20 rounded-lg transition-colors shrink-0"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       添加成员
@@ -1819,11 +1819,11 @@ export function OrgPage() {
                   {/* Members grid */}
                   {selectedTeam.members.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <Users className="w-10 h-10 text-slate-200 mb-3" />
+                      <Users className="w-10 h-10 text-white/20 mb-3" />
                       <p className="text-sm text-white/40">该团队暂无成员</p>
                       <button
                         onClick={() => setMemberModal({ teamId: selectedTeam.id })}
-                        className="mt-3 text-sm text-indigo-600 hover:text-indigo-500 font-medium"
+                        className="mt-3 text-sm text-indigo-300 hover:text-indigo-500 font-medium"
                       >
                         + 添加第一个成员
                       </button>
@@ -1848,7 +1848,7 @@ export function OrgPage() {
                         return (
                           <div
                             key={member.agentId}
-                            className="glass rounded-2xl p-4 flex flex-col items-center gap-2.5 hover:border-indigo-200 hover:shadow-sm transition-all group"
+                            className="glass rounded-2xl p-4 flex flex-col items-center gap-2.5 hover:border-indigo-500/30 hover:shadow-sm transition-all group"
                           >
                             <div className={`w-12 h-12 rounded-full ${getAvatarColor(member.agentId)} flex items-center justify-center text-white font-semibold text-sm shrink-0`}>
                               {getInitials(member.agentId, displayName)}
@@ -1858,7 +1858,7 @@ export function OrgPage() {
                               <p className="text-sm font-medium text-white truncate">{displayName}</p>
                               <p className="text-xs text-white/40 truncate">{displayRole}</p>
                               {!agentCfg && (
-                                <span className="text-[10px] text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block">
+                                <span className="text-[10px] text-amber-500 bg-amber-500/15 px-1.5 py-0.5 rounded mt-1 inline-block">
                                   未在网关配置
                                 </span>
                               )}
@@ -1869,21 +1869,21 @@ export function OrgPage() {
                                 <>
                                   <button
                                     onClick={() => setChatAgent({ id: member.agentId, config: agentCfg })}
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-300 hover:bg-indigo-500/15 transition-colors"
                                     title="发送消息"
                                   >
                                     <MessageSquare className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     onClick={() => setFilesAgent({ id: member.agentId, config: agentCfg })}
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-500 hover:bg-indigo-500/15 transition-colors"
                                     title="文件编辑"
                                   >
                                     <FolderOpen className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     onClick={() => setSessionsAgent({ id: member.agentId, config: agentCfg })}
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-500 hover:bg-indigo-500/15 transition-colors"
                                     title="历史对话"
                                   >
                                     <History className="w-3.5 h-3.5" />
@@ -1893,7 +1893,7 @@ export function OrgPage() {
                               {!agentCfg && (
                                 <button
                                   onClick={openQuickConfig}
-                                  className="w-7 h-7 flex items-center justify-center rounded-lg text-amber-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                                  className="w-7 h-7 flex items-center justify-center rounded-lg text-amber-500 hover:text-amber-300 hover:bg-amber-500/20 transition-colors"
                                   title="配置到网关"
                                 >
                                   <Settings className="w-3.5 h-3.5" />
@@ -1908,7 +1908,7 @@ export function OrgPage() {
                               </button>
                               <button
                                 onClick={() => handleDeleteMember(selectedTeam.id, member.agentId)}
-                                className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-red-500 hover:bg-red-500/20 transition-colors"
                                 title="移除"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />

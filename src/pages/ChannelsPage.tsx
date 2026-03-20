@@ -118,7 +118,7 @@ function StatusBadge({ ok, label }: { ok: boolean | undefined | null; label: str
 
 function ErrorBox({ msg }: { msg: string }) {
   return (
-    <div className="flex items-start gap-1.5 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+    <div className="flex items-start gap-1.5 text-xs text-red-300 bg-red-500/15 border border-red-500/30 rounded-lg px-3 py-2">
       <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
       <span className="break-all">{msg}</span>
     </div>
@@ -495,7 +495,7 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
                   <button
                     onClick={() => handleLogout(acc.accountId)}
                     disabled={logoutId === acc.accountId}
-                    className="text-xs text-white/40 hover:text-red-600 transition-colors disabled:opacity-50"
+                    className="text-xs text-white/40 hover:text-red-300 transition-colors disabled:opacity-50"
                   >
                     {logoutId === acc.accountId
                       ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -508,7 +508,7 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
                 {acc.running !== undefined && <StatusBadge ok={acc.running} label="运行中" />}
                 {acc.connected !== undefined && <StatusBadge ok={acc.connected} label="已连接" />}
               </div>
-              {acc.lastError && <p className="text-xs text-red-600 break-all">{acc.lastError}</p>}
+              {acc.lastError && <p className="text-xs text-red-300 break-all">{acc.lastError}</p>}
               {acc.lastInboundAt && (
                 <p className="text-xs text-white/50">最后收信: {formatRelTime(acc.lastInboundAt)}</p>
               )}
@@ -597,7 +597,7 @@ export function ChannelsPage() {
         <p className="text-sm">{error}</p>
         <button
           onClick={() => load()}
-          className="text-sm text-indigo-600 hover:text-indigo-500"
+          className="text-sm text-indigo-300 hover:text-indigo-500"
         >
           重试
         </button>
