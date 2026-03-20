@@ -104,17 +104,14 @@ export function DashboardLayout() {
   const [editingBrand, setEditingBrand] = useState(false);
 
   return (
-    <div className="h-screen flex relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 30%, #c026d3 60%, #db2777 85%, #f97316 100%)' }}>
-      {/* Background grid */}
-      <div className="absolute inset-0 bg-grid pointer-events-none" />
-
-      {/* Decorative colour orbs — vibrant & bright */}
+    <div className="h-screen flex relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3730a3 30%, #4f46e5 60%, #0369a1 85%, #164e63 100%)' }}>
+      {/* Decorative colour orbs */}
       <div className="pointer-events-none">
-        <div className="orb w-[700px] h-[700px] -top-64 -left-48" style={{ background: 'rgba(139,92,246,0.55)' }} />
-        <div className="orb w-[600px] h-[600px] top-1/2 -right-40" style={{ background: 'rgba(236,72,153,0.45)' }} />
-        <div className="orb w-[500px] h-[500px] -bottom-48 left-1/4" style={{ background: 'rgba(6,182,212,0.35)' }} />
-        <div className="orb w-[400px] h-[400px] top-1/4 left-1/2" style={{ background: 'rgba(251,191,36,0.22)' }} />
-        <div className="orb w-[350px] h-[350px] top-0 right-1/3" style={{ background: 'rgba(52,211,153,0.20)' }} />
+        <div className="orb w-[700px] h-[700px] -top-64 -left-48" style={{ background: 'rgba(99,102,241,0.45)' }} />
+        <div className="orb w-[600px] h-[600px] top-1/2 -right-40" style={{ background: 'rgba(37,99,235,0.35)' }} />
+        <div className="orb w-[500px] h-[500px] -bottom-48 left-1/4" style={{ background: 'rgba(6,182,212,0.28)' }} />
+        <div className="orb w-[400px] h-[400px] top-1/4 left-1/2" style={{ background: 'rgba(14,165,233,0.20)' }} />
+        <div className="orb w-[350px] h-[350px] top-0 right-1/3" style={{ background: 'rgba(52,211,153,0.15)' }} />
       </div>
 
       {/* Sidebar */}
