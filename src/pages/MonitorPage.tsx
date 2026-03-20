@@ -104,7 +104,6 @@ export function MonitorPage() {
     Object.fromEntries(LEVELS.map(l => [l, true])) as Record<LogLevel, boolean>
   );
 
-  const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<number | null>(null);
   cursorRef.current = cursor;
@@ -141,9 +140,12 @@ export function MonitorPage() {
     return () => clearInterval(timer);
   }, [load]);
 
-  // Auto-follow scroll
+  // Auto-follow scroll — use scrollTop instead of scrollIntoView to avoid
+  // polluting the outer scroll container when navigating away from this page.
   useEffect(() => {
-    if (autoFollow) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (autoFollow && scrollRef.current) {
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    }
   }, [entries, autoFollow]);
 
   const handleScroll = () => {
@@ -294,7 +296,6 @@ export function MonitorPage() {
             </tbody>
           </table>
         )}
-        <div ref={bottomRef} />
       </div>
     </div>
   );
