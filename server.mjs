@@ -87,9 +87,11 @@ createServer((req, res) => {
     const env   = { ...process.env, FORCE_COLOR: '0' };
     const pkg   = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
 
-    // npm install -g fetches the pre-built package — no build step needed
-    write(`$ npm install -g ${pkg.name}@latest\n`);
-    const p = spawn('npm', ['install', '-g', `${pkg.name}@latest`, '--no-fund', '--no-audit'], { env });
+    // npm install -g from GitHub — fetches pre-built dist, no build step needed
+    const repo = (pkg.repository?.url || '').replace(/^git\+https:\/\/github\.com\//, '').replace(/\.git$/, '');
+    const ghPkg = repo ? `github:${repo}` : pkg.name;
+    write(`$ npm install -g ${ghPkg}\n`);
+    const p = spawn('npm', ['install', '-g', ghPkg, '--no-fund', '--no-audit'], { env });
     p.stdout.on('data', d => write(d));
     p.stderr.on('data', d => write(d));
     p.on('close', code => {
