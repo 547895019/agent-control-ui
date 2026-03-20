@@ -83,7 +83,7 @@ createServer((req, res) => {
     });
 
     const steps = [
-      ['git', ['pull', '--ff-only']],
+      ['git', ['-c', `safe.directory=${__dirname}`, 'pull', '--ff-only']],
       ['npm', ['ci', '--prefer-offline', '--no-fund', '--no-audit']],
       ['npm', ['run', 'build']],
     ];
@@ -97,14 +97,7 @@ createServer((req, res) => {
       }
       const [cmd, args] = steps[i];
       res.write(`\n$ ${cmd} ${args.join(' ')}\n`);
-      const spawnEnv = {
-        ...process.env,
-        FORCE_COLOR: '0',
-        // Allow git to operate in this directory regardless of owner mismatch
-        GIT_CONFIG_COUNT: '1',
-        GIT_CONFIG_KEY_0: 'safe.directory',
-        GIT_CONFIG_VALUE_0: __dirname,
-      };
+      const spawnEnv = { ...process.env, FORCE_COLOR: '0' };
       const p = spawn(cmd, args, { cwd: __dirname, env: spawnEnv });
       p.stdout.on('data', d => res.write(d));
       p.stderr.on('data', d => res.write(d));
