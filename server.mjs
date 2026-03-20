@@ -87,9 +87,26 @@ createServer((req, res) => {
     const env   = { ...process.env, FORCE_COLOR: '0' };
     const pkg   = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
 
-    // npm install -g from GitHub — fetches pre-built dist, no build step needed
-    const repo = (pkg.repository?.url || '').replace(/^git\+https:\/\/github\.com\//, '').replace(/\.git$/, '');
+    const repo  = (pkg.repository?.url || '').replace(/^git\+https:\/\/github\.com\//, '').replace(/\.git$/, '');
     const ghPkg = repo ? `github:${repo}` : pkg.name;
+
+    // Check latest version before installing
+    if (repo) {
+      try {
+        const rawUrl = `https://raw.githubusercontent.com/${repo}/main/package.json`;
+        const latest = await fetch(rawUrl).then(r => r.json());
+        if (latest.version === pkg.version) {
+          write(`✓ 已是最新版本 (${pkg.version})，无需更新。\n`);
+          res.end();
+          return;
+        }
+        write(`当前版本：${pkg.version} → 最新版本：${latest.version}\n`);
+      } catch {
+        write('（无法检查最新版本，继续安装…）\n');
+      }
+    }
+
+    // npm install -g from GitHub — fetches pre-built dist, no build step needed
     write(`$ npm install -g ${ghPkg}\n`);
     const p = spawn('npm', ['install', '-g', ghPkg, '--no-fund', '--no-audit'], { env });
     p.stdout.on('data', d => write(d));

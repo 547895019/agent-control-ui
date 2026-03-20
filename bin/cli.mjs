@@ -76,7 +76,21 @@ WantedBy=multi-user.target
     const pkg = JSON.parse((await import('node:fs')).readFileSync(join(ROOT, 'package.json'), 'utf8'));
     const repo = (pkg.repository?.url || '').replace(/^git\+https:\/\/github\.com\//, '').replace(/\.git$/, '');
     const ghPkg = repo ? `github:${repo}` : pkg.name;
-    log(`Updating from ${ghPkg}...`);
+
+    if (repo) {
+      try {
+        const rawUrl = `https://raw.githubusercontent.com/${repo}/main/package.json`;
+        const latest = await fetch(rawUrl).then(r => r.json());
+        if (latest.version === pkg.version) {
+          log(`Already at latest version (${pkg.version}), no update needed.`);
+          break;
+        }
+        log(`Updating ${pkg.version} → ${latest.version}...`);
+      } catch {
+        log('Cannot check latest version, proceeding...');
+      }
+    }
+
     const r = spawnSync('npm', ['install', '-g', ghPkg, '--no-fund', '--no-audit'], { stdio: 'inherit' });
     if (r.status !== 0) err('npm install failed');
 
