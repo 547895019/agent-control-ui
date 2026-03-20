@@ -104,20 +104,21 @@ export function DashboardLayout() {
   const [editingBrand, setEditingBrand] = useState(false);
 
   return (
-    <div className="h-screen flex bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#110a1c] relative overflow-hidden">
+    <div className="h-screen flex relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 30%, #c026d3 60%, #db2777 85%, #f97316 100%)' }}>
       {/* Background grid */}
-      <div className="absolute inset-0 bg-grid opacity-100 pointer-events-none" />
+      <div className="absolute inset-0 bg-grid pointer-events-none" />
 
-      {/* Decorative colour orbs */}
+      {/* Decorative colour orbs — vibrant & bright */}
       <div className="pointer-events-none">
-        <div className="orb w-[600px] h-[600px] bg-indigo-600/15 -top-48 -right-32" />
-        <div className="orb w-[500px] h-[500px] bg-violet-600/12 top-1/2 -left-48" />
-        <div className="orb w-[400px] h-[400px] bg-pink-500/8 bottom-0 right-1/3" />
-        <div className="orb w-[300px] h-[300px] bg-cyan-500/8 top-1/4 left-1/3" />
+        <div className="orb w-[700px] h-[700px] -top-64 -left-48" style={{ background: 'rgba(139,92,246,0.55)' }} />
+        <div className="orb w-[600px] h-[600px] top-1/2 -right-40" style={{ background: 'rgba(236,72,153,0.45)' }} />
+        <div className="orb w-[500px] h-[500px] -bottom-48 left-1/4" style={{ background: 'rgba(6,182,212,0.35)' }} />
+        <div className="orb w-[400px] h-[400px] top-1/4 left-1/2" style={{ background: 'rgba(251,191,36,0.22)' }} />
+        <div className="orb w-[350px] h-[350px] top-0 right-1/3" style={{ background: 'rgba(52,211,153,0.20)' }} />
       </div>
 
       {/* Sidebar */}
-      <aside className="relative z-10 w-56 bg-white/[0.04] backdrop-blur-2xl border-r border-white/8 flex flex-col shrink-0 shadow-[1px_0_0_rgba(255,255,255,0.05)]">
+      <aside className="relative z-10 w-56 backdrop-blur-2xl border-r border-white/20 flex flex-col shrink-0" style={{ background: 'rgba(255,255,255,0.10)' }}>
         {/* Brand */}
         <div className="px-4 py-4 border-b border-white/10">
           {editingBrand ? (
@@ -157,8 +158,8 @@ export function DashboardLayout() {
                 className={`
                   flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                   ${active
-                    ? 'btn-primary text-white shadow-lg shadow-indigo-900/40'
-                    : 'text-white/45 hover:text-white hover:bg-white/8 hover:shadow-[0_0_12px_rgba(255,255,255,0.04)]'}
+                    ? 'btn-primary text-white shadow-lg shadow-white/20'
+                    : 'text-white/70 hover:text-white hover:bg-white/15 hover:shadow-[0_0_12px_rgba(255,255,255,0.12)]'}
                 `}
               >
                 <Icon className="w-4 h-4 shrink-0" />
@@ -175,7 +176,7 @@ export function DashboardLayout() {
           </div>
           <button
             onClick={disconnect}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/15 transition-colors"
           >
             <LogOut className="w-4 h-4" />
             Disconnect

@@ -22,14 +22,16 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#110a1c] flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 30%, #c026d3 60%, #db2777 85%, #f97316 100%)' }}>
       {/* Background grid */}
       <div className="absolute inset-0 bg-grid pointer-events-none" />
       {/* Glow orbs */}
-      <div className="orb w-[700px] h-[700px] bg-indigo-600/14 -top-64 -right-48" />
-      <div className="orb w-[500px] h-[500px] bg-violet-600/12 bottom-0 -left-32" />
-      <div className="orb w-[350px] h-[350px] bg-pink-500/8 top-1/3 right-1/4" />
-      <div className="orb w-[250px] h-[250px] bg-cyan-500/8 bottom-1/4 left-1/3" />
+      <div className="pointer-events-none">
+        <div className="orb w-[700px] h-[700px] -top-64 -right-48" style={{ background: 'rgba(139,92,246,0.55)' }} />
+        <div className="orb w-[500px] h-[500px] bottom-0 -left-32" style={{ background: 'rgba(236,72,153,0.45)' }} />
+        <div className="orb w-[350px] h-[350px] top-1/3 right-1/4" style={{ background: 'rgba(6,182,212,0.30)' }} />
+        <div className="orb w-[250px] h-[250px] bottom-1/4 left-1/3" style={{ background: 'rgba(251,191,36,0.20)' }} />
+      </div>
 
       <div className="relative w-full max-w-sm">
         {/* Logo */}

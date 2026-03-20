@@ -174,7 +174,7 @@ export function AgentSkillsPanel({ agentId, agentName, onClose }: AgentSkillsPan
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl h-[80vh] flex flex-col overflow-hidden">
+      <div className="glass-heavy rounded-2xl shadow-2xl w-full max-w-2xl h-[80vh] flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/8 shrink-0">
@@ -203,7 +203,7 @@ export function AgentSkillsPanel({ agentId, agentName, onClose }: AgentSkillsPan
           <div className="relative flex-1 min-w-32">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
             <input
-              className="w-full pl-8 pr-3 py-1.5 text-xs border border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white"
+              className="w-full pl-8 pr-3 py-1.5 text-xs border border-white/20 rounded-lg focus:outline-none focus:ring-1 focus:ring-white/50 bg-white/15 text-white placeholder:text-white/40 backdrop-blur-sm"
               placeholder="搜索技能…"
               value={filter}
               onChange={e => setFilter(e.target.value)}
@@ -246,8 +246,8 @@ export function AgentSkillsPanel({ agentId, agentName, onClose }: AgentSkillsPan
 
         {/* Status banner */}
         {!configLoading && (
-          <div className={`px-5 py-2 text-xs shrink-0 border-b border-white/8 ${
-            usingAllowlist ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
+          <div className={`px-5 py-2 text-xs shrink-0 border-b border-white/10 ${
+            usingAllowlist ? 'bg-amber-500/15 text-amber-200' : 'bg-emerald-500/15 text-emerald-200'
           }`}>
             {usingAllowlist
               ? '该代理使用自定义技能白名单，仅白名单内的技能可用。'
@@ -263,7 +263,7 @@ export function AgentSkillsPanel({ agentId, agentName, onClose }: AgentSkillsPan
               <Loader2 className="w-5 h-5 animate-spin text-white/40" />
             </div>
           ) : skillsError ? (
-            <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg text-sm text-red-600">
+            <div className="flex items-center gap-2 p-3 bg-red-500/15 border border-red-400/25 rounded-lg text-sm text-red-300">
               <AlertCircle className="w-4 h-4 shrink-0" />
               {skillsError}
             </div>
