@@ -109,12 +109,12 @@ export function ModelSelect({ value, onChange, placeholder = 'provider/model', d
       {/* Trigger */}
       <div
         onClick={handleOpen}
-        className={`flex items-center gap-1.5 w-full px-3 py-2 text-sm border rounded-lg cursor-pointer transition-colors ${
+        className={`flex items-center gap-1.5 w-full px-3 py-2 text-sm rounded-xl cursor-pointer transition-all duration-200 ${
           disabled
-            ? 'bg-white/5 border-white/10 text-white/30 cursor-not-allowed'
+            ? 'bg-white/5 border border-white/8 text-white/30 cursor-not-allowed'
             : open
-            ? 'border-indigo-400/60 ring-2 ring-indigo-400/20 bg-white/12 backdrop-blur-sm'
-            : 'border-white/15 bg-white/10 hover:border-white/25 backdrop-blur-sm'
+            ? 'glass-input shadow-[0_0_0_3px_rgba(99,102,241,0.18),0_0_20px_rgba(99,102,241,0.10)]'
+            : 'glass-input hover:border-white/25'
         }`}
       >
         <span className={`flex-1 truncate font-mono text-sm ${displayValue ? 'text-white' : 'text-white/30'}`}>
@@ -134,7 +134,7 @@ export function ModelSelect({ value, onChange, placeholder = 'provider/model', d
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 left-0 right-0 mt-1 bg-slate-900/90 backdrop-blur-2xl border border-white/15 rounded-xl shadow-2xl shadow-black/50 overflow-hidden">
+        <div className="absolute z-50 left-0 right-0 mt-1.5 glass-heavy rounded-2xl shadow-2xl shadow-black/60 overflow-hidden ring-1 ring-white/8">
           {/* Search */}
           <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10">
             <Search className="w-3.5 h-3.5 text-white/30 shrink-0" />

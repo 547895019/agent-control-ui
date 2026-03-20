@@ -23,7 +23,7 @@ function Field({ label, required, hint, children }: {
   );
 }
 
-const inputCls = "w-full px-3 py-2 text-sm border border-white/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400/60 transition bg-white/10 backdrop-blur-sm text-white placeholder:text-white/30 disabled:bg-white/5 disabled:text-white/30";
+const inputCls = "glass-input w-full px-3 py-2 text-sm rounded-xl disabled:opacity-40";
 
 function parseModelCfg(m: any): { primary: string; fallbacks: string[] } {
   if (!m) return { primary: 'kimi-coding/k2p5', fallbacks: [] };
@@ -99,7 +99,7 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-2xl shadow-black/50 w-full max-w-lg">
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 w-full max-w-lg ring-1 ring-white/10">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <h2 className="text-base font-semibold text-white">
@@ -212,13 +212,13 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
 
           {/* Footer */}
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-white/60 bg-white/8 hover:bg-white/15 rounded-lg transition-colors border border-white/10">
+            <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-white/60 btn-secondary rounded-xl">
               取消
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-indigo-600/80 hover:bg-indigo-500/80 rounded-lg transition-colors disabled:opacity-60 backdrop-blur-sm border border-indigo-400/20 shadow-lg shadow-indigo-900/30"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-white btn-primary rounded-xl disabled:opacity-60"
             >
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {loading ? '保存中…' : isEditing ? '保存' : '创建代理'}

@@ -104,9 +104,20 @@ export function DashboardLayout() {
   const [editingBrand, setEditingBrand] = useState(false);
 
   return (
-    <div className="h-screen flex bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950">
+    <div className="h-screen flex bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#110a1c] relative overflow-hidden">
+      {/* Background grid */}
+      <div className="absolute inset-0 bg-grid opacity-100 pointer-events-none" />
+
+      {/* Decorative colour orbs */}
+      <div className="pointer-events-none">
+        <div className="orb w-[600px] h-[600px] bg-indigo-600/15 -top-48 -right-32" />
+        <div className="orb w-[500px] h-[500px] bg-violet-600/12 top-1/2 -left-48" />
+        <div className="orb w-[400px] h-[400px] bg-pink-500/8 bottom-0 right-1/3" />
+        <div className="orb w-[300px] h-[300px] bg-cyan-500/8 top-1/4 left-1/3" />
+      </div>
+
       {/* Sidebar */}
-      <aside className="w-56 bg-white/5 backdrop-blur-xl border-r border-white/10 flex flex-col shrink-0">
+      <aside className="relative z-10 w-56 bg-white/[0.04] backdrop-blur-2xl border-r border-white/8 flex flex-col shrink-0 shadow-[1px_0_0_rgba(255,255,255,0.05)]">
         {/* Brand */}
         <div className="px-4 py-4 border-b border-white/10">
           {editingBrand ? (
@@ -128,8 +139,8 @@ export function DashboardLayout() {
                 🦞
               </div>
               <div className="min-w-0">
-                <p className="text-white font-semibold text-sm leading-tight truncate">{title}</p>
-                {subtitle && <p className="text-white/40 text-xs truncate">{subtitle}</p>}
+                <p className="gradient-text font-semibold text-sm leading-tight truncate">{title}</p>
+                {subtitle && <p className="text-white/35 text-xs truncate tracking-wide">{subtitle}</p>}
               </div>
             </button>
           )}
@@ -144,10 +155,10 @@ export function DashboardLayout() {
                 key={path}
                 to={path}
                 className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
+                  flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
                   ${active
-                    ? 'bg-indigo-600/70 text-white shadow-sm shadow-indigo-900/50 backdrop-blur-sm border border-indigo-400/20'
-                    : 'text-white/50 hover:text-white hover:bg-white/10'}
+                    ? 'btn-primary text-white shadow-lg shadow-indigo-900/40'
+                    : 'text-white/45 hover:text-white hover:bg-white/8 hover:shadow-[0_0_12px_rgba(255,255,255,0.04)]'}
                 `}
               >
                 <Icon className="w-4 h-4 shrink-0" />
@@ -174,7 +185,7 @@ export function DashboardLayout() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-hidden flex flex-col min-w-0">
+      <main className="relative z-10 flex-1 overflow-hidden flex flex-col min-w-0">
         <div className="flex-1 overflow-auto">
           <Outlet />
         </div>

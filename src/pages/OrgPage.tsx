@@ -188,7 +188,7 @@ function AddOrgModal({ initial, onSave, onClose }: AddOrgModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-md">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
           <h3 className="font-semibold text-white text-sm">{isEditing ? '编辑组织' : '添加组织'}</h3>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
@@ -296,7 +296,7 @@ function DeleteOrgModal({ org, orgAgentIds, onConfirm, onClose }: DeleteOrgModal
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-md">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/8">
           <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
           <h3 className="font-semibold text-white text-sm">删除组织</h3>
@@ -456,7 +456,7 @@ function OrgSetupModal({ entry, agents, onStart, onSkip }: OrgSetupModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-xl flex flex-col max-h-[80vh]">
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-xl flex flex-col max-h-[80vh]">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/8 shrink-0">
           <div>
             <h3 className="font-semibold text-white text-sm">自动生成组织目录</h3>
@@ -596,7 +596,7 @@ function OrgGeneratingModal({ agentId: _agentId, agentName, sessionKey, prompt, 
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-2xl flex flex-col" style={{ maxHeight: '80vh' }}>
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-2xl flex flex-col" style={{ maxHeight: '80vh' }}>
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/8 shrink-0">
@@ -683,7 +683,7 @@ function CompanyModal({ initial, agents, onSave, onClose }: CompanyModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-md">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
           <h3 className="font-semibold text-white text-sm">编辑公司信息</h3>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
@@ -779,7 +779,7 @@ function MergeConfigModal({ agents, onConfirm, onClose }: MergeConfigModalProps)
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-lg">
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-lg">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/8">
           {done
             ? <Check className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -896,7 +896,7 @@ function TeamModal({ initial, onSave, onClose }: TeamModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-md">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
           <h3 className="font-semibold text-white text-sm">{initial ? '编辑团队' : '添加团队'}</h3>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
@@ -1000,7 +1000,7 @@ function QuickConfigAgentModal({ agentId, defaultName, defaultWorkspace, onClose
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-md">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/8">
           <Settings className="w-4 h-4 text-indigo-500 shrink-0" />
           <h3 className="font-semibold text-white text-sm">配置 Agent</h3>
@@ -1099,7 +1099,7 @@ function MemberModal({ initial, existingIds, agents, onSave, onClose }: MemberMo
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-md">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
           <h3 className="font-semibold text-white text-sm">{initial ? '编辑成员' : '添加成员'}</h3>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
@@ -1501,7 +1501,7 @@ export function OrgPage() {
               </button>
 
               {orgDropdownOpen && (
-                <div className="absolute left-0 top-full mt-1.5 w-80 bg-white/8 backdrop-blur-xl border border-white/10 rounded-xl shadow-lg z-40 overflow-hidden">
+                <div className="absolute left-0 top-full mt-1.5 w-80 glass glass-shine rounded-2xl shadow-lg z-40 overflow-hidden">
                   <div className="px-3 py-2 border-b border-white/8 bg-white/5">
                     <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider">组织列表</span>
                   </div>
@@ -1848,7 +1848,7 @@ export function OrgPage() {
                         return (
                           <div
                             key={member.agentId}
-                            className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex flex-col items-center gap-2.5 hover:border-indigo-200 hover:shadow-sm transition-all group"
+                            className="glass glass-shine rounded-2xl p-4 flex flex-col items-center gap-2.5 hover:border-indigo-200 hover:shadow-sm transition-all group"
                           >
                             <div className={`w-12 h-12 rounded-full ${getAvatarColor(member.agentId)} flex items-center justify-center text-white font-semibold text-sm shrink-0`}>
                               {getInitials(member.agentId, displayName)}

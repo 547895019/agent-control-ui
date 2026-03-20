@@ -25,7 +25,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
+    <div className="glass glass-shine rounded-2xl overflow-hidden">
       <div className="px-4 py-3 border-b border-white/8 bg-white/5">
         <h3 className="text-sm font-semibold text-white/80">{title}</h3>
       </div>
@@ -373,7 +373,7 @@ function MappingForm({ mapping, onSave, onCancel }: {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-lg max-h-[90vh] flex flex-col">
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 shrink-0">
           <h3 className="text-sm font-semibold text-white">
             {mapping.name ? '编辑命令' : '新建命令'}
@@ -547,7 +547,7 @@ function CommandsTab() {
       ) : (
         <div className="space-y-2">
           {mappings.map(m => (
-            <div key={m.id} className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 flex items-start gap-3 hover:border-indigo-200 transition-colors">
+            <div key={m.id} className="glass glass-shine rounded-2xl px-4 py-3 flex items-start gap-3 hover:border-indigo-200 transition-colors">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium text-white">{m.name || m.id}</span>
@@ -608,7 +608,7 @@ function HandlerForm({ handler, onSave, onCancel }: {
   const set = (k: keyof InternalHandler, v: string) => setForm(f => ({ ...f, [k]: v }));
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-md">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
           <h3 className="text-sm font-semibold text-white">内部钩子处理器</h3>
           <button onClick={onCancel} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10"><X className="w-4 h-4" /></button>

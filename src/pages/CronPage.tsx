@@ -757,7 +757,7 @@ function CronJobModal({ initial, agents, onSave, onClose }: {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-xl shadow-2xl shadow-black/50 w-full max-w-xl max-h-[92vh] flex flex-col border border-white/10">
+      <div className="glass-heavy rounded-xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-xl max-h-[92vh] flex flex-col border border-white/10">
         <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 shrink-0">
           <h2 className="text-white font-semibold text-sm">{initial ? '编辑定时任务' : '新建定时任务'}</h2>
           <button onClick={onClose} className="text-white/40 hover:text-white/80"><X className="w-4 h-4" /></button>
@@ -1173,7 +1173,7 @@ export function CronPage() {
 
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-slate-900/80 backdrop-blur-2xl rounded-xl p-6 shadow-2xl shadow-black/50 max-w-sm w-full mx-4 border border-white/10">
+          <div className="glass-heavy rounded-xl p-6 shadow-2xl shadow-black/60 ring-1 ring-white/10 max-w-sm w-full mx-4 border border-white/10">
             <h3 className="text-white font-semibold mb-2">删除定时任务</h3>
             <p className="text-white/50 text-sm mb-4">确认删除 <strong className="text-white">"{confirmDelete.name}"</strong>？此操作不可撤销。</p>
             <div className="flex justify-end gap-2">

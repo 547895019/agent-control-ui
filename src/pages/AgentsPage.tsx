@@ -127,14 +127,14 @@ export function AgentsPage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm text-white/70 bg-white/10 border border-white/15 rounded-lg hover:bg-white/15 transition-colors disabled:opacity-50 backdrop-blur-sm"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm text-white/70 btn-secondary rounded-xl disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             刷新
           </button>
           <button
             onClick={() => { setEditingAgent(undefined); setShowForm(true); }}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm text-white bg-indigo-600/80 hover:bg-indigo-500/80 rounded-lg transition-colors shadow-lg shadow-indigo-900/40 backdrop-blur-sm border border-indigo-400/20"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm text-white btn-primary rounded-xl shadow-lg"
           >
             <Plus className="w-3.5 h-3.5" />
             新建代理
@@ -162,7 +162,7 @@ export function AgentsPage() {
           {agentList.map(([id, config]: [string, any]) => (
             <div
               key={id}
-              className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-xl p-4 hover:border-white/20 hover:bg-white/12 transition-all group cursor-pointer shadow-xl shadow-black/20"
+              className="glass glass-shine card-hover rounded-2xl p-4 group cursor-pointer shadow-xl shadow-black/25"
               onClick={() => setFilesAgent({ id, config })}
             >
               {/* Card header */}
