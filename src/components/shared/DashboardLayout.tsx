@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/useAppStore';
 import {
   Bot, ScrollText, LogOut, Building2, Clock, BarChart2, Puzzle, MessageSquare,
-  WifiOff, RefreshCw, AlertCircle, Loader2, Zap, Users,
+  WifiOff, RefreshCw, AlertCircle, Loader2, Zap, Users, ArrowUpCircle, X, RotateCcw,
 } from 'lucide-react';
 
 const BRAND_KEY = 'openclaw:brand';
@@ -98,11 +98,198 @@ function StatusDot({ status }: { status: string }) {
   );
 }
 
+// ── UpdateModal ───────────────────────────────────────────────────────────────
+
+type UpdateStatus = 'idle' | 'updating' | 'restarting' | 'done' | 'error' | 'unsupported';
+
+function UpdateModal({ onClose }: { onClose: () => void }) {
+  const [status, setStatus]   = useState<UpdateStatus>('idle');
+  const [output, setOutput]   = useState('');
+  const [token, setToken]     = useState<string | null>(null);
+  const [commit, setCommit]   = useState('');
+  const outputRef             = useRef<HTMLPreElement>(null);
+
+  // Fetch update token + current version on mount
+  useEffect(() => {
+    fetch('/self/config')
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => setToken(d.updateToken))
+      .catch(e => {
+        if (e === 403) setStatus('unsupported'); // remote access
+        else           setStatus('unsupported'); // static hosting / no server.mjs
+      });
+
+    fetch('/self/version')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setCommit(d.commit))
+      .catch(() => {});
+  }, []);
+
+  // Auto-scroll output
+  useEffect(() => {
+    if (outputRef.current) outputRef.current.scrollTop = outputRef.current.scrollHeight;
+  }, [output]);
+
+  const startUpdate = useCallback(async () => {
+    if (!token) return;
+    setStatus('updating');
+    setOutput('');
+
+    try {
+      const res = await fetch('/self/update', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (!res.ok) { setStatus('error'); setOutput(`HTTP ${res.status}`); return; }
+
+      const reader = res.body!.getReader();
+      const dec    = new TextDecoder();
+      let buf      = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        setOutput(buf);
+      }
+
+      // Stream closed — server exited to restart
+      setStatus('restarting');
+      setOutput(prev => prev + '\n正在等待服务重启…\n');
+
+      // Poll until server is back
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        try {
+          const r = await fetch('/self/version');
+          if (r.ok) {
+            clearInterval(poll);
+            setStatus('done');
+            setOutput(prev => prev + '✓ 服务已重启，请刷新页面。\n');
+          }
+        } catch {}
+        if (attempts >= 30) {
+          clearInterval(poll);
+          setStatus('error');
+          setOutput(prev => prev + '✗ 等待超时，请手动刷新。\n');
+        }
+      }, 2000);
+
+    } catch (err: any) {
+      setStatus('error');
+      setOutput(String(err));
+    }
+  }, [token]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-lg glass-heavy rounded-2xl border border-white/15 shadow-2xl flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10">
+          <ArrowUpCircle className="w-5 h-5 text-indigo-300 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-white font-semibold text-sm">更新版本</p>
+            {commit && (
+              <p className="text-white/35 text-xs font-mono mt-0.5">当前：{commit} · v{__BUILD_DATE__}</p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 space-y-4">
+          {status === 'unsupported' && (
+            <div className="rounded-xl bg-amber-500/10 border border-amber-400/20 px-4 py-3 text-sm text-amber-300">
+              此功能需要通过 <code className="font-mono text-amber-200">server.mjs</code> 启动服务，
+              静态托管或远程访问模式不支持在线更新。<br />
+              请在服务器上运行 <code className="font-mono text-amber-200">./update.sh</code>。
+            </div>
+          )}
+
+          {status === 'idle' && token && (
+            <p className="text-sm text-white/60">
+              将拉取最新代码并重新构建，完成后服务自动重启。
+            </p>
+          )}
+
+          {status === 'idle' && !token && status !== 'unsupported' as UpdateStatus && (
+            <div className="flex items-center gap-2 text-white/40 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" /> 正在连接…
+            </div>
+          )}
+
+          {(output || status === 'updating' || status === 'restarting') && (
+            <pre
+              ref={outputRef}
+              className="h-56 overflow-y-auto rounded-xl bg-black/40 border border-white/8 p-3 text-[11px] text-white/70 font-mono whitespace-pre-wrap leading-relaxed"
+            >
+              {output || ' '}
+              {(status === 'updating' || status === 'restarting') && (
+                <span className="inline-block w-1.5 h-3 bg-indigo-400 animate-pulse ml-0.5 align-middle" />
+              )}
+            </pre>
+          )}
+
+          {status === 'restarting' && (
+            <div className="flex items-center gap-2 text-indigo-300 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" /> 等待服务重启…
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 pb-5 flex items-center gap-2 justify-end">
+          {status === 'done' && (
+            <button
+              onClick={() => window.location.reload()}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white btn-primary shadow-lg"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              刷新页面
+            </button>
+          )}
+          {status === 'idle' && token && (
+            <button
+              onClick={startUpdate}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white btn-primary shadow-lg"
+            >
+              <ArrowUpCircle className="w-3.5 h-3.5" />
+              开始更新
+            </button>
+          )}
+          {(status === 'done' || status === 'error' || status === 'unsupported') && (
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl text-sm text-white/60 hover:text-white btn-secondary transition-colors"
+            >
+              关闭
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── DashboardLayout ───────────────────────────────────────────────────────────
+
 export function DashboardLayout() {
   const location = useLocation();
   const { connectionStatus, disconnect } = useAppStore();
   const { title, subtitle, setTitle, setSubtitle } = useBrand();
   const [editingBrand, setEditingBrand] = useState(false);
+  const [showUpdate, setShowUpdate] = useState(false);
 
   return (
     <div className="h-screen flex relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at 20% 50%, #351c7a 0%, #17103c 55%, #112438 100%)' }}>
@@ -179,7 +366,16 @@ export function DashboardLayout() {
             <LogOut className="w-4 h-4" />
             Disconnect
           </button>
-          <p className="px-3 pt-1 text-[10px] text-white/20 font-mono">v{__BUILD_DATE__}</p>
+          <div className="px-3 pt-1 flex items-center justify-between">
+            <span className="text-[10px] text-white/20 font-mono">v{__BUILD_DATE__}</span>
+            <button
+              onClick={() => setShowUpdate(true)}
+              title="更新版本"
+              className="w-5 h-5 flex items-center justify-center rounded text-white/20 hover:text-indigo-300 hover:bg-indigo-500/20 transition-colors"
+            >
+              <ArrowUpCircle className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -189,6 +385,8 @@ export function DashboardLayout() {
           <Outlet />
         </div>
       </main>
+
+      {showUpdate && <UpdateModal onClose={() => setShowUpdate(false)} />}
     </div>
   );
 }

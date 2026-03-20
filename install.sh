@@ -14,6 +14,7 @@ err()  { echo -e "${RED}[error]${NC} $*"; exit 1; }
 INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_NAME="openclaw-ui"
 PORT="${PORT:-8080}"
+NODE_BIN="$(command -v node)"
 
 # ── 1. Check Node.js ──────────────────────────────────────────────────────────
 if ! command -v node &>/dev/null; then
@@ -35,14 +36,7 @@ log "Building..."
 npm run build
 log "Build complete → dist/"
 
-# ── 4. Install static file server ─────────────────────────────────────────────
-if ! command -v serve &>/dev/null; then
-  log "Installing 'serve'..."
-  npm install -g serve
-fi
-SERVE_BIN="$(command -v serve)"
-
-# ── 5. Register systemd service (Linux only) ─────────────────────────────────
+# ── 4. Register systemd service (Linux only) ─────────────────────────────────
 if command -v systemctl &>/dev/null && [ -d /etc/systemd/system ]; then
   SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
   log "Creating systemd service: $SERVICE_FILE"
@@ -56,10 +50,11 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$INSTALL_DIR
-ExecStart=$SERVE_BIN -s dist -l $PORT
+ExecStart=$NODE_BIN $INSTALL_DIR/server.mjs
 Restart=on-failure
-RestartSec=5
+RestartSec=3
 Environment=NODE_ENV=production
+Environment=PORT=$PORT
 
 [Install]
 WantedBy=multi-user.target
@@ -77,13 +72,13 @@ EOF
   log "  Logs   : sudo journalctl -u $SERVICE_NAME -f"
 
 else
-  # ── Fallback: generate start/stop scripts ─────────────────────────────────
+  # ── Fallback: generate start/stop scripts ────────────────────────────────
   warn "systemd not found — generating start.sh / stop.sh instead"
 
   cat > "$INSTALL_DIR/start.sh" <<EOF
 #!/usr/bin/env bash
 cd "$INSTALL_DIR"
-nohup $SERVE_BIN -s dist -l $PORT > openclaw-ui.log 2>&1 &
+PORT=$PORT nohup $NODE_BIN server.mjs > openclaw-ui.log 2>&1 &
 echo \$! > openclaw-ui.pid
 echo "Started on http://localhost:$PORT  (pid \$(cat openclaw-ui.pid))"
 EOF
