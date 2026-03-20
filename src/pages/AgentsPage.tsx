@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../stores/useAppStore';
+import { client } from '../api/gateway';
 import { AgentForm } from '../components/agents/AgentForm';
 import { AgentFilesEditor } from '../components/agents/AgentFilesEditor';
 import { AgentSessionsViewer } from '../components/agents/AgentSessionsViewer';
 import { AgentChat } from '../components/agents/AgentChat';
-import { Plus, Pencil, Trash2, Bot, RefreshCw, FolderOpen, History, MessageSquare } from 'lucide-react';
+import { AgentSkillsPanel } from '../components/agents/AgentSkillsPanel';
+import { Plus, Pencil, Trash2, Bot, RefreshCw, FolderOpen, History, MessageSquare, Puzzle } from 'lucide-react';
 
 const AVATAR_COLORS = [
   'bg-violet-500', 'bg-indigo-500', 'bg-blue-500', 'bg-cyan-500',
@@ -23,6 +25,17 @@ function getInitials(id: string, name?: string) {
   const parts = src.split(/[\s_-]+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return src.slice(0, 2).toUpperCase();
+}
+
+function formatTokens(n: number): string {
+  if (!n) return '0';
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+function getIsoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function ModelBadge({ model }: { model?: string | { primary: string; fallbacks?: string[] } }) {
@@ -48,16 +61,41 @@ function ModelBadge({ model }: { model?: string | { primary: string; fallbacks?:
 }
 
 export function AgentsPage() {
-  const { agents, deleteAgent, fetchAgents } = useAppStore();
+  const { agents, deleteAgent, fetchAgents, connectionStatus } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [editingAgent, setEditingAgent] = useState<{ id: string; config: any } | undefined>();
   const [filesAgent, setFilesAgent] = useState<{ id: string; config: any } | null>(null);
   const [sessionsAgent, setSessionsAgent] = useState<{ id: string; config: any } | null>(null);
   const [chatAgent, setChatAgent] = useState<{ id: string; config: any } | null>(null);
+  const [skillsAgent, setSkillsAgent] = useState<{ id: string; config: any } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [agentUsage, setAgentUsage] = useState<Map<string, { totalTokens: number; totalCost: number }>>(new Map());
+
+  // Fetch 7-day usage once connected
+  useEffect(() => {
+    if (connectionStatus !== 'connected') return;
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 6);
+    client.usageGet({ startDate: getIsoDate(start), endDate: getIsoDate(end) })
+      .then(res => {
+        const map = new Map<string, { totalTokens: number; totalCost: number }>();
+        for (const entry of (res?.aggregates?.byAgent ?? [])) {
+          if (entry.agentId) {
+            map.set(entry.agentId, {
+              totalTokens: entry.totals?.totalTokens ?? 0,
+              totalCost: entry.totals?.totalCost ?? 0,
+            });
+          }
+        }
+        setAgentUsage(map);
+      })
+      .catch(() => {});
+  }, [connectionStatus]);
 
   const agentList = Object.entries(agents);
+  const maxTokens = Math.max(...[...agentUsage.values()].map(u => u.totalTokens), 1);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm(`确认删除代理 "${id}"？此操作仅删除配置文件。`)) return;
@@ -164,6 +202,32 @@ export function AgentsPage() {
                     {config.tools?.profile ?? '默认'}
                   </span>
                 </div>
+                {(() => {
+                  const usage = agentUsage.get(id);
+                  if (!usage || usage.totalTokens === 0) return null;
+                  const pct = Math.round((usage.totalTokens / maxTokens) * 100);
+                  return (
+                    <div className="pt-0.5">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="text-xs text-slate-400 shrink-0">近7天用量</span>
+                        <span className="text-xs text-slate-600 font-medium tabular-nums">
+                          {formatTokens(usage.totalTokens)}
+                          {usage.totalCost > 0 && (
+                            <span className="text-slate-400 font-normal ml-1">
+                              ${usage.totalCost < 0.01 ? usage.totalCost.toFixed(4) : usage.totalCost.toFixed(2)}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-400 rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Actions */}
@@ -174,6 +238,13 @@ export function AgentsPage() {
                 >
                   <MessageSquare className="w-3 h-3" />
                   聊天
+                </button>
+                <button
+                  onClick={() => setSkillsAgent({ id, config })}
+                  className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <Puzzle className="w-3 h-3" />
+                  技能
                 </button>
                 <button
                   onClick={() => setSessionsAgent({ id, config })}
@@ -235,6 +306,14 @@ export function AgentsPage() {
           agentName={chatAgent.config.name || chatAgent.id}
           workspace={chatAgent.config.workspace || ''}
           onClose={() => setChatAgent(null)}
+        />
+      )}
+
+      {skillsAgent && (
+        <AgentSkillsPanel
+          agentId={skillsAgent.id}
+          agentName={skillsAgent.config.name || skillsAgent.id}
+          onClose={() => setSkillsAgent(null)}
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { client } from '../../api/gateway';
 import { X, AlertCircle, Loader2, Plus, Trash2 } from 'lucide-react';
+import { ModelSelect } from '../shared/ModelSelect';
 
 interface AgentFormProps {
   agent?: { id: string; config: any };
@@ -152,21 +153,21 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
           <Field label="模型" hint="支持 provider/model 格式，可添加备用模型">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <input
-                  className={`${inputCls} flex-1`}
+                <ModelSelect
                   value={modelPrimary}
-                  onChange={e => setModelPrimary(e.target.value)}
+                  onChange={setModelPrimary}
                   placeholder="e.g. kimi-coding/k2p5"
+                  className="flex-1"
                 />
               </div>
               {modelFallbacks.map((fb, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <span className="text-xs text-slate-400 w-16 shrink-0 text-right">备用 {i + 1}</span>
-                  <input
-                    className={`${inputCls} flex-1`}
+                  <ModelSelect
                     value={fb}
-                    onChange={e => setFallback(i, e.target.value)}
+                    onChange={v => setFallback(i, v)}
                     placeholder="e.g. openai/gpt-4o"
+                    className="flex-1"
                   />
                   <button
                     type="button"

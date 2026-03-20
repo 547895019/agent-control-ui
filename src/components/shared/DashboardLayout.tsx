@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/useAppStore';
 import {
   Bot, ScrollText, LogOut, Building2, Clock, BarChart2, Puzzle, MessageSquare,
-  WifiOff, RefreshCw, AlertCircle, Loader2
+  WifiOff, RefreshCw, AlertCircle, Loader2, Zap,
 } from 'lucide-react';
 
 const BRAND_KEY = 'openclaw:brand';
@@ -60,7 +60,8 @@ const NAV_ITEMS = [
   { path: '/monitor', label: '日志', icon: ScrollText },
   { path: '/usage', label: '用量', icon: BarChart2 },
   { path: '/skills', label: '技能', icon: Puzzle },
-  { path: '/channels', label: '频道', icon: MessageSquare },
+  { path: '/channels',    label: '频道', icon: MessageSquare },
+  { path: '/automation',  label: '自动化', icon: Zap },
 ];
 
 function StatusDot({ status }: { status: string }) {

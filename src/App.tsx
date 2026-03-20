@@ -10,6 +10,7 @@ import { CronPage } from './pages/CronPage';
 import { UsagePage } from './pages/UsagePage';
 import { SkillsPage } from './pages/SkillsPage';
 import { ChannelsPage } from './pages/ChannelsPage';
+import { AutomationPage } from './pages/AutomationPage';
 
 function App() {
   const { token, connect, connectionStatus } = useAppStore();
@@ -36,6 +37,7 @@ function App() {
           <Route path="usage" element={<UsagePage />} />
           <Route path="skills" element={<SkillsPage />} />
           <Route path="channels" element={<ChannelsPage />} />
+          <Route path="automation" element={<AutomationPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

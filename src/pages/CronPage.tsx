@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ModelSelect } from '../components/shared/ModelSelect';
 import { client } from '../api/gateway';
 import {
   Plus, Play, Trash2, Edit2, RefreshCw, Clock,
@@ -874,7 +875,7 @@ function CronJobModal({ initial, agents, onSave, onClose }: {
                 <textarea className={`${inp} resize-none`} rows={4} value={form.payloadText} onChange={e => set('payloadText', e.target.value)} placeholder={form.payloadKind === 'systemEvent' ? '发送给 Agent 的系统事件文本' : '发送给 Agent 的消息内容'} />
               </div>
               {form.payloadKind === 'agentTurn' && (<>
-                <div><label className={lbl}>模型（可选）</label><input className={inp} value={form.payloadModel} onChange={e => set('payloadModel', e.target.value)} placeholder="如 claude-sonnet-4-6" /></div>
+                <div><label className={lbl}>模型（可选）</label><ModelSelect value={form.payloadModel} onChange={v => set('payloadModel', v)} placeholder="如 claude-sonnet-4-6" /></div>
                 <div><label className={lbl}>Thinking 提示（可选）</label><input className={inp} value={form.payloadThinking} onChange={e => set('payloadThinking', e.target.value)} placeholder="thinking 模式提示" /></div>
                 <div><label className={lbl}>超时时间（秒，可选）</label><input className={inp} type="number" min="0" value={form.timeoutSeconds} onChange={e => set('timeoutSeconds', e.target.value)} placeholder="留空不限制" /></div>
                 <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
