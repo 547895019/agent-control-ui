@@ -90,37 +90,39 @@ createServer((req, res) => {
     const repo  = (pkg.repository?.url || '').replace(/^(git\+)?https:\/\/github\.com\//, '').replace(/\.git$/, '');
     const ghPkg = repo ? `github:${repo}` : pkg.name;
 
-    // Check latest version before installing
-    if (repo) {
-      try {
-        const rawUrl = `https://raw.githubusercontent.com/${repo}/main/package.json`;
-        const latest = await fetch(rawUrl).then(r => r.json());
-        if (latest.version === pkg.version) {
-          write(`✓ 已是最新版本 (${pkg.version})，无需更新。\n`);
-          res.end();
-          return;
+    (async () => {
+      // Check latest version before installing
+      if (repo) {
+        try {
+          const rawUrl = `https://raw.githubusercontent.com/${repo}/main/package.json`;
+          const latest = await fetch(rawUrl).then(r => r.json());
+          if (latest.version === pkg.version) {
+            write(`✓ 已是最新版本 (${pkg.version})，无需更新。\n`);
+            res.end();
+            return;
+          }
+          write(`当前版本：${pkg.version} → 最新版本：${latest.version}\n`);
+        } catch {
+          write('（无法检查最新版本，继续安装…）\n');
         }
-        write(`当前版本：${pkg.version} → 最新版本：${latest.version}\n`);
-      } catch {
-        write('（无法检查最新版本，继续安装…）\n');
       }
-    }
 
-    // npm install -g from GitHub — fetches pre-built dist, no build step needed
-    write(`$ npm install -g ${ghPkg}\n`);
-    const p = spawn('npm', ['install', '-g', ghPkg, '--no-fund', '--no-audit'], { env });
-    p.stdout.on('data', d => write(d));
-    p.stderr.on('data', d => write(d));
-    p.on('close', code => {
-      if (code !== 0) { write(`\n✗ 失败 (exit ${code})\n`); res.end(); return; }
-      write('\n✓ 安装完成，服务即将重启…\n');
-      res.end();
-      const restarter = spawn('bash', ['-c',
-        `sleep 1 && systemctl restart openclaw-ui 2>/dev/null || bash "${join(__dirname, 'start.sh')}" 2>/dev/null`
-      ], { detached: true, stdio: 'ignore' });
-      restarter.unref();
-      setTimeout(() => process.exit(0), 800);
-    });
+      // npm install -g from GitHub — fetches pre-built dist, no build step needed
+      write(`$ npm install -g ${ghPkg}\n`);
+      const p = spawn('npm', ['install', '-g', ghPkg, '--no-fund', '--no-audit'], { env });
+      p.stdout.on('data', d => write(d));
+      p.stderr.on('data', d => write(d));
+      p.on('close', code => {
+        if (code !== 0) { write(`\n✗ 失败 (exit ${code})\n`); res.end(); return; }
+        write('\n✓ 安装完成，服务即将重启…\n');
+        res.end();
+        const restarter = spawn('bash', ['-c',
+          `sleep 1 && systemctl restart openclaw-ui 2>/dev/null || bash "${join(__dirname, 'start.sh')}" 2>/dev/null`
+        ], { detached: true, stdio: 'ignore' });
+        restarter.unref();
+        setTimeout(() => process.exit(0), 800);
+      });
+    })();
 
     return;
   }
