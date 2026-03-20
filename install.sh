@@ -51,7 +51,7 @@ Type=simple
 User=$USER
 WorkingDirectory=$INSTALL_DIR
 ExecStart=$NODE_BIN $INSTALL_DIR/server.mjs
-Restart=on-failure
+Restart=always
 RestartSec=3
 Environment=NODE_ENV=production
 Environment=PORT=$PORT

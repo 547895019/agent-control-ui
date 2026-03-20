@@ -150,6 +150,12 @@ createServer((req, res) => {
       if (i >= npmSteps.length) {
         write('\n✓ 构建完成，服务即将重启…\n');
         res.end();
+        // Spawn a detached process to restart the service after response is flushed.
+        // systemctl restart kills this process; start.sh is fallback for non-systemd.
+        const restarter = spawn('bash', ['-c',
+          `sleep 1 && systemctl restart openclaw-ui 2>/dev/null || bash "${join(__dirname, 'start.sh')}" 2>/dev/null`
+        ], { detached: true, stdio: 'ignore' });
+        restarter.unref();
         setTimeout(() => process.exit(0), 800);
         return;
       }
