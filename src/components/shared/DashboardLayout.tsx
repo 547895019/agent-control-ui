@@ -36,18 +36,18 @@ function BrandEditor({ title, subtitle, onSave, onCancel }: {
         ref={ref}
         value={t}
         onChange={e => setT(e.target.value)}
-        className="w-full bg-slate-800 border border-slate-600 text-white text-sm font-semibold px-2 py-1 rounded focus:outline-none focus:border-indigo-500"
+        className="w-full bg-white/10 border border-white/20 text-white text-sm font-semibold px-2 py-1 rounded focus:outline-none focus:border-indigo-400 backdrop-blur-sm placeholder:text-white/30"
         placeholder="名称"
       />
       <input
         value={s}
         onChange={e => setS(e.target.value)}
-        className="w-full bg-slate-800 border border-slate-600 text-slate-400 text-xs px-2 py-1 rounded focus:outline-none focus:border-indigo-500"
+        className="w-full bg-white/10 border border-white/20 text-white/70 text-xs px-2 py-1 rounded focus:outline-none focus:border-indigo-400 backdrop-blur-sm placeholder:text-white/30"
         placeholder="副标题"
       />
       <div className="flex gap-1 pt-0.5">
-        <button type="submit" className="flex-1 py-1 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded transition-colors">保存</button>
-        <button type="button" onClick={onCancel} className="flex-1 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors">取消</button>
+        <button type="submit" className="flex-1 py-1 text-xs bg-indigo-600/80 hover:bg-indigo-500/80 text-white rounded transition-colors backdrop-blur-sm">保存</button>
+        <button type="button" onClick={onCancel} className="flex-1 py-1 text-xs bg-white/10 hover:bg-white/15 text-white/70 rounded transition-colors">取消</button>
       </div>
     </form>
   );
@@ -90,7 +90,7 @@ function StatusDot({ status }: { status: string }) {
     </span>
   );
   return (
-    <span className="flex items-center gap-1.5 text-xs text-slate-500">
+    <span className="flex items-center gap-1.5 text-xs text-white/30">
       <WifiOff className="w-3 h-3" />
       Disconnected
     </span>
@@ -104,11 +104,11 @@ export function DashboardLayout() {
   const [editingBrand, setEditingBrand] = useState(false);
 
   return (
-    <div className="h-screen flex bg-slate-50">
+    <div className="h-screen flex bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-950">
       {/* Sidebar */}
-      <aside className="w-56 bg-slate-900 flex flex-col shrink-0">
+      <aside className="w-56 bg-white/5 backdrop-blur-xl border-r border-white/10 flex flex-col shrink-0">
         {/* Brand */}
-        <div className="px-4 py-4 border-b border-slate-800">
+        <div className="px-4 py-4 border-b border-white/10">
           {editingBrand ? (
             <div className="px-1">
               <BrandEditor
@@ -121,15 +121,15 @@ export function DashboardLayout() {
           ) : (
             <button
               onClick={() => setEditingBrand(true)}
-              className="w-full flex items-center gap-2.5 text-left group rounded-lg px-1 py-0.5 hover:bg-slate-800 transition-colors"
+              className="w-full flex items-center gap-2.5 text-left group rounded-lg px-1 py-0.5 hover:bg-white/10 transition-colors"
               title="点击编辑名称"
             >
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-base shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600/80 backdrop-blur-sm flex items-center justify-center text-base shrink-0 shadow-lg shadow-indigo-900/50">
                 🦞
               </div>
               <div className="min-w-0">
                 <p className="text-white font-semibold text-sm leading-tight truncate">{title}</p>
-                {subtitle && <p className="text-slate-500 text-xs truncate">{subtitle}</p>}
+                {subtitle && <p className="text-white/40 text-xs truncate">{subtitle}</p>}
               </div>
             </button>
           )}
@@ -146,8 +146,8 @@ export function DashboardLayout() {
                 className={`
                   flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all
                   ${active
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'}
+                    ? 'bg-indigo-600/70 text-white shadow-sm shadow-indigo-900/50 backdrop-blur-sm border border-indigo-400/20'
+                    : 'text-white/50 hover:text-white hover:bg-white/10'}
                 `}
               >
                 <Icon className="w-4 h-4 shrink-0" />
@@ -158,18 +158,18 @@ export function DashboardLayout() {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 pb-4 space-y-1 border-t border-slate-800 pt-3">
+        <div className="px-3 pb-4 space-y-1 border-t border-white/10 pt-3">
           <div className="px-3 py-1.5">
             <StatusDot status={connectionStatus} />
           </div>
           <button
             onClick={disconnect}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/40 hover:text-white hover:bg-white/10 transition-colors"
           >
             <LogOut className="w-4 h-4" />
             Disconnect
           </button>
-          <p className="px-3 pt-1 text-[10px] text-slate-600 font-mono">v{__BUILD_DATE__}</p>
+          <p className="px-3 pt-1 text-[10px] text-white/20 font-mono">v{__BUILD_DATE__}</p>
         </div>
       </aside>
 

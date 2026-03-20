@@ -188,35 +188,35 @@ function AddOrgModal({ initial, onSave, onClose }: AddOrgModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-800 text-sm">{isEditing ? '编辑组织' : '添加组织'}</h3>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+          <h3 className="font-semibold text-white text-sm">{isEditing ? '编辑组织' : '添加组织'}</h3>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
             <X className="w-4 h-4" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">组织名称 *</label>
+              <label className="block text-xs font-medium text-white/70 mb-1.5">组织名称 *</label>
               <input
                 value={name}
                 onChange={e => handleNameChange(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="e.g. 我的公司"
                 required
                 autoFocus
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">
+              <label className="block text-xs font-medium text-white/70 mb-1.5">
                 组织 ID *
-                {isEditing && <span className="ml-1 text-slate-400 font-normal">（不可修改）</span>}
+                {isEditing && <span className="ml-1 text-white/40 font-normal">（不可修改）</span>}
               </label>
               <input
                 value={orgId}
                 onChange={e => { setIdTouched(true); setOrgId(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); }}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono disabled:bg-slate-50 disabled:text-slate-400"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono disabled:bg-white/5 disabled:text-white/40"
                 placeholder="my-company"
                 required
                 disabled={isEditing}
@@ -224,24 +224,24 @@ function AddOrgModal({ initial, onSave, onClose }: AddOrgModalProps) {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">组织描述</label>
+            <label className="block text-xs font-medium text-white/70 mb-1.5">组织描述</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
               rows={2}
               placeholder="组织的业务范围、职责说明等（新建目录时将用于自动生成配置）"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">
+            <label className="block text-xs font-medium text-white/70 mb-1.5">
               组织目录 <span className="text-red-500">*</span>
-              <span className="ml-1 text-slate-400 font-normal">（organization.json 所在目录）</span>
+              <span className="ml-1 text-white/40 font-normal">（organization.json 所在目录）</span>
             </label>
             <input
               value={dir}
               onChange={e => { setDir(e.target.value); setAutoFilled(false); }}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
               placeholder="~/.openclaw/workspaces"
               required
             />
@@ -252,7 +252,7 @@ function AddOrgModal({ initial, onSave, onClose }: AddOrgModalProps) {
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">颜色标识</label>
+            <label className="block text-xs font-medium text-white/70 mb-1.5">颜色标识</label>
             <div className="flex gap-2 flex-wrap">
               {ORG_COLORS.map(c => (
                 <button
@@ -266,7 +266,7 @@ function AddOrgModal({ initial, onSave, onClose }: AddOrgModalProps) {
             </div>
           </div>
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-2 text-sm text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-2 text-sm text-white/70 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
               取消
             </button>
             <button type="submit" className="flex-1 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors">
@@ -296,24 +296,24 @@ function DeleteOrgModal({ org, orgAgentIds, onConfirm, onClose }: DeleteOrgModal
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
+      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/8">
           <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-          <h3 className="font-semibold text-slate-800 text-sm">删除组织</h3>
-          <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+          <h3 className="font-semibold text-white text-sm">删除组织</h3>
+          <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="p-5 space-y-4">
-          <p className="text-sm text-slate-600">
-            确认删除组织 <strong className="text-slate-800">{org.name}</strong>
-            （<code className="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded">{org.id}</code>）？
+          <p className="text-sm text-white/70">
+            确认删除组织 <strong className="text-white">{org.name}</strong>
+            （<code className="font-mono text-xs bg-white/10 px-1 py-0.5 rounded">{org.id}</code>）？
           </p>
 
           {/* Options */}
           <div className="space-y-2">
-            <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors border-slate-200 hover:bg-slate-50">
+            <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors border-white/10 hover:bg-white/5">
               <input
                 type="radio"
                 checked={!deleteFiles}
@@ -321,9 +321,9 @@ function DeleteOrgModal({ org, orgAgentIds, onConfirm, onClose }: DeleteOrgModal
                 className="mt-0.5 shrink-0"
               />
               <div>
-                <p className="text-sm font-medium text-slate-700">仅移除组织配置</p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  从 UI 中移除此组织，目录 <code className="font-mono bg-slate-100 px-1 rounded">{org.dir}</code> 不受影响
+                <p className="text-sm font-medium text-white/80">仅移除组织配置</p>
+                <p className="text-xs text-white/40 mt-0.5">
+                  从 UI 中移除此组织，目录 <code className="font-mono bg-white/10 px-1 rounded">{org.dir}</code> 不受影响
                 </p>
               </div>
             </label>
@@ -385,9 +385,9 @@ function DeleteOrgModal({ org, orgAgentIds, onConfirm, onClose }: DeleteOrgModal
                 </p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                <label className="block text-xs font-medium text-white/70 mb-1.5">
                   请输入组织 ID{' '}
-                  <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-red-600">{org.id}</code>{' '}
+                  <code className="font-mono bg-white/10 px-1 py-0.5 rounded text-red-600">{org.id}</code>{' '}
                   以确认
                 </label>
                 <input
@@ -406,7 +406,7 @@ function DeleteOrgModal({ org, orgAgentIds, onConfirm, onClose }: DeleteOrgModal
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2 text-sm text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
+            className="flex-1 py-2 text-sm text-white/70 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
           >
             取消
           </button>
@@ -415,7 +415,7 @@ function DeleteOrgModal({ org, orgAgentIds, onConfirm, onClose }: DeleteOrgModal
             onClick={() => onConfirm(deleteFiles, removeAgents)}
             disabled={!canDelete}
             className={`flex-1 py-2 text-sm text-white rounded-lg transition-colors disabled:opacity-40 ${
-              deleteFiles ? 'bg-red-600 hover:bg-red-500' : 'bg-slate-600 hover:bg-slate-500'
+              deleteFiles ? 'bg-red-600 hover:bg-red-500' : 'bg-slate-600 hover:bg-white/50'
             }`}
           >
             {deleteFiles ? '彻底删除' : '移除配置'}
@@ -456,13 +456,13 @@ function OrgSetupModal({ entry, agents, onStart, onSkip }: OrgSetupModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl flex flex-col max-h-[80vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
+      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-xl flex flex-col max-h-[80vh]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/8 shrink-0">
           <div>
-            <h3 className="font-semibold text-slate-800 text-sm">自动生成组织目录</h3>
-            <p className="text-xs text-slate-400 mt-0.5">目录 <span className="font-mono">{entry.dir}</span> 不存在，可由 Agent 自动创建</p>
+            <h3 className="font-semibold text-white text-sm">自动生成组织目录</h3>
+            <p className="text-xs text-white/40 mt-0.5">目录 <span className="font-mono">{entry.dir}</span> 不存在，可由 Agent 自动创建</p>
           </div>
-          <button onClick={onSkip} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+          <button onClick={onSkip} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -470,7 +470,7 @@ function OrgSetupModal({ entry, agents, onStart, onSkip }: OrgSetupModalProps) {
         <div className="flex-1 overflow-y-auto p-5 space-y-4 min-h-0">
           {/* Agent selector */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">选择执行的 Agent</label>
+            <label className="block text-xs font-medium text-white/70 mb-1.5">选择执行的 Agent</label>
             {agentList.length === 0 ? (
               <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
                 暂无配置的 Agent，请先在 Agents 页面创建 Agent，或点击「跳过」手动配置。
@@ -479,7 +479,7 @@ function OrgSetupModal({ entry, agents, onStart, onSkip }: OrgSetupModalProps) {
               <select
                 value={selectedId}
                 onChange={e => setSelectedId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white/10 text-white placeholder:text-white/30"
               >
                 {agentList.map(([id, cfg]) => (
                   <option key={id} value={id}>{cfg.name || id} ({id})</option>
@@ -490,24 +490,24 @@ function OrgSetupModal({ entry, agents, onStart, onSkip }: OrgSetupModalProps) {
 
           {/* Editable prompt */}
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">
+            <label className="block text-xs font-medium text-white/70 mb-1.5">
               提示词
-              <span className="ml-1 text-slate-400 font-normal">（可修改）</span>
+              <span className="ml-1 text-white/40 font-normal">（可修改）</span>
             </label>
             <textarea
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
-              className="w-full px-3 py-2.5 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg leading-relaxed font-mono resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2.5 text-xs text-white/80 bg-white/5 border border-white/10 rounded-lg leading-relaxed font-mono resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500"
               rows={10}
             />
           </div>
         </div>
 
-        <div className="flex gap-2 p-5 pt-3 border-t border-slate-100 shrink-0">
+        <div className="flex gap-2 p-5 pt-3 border-t border-white/8 shrink-0">
           <button
             type="button"
             onClick={onSkip}
-            className="flex-1 py-2 text-sm text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
+            className="flex-1 py-2 text-sm text-white/70 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
           >
             跳过（手动配置）
           </button>
@@ -596,21 +596,21 @@ function OrgGeneratingModal({ agentId: _agentId, agentName, sessionKey, prompt, 
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col" style={{ maxHeight: '80vh' }}>
+      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-2xl flex flex-col" style={{ maxHeight: '80vh' }}>
 
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 shrink-0">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/8 shrink-0">
           {status === 'done'
             ? <Check className="w-4 h-4 text-emerald-500 shrink-0" />
             : status === 'error'
               ? <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
               : <Loader2 className="w-4 h-4 animate-spin text-indigo-500 shrink-0" />
           }
-          <h3 className={`font-semibold text-sm ${status === 'done' ? 'text-emerald-700' : status === 'error' ? 'text-red-600' : 'text-slate-800'}`}>
+          <h3 className={`font-semibold text-sm ${status === 'done' ? 'text-emerald-700' : status === 'error' ? 'text-red-600' : 'text-white'}`}>
             {statusLabel}
           </h3>
           {status !== 'sending' && status !== 'running' && (
-            <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 shrink-0">
+            <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10 shrink-0">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -620,7 +620,7 @@ function OrgGeneratingModal({ agentId: _agentId, agentName, sessionKey, prompt, 
         <div className="flex-1 overflow-y-auto p-4 bg-slate-950 font-mono text-xs text-slate-200 leading-relaxed whitespace-pre-wrap min-h-0">
           {output
             ? output
-            : <span className="text-slate-500">等待 Agent 响应…</span>
+            : <span className="text-white/50">等待 Agent 响应…</span>
           }
           <div ref={bottomRef} />
         </div>
@@ -648,7 +648,7 @@ function OrgGeneratingModal({ agentId: _agentId, agentName, sessionKey, prompt, 
             </span>
             <button
               onClick={onClose}
-              className="px-4 py-1.5 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              className="px-4 py-1.5 text-sm text-white/70 bg-white/10 hover:bg-white/15 rounded-lg transition-colors"
             >
               关闭
             </button>
@@ -683,45 +683,45 @@ function CompanyModal({ initial, agents, onSave, onClose }: CompanyModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-800 text-sm">编辑公司信息</h3>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+          <h3 className="font-semibold text-white text-sm">编辑公司信息</h3>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
             <X className="w-4 h-4" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">公司名称 *</label>
+            <label className="block text-xs font-medium text-white/70 mb-1.5">公司名称 *</label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="e.g. 我的公司"
               required
               autoFocus
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">组织描述</label>
+            <label className="block text-xs font-medium text-white/70 mb-1.5">组织描述</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
               rows={3}
               placeholder="组织简介或职责描述..."
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">
+            <label className="block text-xs font-medium text-white/70 mb-1.5">
               主负责人 Agent
-              <span className="ml-1 text-slate-400 font-normal">（可选，工作区为组织根目录）</span>
+              <span className="ml-1 text-white/40 font-normal">（可选，工作区为组织根目录）</span>
             </label>
             {agentEntries.length > 0 ? (
               <select
                 value={leadAgentId}
                 onChange={e => setLeadAgentId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white/10 text-white placeholder:text-white/30"
               >
                 <option value="">-- 不设置 --</option>
                 {agentEntries.map(([id, cfg]) => (
@@ -732,13 +732,13 @@ function CompanyModal({ initial, agents, onSave, onClose }: CompanyModalProps) {
               <input
                 value={leadAgentId}
                 onChange={e => setLeadAgentId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                 placeholder="agent-id（网关中的 Agent ID）"
               />
             )}
           </div>
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-2 text-sm text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-2 text-sm text-white/70 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
               取消
             </button>
             <button type="submit" className="flex-1 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors">
@@ -779,17 +779,17 @@ function MergeConfigModal({ agents, onConfirm, onClose }: MergeConfigModalProps)
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
+      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-lg">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/8">
           {done
             ? <Check className="w-4 h-4 text-emerald-500 shrink-0" />
             : <Download className="w-4 h-4 text-indigo-500 shrink-0" />
           }
-          <h3 className="font-semibold text-slate-800 text-sm">
+          <h3 className="font-semibold text-white text-sm">
             {done ? '合并完成' : '合并 Agent 配置到主配置'}
           </h3>
           {!loading && (
-            <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+            <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -806,24 +806,24 @@ function MergeConfigModal({ agents, onConfirm, onClose }: MergeConfigModalProps)
             </div>
           ) : (
             <>
-              <p className="text-sm text-slate-600">
-                检测到生成了 <strong className="text-slate-800">{agents.length}</strong> 个 Agent，
+              <p className="text-sm text-white/70">
+                检测到生成了 <strong className="text-white">{agents.length}</strong> 个 Agent，
                 是否合并到主配置{' '}
-                <code className="text-xs bg-slate-100 px-1 py-0.5 rounded font-mono">~/.openclaw/openclaw.json</code>？
+                <code className="text-xs bg-white/10 px-1 py-0.5 rounded font-mono">~/.openclaw/openclaw.json</code>？
               </p>
 
               <div className="space-y-1.5 max-h-52 overflow-y-auto">
                 {agents.map((a: any) => (
-                  <div key={a.id} className="flex items-center gap-2.5 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
+                  <div key={a.id} className="flex items-center gap-2.5 px-3 py-2 bg-white/5 rounded-lg border border-white/8">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0 ${getAvatarColor(a.id)}`}>
                       {getInitials(a.id, a.name)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-slate-700 truncate">{a.name || a.id}</p>
-                      <p className="text-xs text-slate-400 font-mono truncate">{a.id}</p>
+                      <p className="text-sm font-medium text-white/80 truncate">{a.name || a.id}</p>
+                      <p className="text-xs text-white/40 font-mono truncate">{a.id}</p>
                     </div>
                     {a.model && (
-                      <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
+                      <span className="text-[10px] font-mono text-white/40 bg-white/10 px-1.5 py-0.5 rounded shrink-0">
                         {typeof a.model === 'string' ? a.model.split('/').pop() : a.model.primary?.split('/').pop()}
                       </span>
                     )}
@@ -854,7 +854,7 @@ function MergeConfigModal({ agents, onConfirm, onClose }: MergeConfigModalProps)
               <button
                 onClick={onClose}
                 disabled={loading}
-                className="flex-1 py-2 text-sm text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+                className="flex-1 py-2 text-sm text-white/70 bg-white/5 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
               >
                 跳过
               </button>
@@ -896,37 +896,37 @@ function TeamModal({ initial, onSave, onClose }: TeamModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-800 text-sm">{initial ? '编辑团队' : '添加团队'}</h3>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+          <h3 className="font-semibold text-white text-sm">{initial ? '编辑团队' : '添加团队'}</h3>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
             <X className="w-4 h-4" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">团队名称 *</label>
+            <label className="block text-xs font-medium text-white/70 mb-1.5">团队名称 *</label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="e.g. 软件研发团队"
               required
               autoFocus
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">描述</label>
+            <label className="block text-xs font-medium text-white/70 mb-1.5">描述</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
               rows={2}
               placeholder="团队职责描述..."
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">颜色</label>
+            <label className="block text-xs font-medium text-white/70 mb-1.5">颜色</label>
             <div className="flex gap-2 flex-wrap">
               {TEAM_COLORS.map(c => (
                 <button
@@ -940,7 +940,7 @@ function TeamModal({ initial, onSave, onClose }: TeamModalProps) {
             </div>
           </div>
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-2 text-sm text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-2 text-sm text-white/70 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
               取消
             </button>
             <button type="submit" className="flex-1 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors">
@@ -1000,11 +1000,11 @@ function QuickConfigAgentModal({ agentId, defaultName, defaultWorkspace, onClose
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
+      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/8">
           <Settings className="w-4 h-4 text-indigo-500 shrink-0" />
-          <h3 className="font-semibold text-slate-800 text-sm">配置 Agent</h3>
-          <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+          <h3 className="font-semibold text-white text-sm">配置 Agent</h3>
+          <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -1021,43 +1021,43 @@ function QuickConfigAgentModal({ agentId, defaultName, defaultWorkspace, onClose
         ) : (
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">Agent ID</label>
+              <label className="block text-xs font-medium text-white/70 mb-1.5">Agent ID</label>
               <input
                 value={agentId}
                 readOnly
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 text-slate-400 font-mono"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg bg-white/5 text-white/40 font-mono"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">显示名称 *</label>
+              <label className="block text-xs font-medium text-white/70 mb-1.5">显示名称 *</label>
               <input
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">Workspace 目录 *</label>
+              <label className="block text-xs font-medium text-white/70 mb-1.5">Workspace 目录 *</label>
               <input
                 value={workspace}
                 onChange={e => setWorkspace(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">模型 *</label>
+              <label className="block text-xs font-medium text-white/70 mb-1.5">模型 *</label>
               <input
                 value={model}
                 onChange={e => setModel(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                 required
               />
             </div>
             {error && <p className="text-xs text-red-500">{error}</p>}
             <div className="flex gap-2 pt-1">
-              <button type="button" onClick={onClose} className="flex-1 py-2 text-sm text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors">
+              <button type="button" onClick={onClose} className="flex-1 py-2 text-sm text-white/70 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
                 取消
               </button>
               <button type="submit" disabled={loading} className="flex-1 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg transition-colors flex items-center justify-center gap-1.5">
@@ -1099,20 +1099,20 @@ function MemberModal({ initial, existingIds, agents, onSave, onClose }: MemberMo
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h3 className="font-semibold text-slate-800 text-sm">{initial ? '编辑成员' : '添加成员'}</h3>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+          <h3 className="font-semibold text-white text-sm">{initial ? '编辑成员' : '添加成员'}</h3>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
             <X className="w-4 h-4" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">Agent *</label>
+            <label className="block text-xs font-medium text-white/70 mb-1.5">Agent *</label>
             <select
               value={agentId}
               onChange={e => setAgentId(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white/10 text-white placeholder:text-white/30"
               required
             >
               <option value="">-- 选择 Agent --</option>
@@ -1121,29 +1121,29 @@ function MemberModal({ initial, existingIds, agents, onSave, onClose }: MemberMo
               ))}
             </select>
             {agentOptions.length === 0 && !initial && (
-              <p className="text-xs text-slate-400 mt-1">所有已配置的 Agent 都已添加到该团队</p>
+              <p className="text-xs text-white/40 mt-1">所有已配置的 Agent 都已添加到该团队</p>
             )}
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">显示名称</label>
+            <label className="block text-xs font-medium text-white/70 mb-1.5">显示名称</label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="留空则使用 Agent 默认名称"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1.5">职位 / 角色</label>
+            <label className="block text-xs font-medium text-white/70 mb-1.5">职位 / 角色</label>
             <input
               value={role}
               onChange={e => setRole(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="e.g. Frontend Developer"
             />
           </div>
           <div className="flex gap-2 pt-1">
-            <button type="button" onClick={onClose} className="flex-1 py-2 text-sm text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-2 text-sm text-white/70 bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
               取消
             </button>
             <button type="submit" className="flex-1 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors">
@@ -1456,8 +1456,8 @@ export function OrgPage() {
         <div className="w-16 h-16 rounded-2xl bg-indigo-100 flex items-center justify-center mb-4">
           <Building2 className="w-8 h-8 text-indigo-400" />
         </div>
-        <p className="text-slate-700 font-medium mb-1">尚未添加任何组织</p>
-        <p className="text-slate-400 text-sm mb-5">添加第一个组织，并指定 organization.json 所在目录</p>
+        <p className="text-white/80 font-medium mb-1">尚未添加任何组织</p>
+        <p className="text-white/40 text-sm mb-5">添加第一个组织，并指定 organization.json 所在目录</p>
         <button
           onClick={() => setAddOrgModal({ mode: 'add' })}
           className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors"
@@ -1481,44 +1481,44 @@ export function OrgPage() {
       <div className="flex flex-col h-full">
 
         {/* Header */}
-        <div className="border-b border-slate-200 bg-white px-6 py-3.5 shrink-0 relative z-10">
+        <div className="border-b border-white/10 bg-white px-6 py-3.5 shrink-0 relative z-10">
           <div className="flex items-center gap-3">
 
             {/* Org switcher */}
             <div className="relative" ref={orgDropdownRef}>
               <button
                 onClick={() => setOrgDropdownOpen(v => !v)}
-                className="flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors text-sm"
+                className="flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-lg border border-white/10 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors text-sm"
               >
                 <span
                   className="w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: activeOrg?.color ?? '#6366f1' }}
                 />
-                <span className="font-medium text-slate-700 max-w-[140px] truncate">
+                <span className="font-medium text-white/80 max-w-[140px] truncate">
                   {activeOrg?.name ?? '未选择'}
                 </span>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${orgDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3.5 h-3.5 text-white/40 transition-transform ${orgDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {orgDropdownOpen && (
-                <div className="absolute left-0 top-full mt-1.5 w-80 bg-white border border-slate-200 rounded-xl shadow-lg z-40 overflow-hidden">
-                  <div className="px-3 py-2 border-b border-slate-100 bg-slate-50">
-                    <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">组织列表</span>
+                <div className="absolute left-0 top-full mt-1.5 w-80 bg-white/8 backdrop-blur-xl border border-white/10 rounded-xl shadow-lg z-40 overflow-hidden">
+                  <div className="px-3 py-2 border-b border-white/8 bg-white/5">
+                    <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider">组织列表</span>
                   </div>
                   <div className="max-h-56 overflow-y-auto py-1">
                     {orgsIndex.orgs.map(o => (
-                      <div key={o.id} className={`flex items-center gap-2.5 px-3 py-2.5 hover:bg-slate-50 transition-colors cursor-pointer ${o.id === orgsIndex.activeOrgId ? 'bg-indigo-50/70' : ''}`}
+                      <div key={o.id} className={`flex items-center gap-2.5 px-3 py-2.5 hover:bg-white/5 transition-colors cursor-pointer ${o.id === orgsIndex.activeOrgId ? 'bg-indigo-50/70' : ''}`}
                         onClick={() => switchOrg(o.id)}
                       >
                         <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: o.color ?? '#6366f1' }} />
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium truncate ${o.id === orgsIndex.activeOrgId ? 'text-indigo-700' : 'text-slate-700'}`}>{o.name}</p>
-                          <p className="text-xs text-slate-400 font-mono truncate">{o.dir}</p>
+                          <p className={`text-sm font-medium truncate ${o.id === orgsIndex.activeOrgId ? 'text-indigo-700' : 'text-white/80'}`}>{o.name}</p>
+                          <p className="text-xs text-white/40 font-mono truncate">{o.dir}</p>
                         </div>
                         {o.id === orgsIndex.activeOrgId && <Check className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
                         <button
                           onClick={e => { e.stopPropagation(); setAddOrgModal({ mode: 'edit', org: o }); setOrgDropdownOpen(false); }}
-                          className="w-6 h-6 flex items-center justify-center rounded text-slate-300 hover:text-slate-600 hover:bg-slate-100 shrink-0"
+                          className="w-6 h-6 flex items-center justify-center rounded text-white/30 hover:text-white/70 hover:bg-white/10 shrink-0"
                           title="编辑"
                         >
                           <Pencil className="w-3 h-3" />
@@ -1526,7 +1526,7 @@ export function OrgPage() {
                         {orgsIndex.orgs.length > 1 && (
                           <button
                             onClick={e => { e.stopPropagation(); setDeleteOrgModal(o); setOrgDropdownOpen(false); }}
-                            className="w-6 h-6 flex items-center justify-center rounded text-slate-300 hover:text-red-500 hover:bg-red-50 shrink-0"
+                            className="w-6 h-6 flex items-center justify-center rounded text-white/30 hover:text-red-500 hover:bg-red-50 shrink-0"
                             title="删除"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -1535,10 +1535,10 @@ export function OrgPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="border-t border-slate-100 p-2">
+                  <div className="border-t border-white/8 p-2">
                     <button
                       onClick={() => { setAddOrgModal({ mode: 'add' }); setOrgDropdownOpen(false); }}
-                      className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                      className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-white/40 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                       添加组织
@@ -1552,14 +1552,14 @@ export function OrgPage() {
             {org && (
               <div className="flex items-start gap-1.5 min-w-0">
                 <div className="min-w-0">
-                  <h1 className="text-base font-semibold text-slate-800 leading-tight truncate">{org.company.name}</h1>
+                  <h1 className="text-base font-semibold text-white leading-tight truncate">{org.company.name}</h1>
                   {org.company.description && (
-                    <p className="text-xs text-slate-400 truncate mt-0.5">{org.company.description}</p>
+                    <p className="text-xs text-white/40 truncate mt-0.5">{org.company.description}</p>
                   )}
                 </div>
                 <button
                   onClick={() => setCompanyModalOpen(true)}
-                  className="text-slate-300 hover:text-slate-500 transition-colors shrink-0 mt-0.5"
+                  className="text-white/30 hover:text-white/50 transition-colors shrink-0 mt-0.5"
                   title="编辑公司信息"
                 >
                   <Pencil className="w-3 h-3" />
@@ -1568,7 +1568,7 @@ export function OrgPage() {
             )}
 
             {org && (
-              <p className="text-slate-400 text-xs shrink-0">
+              <p className="text-white/40 text-xs shrink-0">
                 {org.teams.length} 个团队 · {totalMembers} 名成员
               </p>
             )}
@@ -1576,7 +1576,7 @@ export function OrgPage() {
             <div className="flex items-center gap-2 shrink-0 ml-auto">
               {/* File sync indicator */}
               {fileSyncState === 'saving' && (
-                <span className="text-xs text-slate-400 flex items-center gap-1">
+                <span className="text-xs text-white/40 flex items-center gap-1">
                   <Cloud className="w-3.5 h-3.5 animate-pulse" /> 同步中…
                 </span>
               )}
@@ -1595,7 +1595,7 @@ export function OrgPage() {
                 <>
                   <button
                     onClick={() => setKnowledgeModal({ title: '组织知识库', dirPath: orgKnowledgeDir(activeOrg.dir) })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors"
                   >
                     <BookOpen className="w-3 h-3" />
                     知识库
@@ -1603,14 +1603,14 @@ export function OrgPage() {
                   <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
                   <button
                     onClick={() => importRef.current?.click()}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors"
                   >
                     <Upload className="w-3 h-3" />
                     导入
                   </button>
                   <button
                     onClick={handleExport}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors"
                   >
                     <Download className="w-3 h-3" />
                     导出
@@ -1623,21 +1623,21 @@ export function OrgPage() {
 
         {/* Body */}
         {!activeOrg || !org ? (
-          <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
+          <div className="flex-1 flex items-center justify-center text-white/40 text-sm">
             加载中…
           </div>
         ) : (
           <div className="flex flex-1 min-h-0">
 
             {/* Teams sidebar */}
-            <div className="w-52 shrink-0 border-r border-slate-100 flex flex-col">
+            <div className="w-52 shrink-0 border-r border-white/8 flex flex-col">
               {/* Lead agent section */}
-              <div className="px-3 py-2.5 border-b border-slate-100">
+              <div className="px-3 py-2.5 border-b border-white/8">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">主负责人</span>
+                  <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider">主负责人</span>
                   <button
                     onClick={() => setCompanyModalOpen(true)}
-                    className="text-slate-300 hover:text-slate-500 transition-colors"
+                    className="text-white/30 hover:text-white/50 transition-colors"
                     title="设置主负责人"
                   >
                     <Pencil className="w-3 h-3" />
@@ -1649,7 +1649,7 @@ export function OrgPage() {
                     return (
                       <button
                         onClick={() => setCompanyModalOpen(true)}
-                        className="w-full text-left text-xs text-slate-400 hover:text-indigo-600 transition-colors py-0.5"
+                        className="w-full text-left text-xs text-white/40 hover:text-indigo-600 transition-colors py-0.5"
                       >
                         + 设置主负责人
                       </button>
@@ -1663,8 +1663,8 @@ export function OrgPage() {
                           {getInitials(leadId, leadCfg?.name)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-slate-700 truncate">{leadCfg?.name || leadId}</p>
-                          <p className="text-[10px] text-slate-400 font-mono truncate">{leadId}</p>
+                          <p className="text-xs font-medium text-white/80 truncate">{leadCfg?.name || leadId}</p>
+                          <p className="text-[10px] text-white/40 font-mono truncate">{leadId}</p>
                         </div>
                       </div>
                       <div className="flex gap-0.5 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1672,21 +1672,21 @@ export function OrgPage() {
                           <>
                             <button
                               onClick={() => setChatAgent({ id: leadId, config: leadCfg })}
-                              className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                              className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                               title="发送消息"
                             >
                               <MessageSquare className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setFilesAgent({ id: leadId, config: leadCfg })}
-                              className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                              className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
                               title="文件编辑"
                             >
                               <FolderOpen className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => setSessionsAgent({ id: leadId, config: leadCfg })}
-                              className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                              className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
                               title="历史对话"
                             >
                               <History className="w-3.5 h-3.5" />
@@ -1703,7 +1703,7 @@ export function OrgPage() {
                         )}
                         <button
                           onClick={() => saveOrg({ ...org, company: { ...org.company, leadAgentId: undefined } })}
-                          className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-red-500 hover:bg-red-50 transition-colors"
                           title="移除主负责人"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1720,12 +1720,12 @@ export function OrgPage() {
               </div>
 
               <div className="px-3 py-2.5 border-b border-slate-50">
-                <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">团队列表</span>
+                <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider">团队列表</span>
               </div>
 
               <div className="flex-1 overflow-y-auto py-1.5 px-2 space-y-0.5">
                 {org.teams.length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center py-6 px-3">暂无团队，点击下方添加</p>
+                  <p className="text-xs text-white/40 text-center py-6 px-3">暂无团队，点击下方添加</p>
                 ) : (
                   org.teams.map(team => (
                     <div key={team.id} className="group relative">
@@ -1734,7 +1734,7 @@ export function OrgPage() {
                         className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-left transition-colors ${
                           selectedTeam?.id === team.id
                             ? 'bg-indigo-50 text-indigo-700'
-                            : 'text-slate-600 hover:bg-slate-50'
+                            : 'text-white/70 hover:bg-white/5'
                         }`}
                       >
                         <span
@@ -1742,19 +1742,19 @@ export function OrgPage() {
                           style={{ backgroundColor: team.color ?? '#6366f1' }}
                         />
                         <span className="flex-1 text-sm font-medium truncate">{team.name}</span>
-                        <span className="text-[10px] text-slate-400 shrink-0 pr-5">{team.members.length}</span>
+                        <span className="text-[10px] text-white/40 shrink-0 pr-5">{team.members.length}</span>
                       </button>
 
                       <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={e => { e.stopPropagation(); setTeamModal({ mode: 'edit', team }); }}
-                          className="w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-slate-600 bg-white/80"
+                          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-white/70 bg-white/80"
                         >
                           <Pencil className="w-3 h-3" />
                         </button>
                         <button
                           onClick={e => { e.stopPropagation(); handleDeleteTeam(team.id); }}
-                          className="w-5 h-5 flex items-center justify-center rounded text-slate-400 hover:text-red-500 bg-white/80"
+                          className="w-5 h-5 flex items-center justify-center rounded text-white/40 hover:text-red-500 bg-white/80"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -1764,10 +1764,10 @@ export function OrgPage() {
                 )}
               </div>
 
-              <div className="border-t border-slate-100 p-2">
+              <div className="border-t border-white/8 p-2">
                 <button
                   onClick={() => setTeamModal({ mode: 'add' })}
-                  className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-white/40 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   添加团队
@@ -1780,8 +1780,8 @@ export function OrgPage() {
               {!selectedTeam ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-8">
                   <Building2 className="w-12 h-12 text-slate-200 mb-3" />
-                  <p className="text-sm text-slate-400 mb-1">尚未创建任何团队</p>
-                  <p className="text-xs text-slate-300">点击左侧「添加团队」开始搭建组织架构</p>
+                  <p className="text-sm text-white/40 mb-1">尚未创建任何团队</p>
+                  <p className="text-xs text-white/30">点击左侧「添加团队」开始搭建组织架构</p>
                 </div>
               ) : (
                 <div className="p-6">
@@ -1792,9 +1792,9 @@ export function OrgPage() {
                       style={{ backgroundColor: selectedTeam.color ?? '#6366f1' }}
                     />
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-base font-semibold text-slate-800">{selectedTeam.name}</h2>
+                      <h2 className="text-base font-semibold text-white">{selectedTeam.name}</h2>
                       {selectedTeam.description && (
-                        <p className="text-xs text-slate-400 mt-0.5">{selectedTeam.description}</p>
+                        <p className="text-xs text-white/40 mt-0.5">{selectedTeam.description}</p>
                       )}
                     </div>
                     <button
@@ -1802,7 +1802,7 @@ export function OrgPage() {
                         title: `${selectedTeam.name} · 知识库`,
                         dirPath: teamKnowledgeDir(activeOrg.dir, selectedTeam.id),
                       })}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors shrink-0"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/70 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors shrink-0"
                     >
                       <BookOpen className="w-3.5 h-3.5" />
                       知识库
@@ -1820,7 +1820,7 @@ export function OrgPage() {
                   {selectedTeam.members.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                       <Users className="w-10 h-10 text-slate-200 mb-3" />
-                      <p className="text-sm text-slate-400">该团队暂无成员</p>
+                      <p className="text-sm text-white/40">该团队暂无成员</p>
                       <button
                         onClick={() => setMemberModal({ teamId: selectedTeam.id })}
                         className="mt-3 text-sm text-indigo-600 hover:text-indigo-500 font-medium"
@@ -1848,15 +1848,15 @@ export function OrgPage() {
                         return (
                           <div
                             key={member.agentId}
-                            className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col items-center gap-2.5 hover:border-indigo-200 hover:shadow-sm transition-all group"
+                            className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-xl p-4 flex flex-col items-center gap-2.5 hover:border-indigo-200 hover:shadow-sm transition-all group"
                           >
                             <div className={`w-12 h-12 rounded-full ${getAvatarColor(member.agentId)} flex items-center justify-center text-white font-semibold text-sm shrink-0`}>
                               {getInitials(member.agentId, displayName)}
                             </div>
 
                             <div className="text-center min-w-0 w-full">
-                              <p className="text-sm font-medium text-slate-800 truncate">{displayName}</p>
-                              <p className="text-xs text-slate-400 truncate">{displayRole}</p>
+                              <p className="text-sm font-medium text-white truncate">{displayName}</p>
+                              <p className="text-xs text-white/40 truncate">{displayRole}</p>
                               {!agentCfg && (
                                 <span className="text-[10px] text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded mt-1 inline-block">
                                   未在网关配置
@@ -1869,21 +1869,21 @@ export function OrgPage() {
                                 <>
                                   <button
                                     onClick={() => setChatAgent({ id: member.agentId, config: agentCfg })}
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                                     title="发送消息"
                                   >
                                     <MessageSquare className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     onClick={() => setFilesAgent({ id: member.agentId, config: agentCfg })}
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
                                     title="文件编辑"
                                   >
                                     <FolderOpen className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     onClick={() => setSessionsAgent({ id: member.agentId, config: agentCfg })}
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
                                     title="历史对话"
                                   >
                                     <History className="w-3.5 h-3.5" />
@@ -1901,14 +1901,14 @@ export function OrgPage() {
                               )}
                               <button
                                 onClick={() => setMemberModal({ teamId: selectedTeam.id, member })}
-                                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
                                 title="编辑"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleDeleteMember(selectedTeam.id, member.agentId)}
-                                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-red-500 hover:bg-red-50 transition-colors"
                                 title="移除"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />

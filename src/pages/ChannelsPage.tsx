@@ -108,7 +108,7 @@ function StatusBadge({ ok, label }: { ok: boolean | undefined | null; label: str
     <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium border ${
       ok
         ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-        : 'bg-slate-100 text-slate-400 border-slate-200'
+        : 'bg-white/10 text-white/40 border-white/10'
     }`}>
       {ok ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
       {label}
@@ -175,10 +175,10 @@ function ChannelConfigEditor({ channelId, configValue, configHash, onSaved }: {
   };
 
   return (
-    <div className="border-t border-slate-100 pt-3 mt-1">
+    <div className="border-t border-white/8 pt-3 mt-1">
       <button
         onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors w-full text-left"
+        className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors w-full text-left"
       >
         {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         <Settings className="w-3.5 h-3.5" />
@@ -192,7 +192,7 @@ function ChannelConfigEditor({ channelId, configValue, configHash, onSaved }: {
             onChange={e => { setText(e.target.value); setError(null); setSuccess(false); }}
             rows={8}
             spellCheck={false}
-            className="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-indigo-400 resize-y"
+            className="w-full text-xs font-mono bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-400 resize-y"
           />
           {error && <ErrorBox msg={error} />}
           {success && (
@@ -212,7 +212,7 @@ function ChannelConfigEditor({ channelId, configValue, configHash, onSaved }: {
             <button
               onClick={() => { setText(JSON.stringify(configValue ?? {}, null, 2)); setError(null); }}
               disabled={saving}
-              className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 rounded-lg transition-colors disabled:opacity-50"
+              className="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white/70 border border-white/10 rounded-lg transition-colors disabled:opacity-50"
             >
               重置
             </button>
@@ -289,16 +289,16 @@ function WhatsAppCard({ channelId, status, accounts, label, onRefresh, configVal
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+    <div className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <span className="text-2xl">📱</span>
-          <h3 className="font-semibold text-slate-800 text-sm">{label}</h3>
+          <h3 className="font-semibold text-white text-sm">{label}</h3>
         </div>
         <button
           onClick={onRefresh}
           title="刷新"
-          className="text-slate-400 hover:text-slate-600 p-1 rounded transition-colors"
+          className="text-white/40 hover:text-white/70 p-1 rounded transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -312,16 +312,16 @@ function WhatsAppCard({ channelId, status, accounts, label, onRefresh, configVal
       </div>
 
       {s.lastConnectedAt ? (
-        <p className="text-xs text-slate-500">最后连接: {formatRelTime(s.lastConnectedAt)}</p>
+        <p className="text-xs text-white/50">最后连接: {formatRelTime(s.lastConnectedAt)}</p>
       ) : null}
       {s.lastMessageAt ? (
-        <p className="text-xs text-slate-500">最后消息: {formatRelTime(s.lastMessageAt)}</p>
+        <p className="text-xs text-white/50">最后消息: {formatRelTime(s.lastMessageAt)}</p>
       ) : null}
 
       {qrData && (
-        <div className="flex flex-col items-center gap-2 py-3 bg-slate-50 border border-slate-200 rounded-lg">
+        <div className="flex flex-col items-center gap-2 py-3 bg-white/5 border border-white/10 rounded-lg">
           <img src={qrData} alt="WhatsApp QR Code" className="w-44 h-44 rounded" />
-          <p className="text-xs text-slate-500">使用 WhatsApp 扫描二维码登录</p>
+          <p className="text-xs text-white/50">使用 WhatsApp 扫描二维码登录</p>
         </div>
       )}
 
@@ -371,7 +371,7 @@ function WhatsAppCard({ channelId, status, accounts, label, onRefresh, configVal
           <button
             onClick={handleLogout}
             disabled={logoutLoading}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white/80 border border-white/10 rounded-lg transition-colors disabled:opacity-50"
           >
             {logoutLoading
               ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -422,21 +422,21 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
   const lastError = s.lastError || acc0?.lastError;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+    <div className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <span className="text-2xl">{icon}</span>
           <div>
-            <h3 className="font-semibold text-slate-800 text-sm">{label}</h3>
+            <h3 className="font-semibold text-white text-sm">{label}</h3>
             {multiAccount && (
-              <p className="text-xs text-slate-500">{accounts.length} 个账号</p>
+              <p className="text-xs text-white/50">{accounts.length} 个账号</p>
             )}
           </div>
         </div>
         <button
           onClick={onRefresh}
           title="刷新"
-          className="text-slate-400 hover:text-slate-600 p-1 rounded transition-colors"
+          className="text-white/40 hover:text-white/70 p-1 rounded transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -451,16 +451,16 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
           </div>
 
           {acc0?.name && (
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-white/70">
               {acc0.name}
               {acc0.probe?.bot?.username && (
-                <span className="text-slate-500"> (@{acc0.probe.bot.username})</span>
+                <span className="text-white/50"> (@{acc0.probe.bot.username})</span>
               )}
             </p>
           )}
 
           {acc0?.lastInboundAt && (
-            <p className="text-xs text-slate-500">最后收信: {formatRelTime(acc0.lastInboundAt)}</p>
+            <p className="text-xs text-white/50">最后收信: {formatRelTime(acc0.lastInboundAt)}</p>
           )}
 
           {lastError && <ErrorBox msg={lastError} />}
@@ -469,7 +469,7 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
             <button
               onClick={() => handleLogout(acc0?.accountId)}
               disabled={logoutId !== null}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white/80 border border-white/10 rounded-lg transition-colors disabled:opacity-50"
             >
               {logoutId !== null
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -483,19 +483,19 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
       {multiAccount && (
         <div className="space-y-2">
           {accounts.map(acc => (
-            <div key={acc.accountId} className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 space-y-1.5">
+            <div key={acc.accountId} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 space-y-1.5">
               <div className="flex items-center justify-between">
-                <div className="text-xs font-medium text-slate-700">
+                <div className="text-xs font-medium text-white/80">
                   {acc.name || acc.accountId}
                   {acc.probe?.bot?.username && (
-                    <span className="font-normal text-slate-500"> (@{acc.probe.bot.username})</span>
+                    <span className="font-normal text-white/50"> (@{acc.probe.bot.username})</span>
                   )}
                 </div>
                 {(acc.linked || acc.connected || acc.running) && (
                   <button
                     onClick={() => handleLogout(acc.accountId)}
                     disabled={logoutId === acc.accountId}
-                    className="text-xs text-slate-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                    className="text-xs text-white/40 hover:text-red-600 transition-colors disabled:opacity-50"
                   >
                     {logoutId === acc.accountId
                       ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -510,7 +510,7 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
               </div>
               {acc.lastError && <p className="text-xs text-red-600 break-all">{acc.lastError}</p>}
               {acc.lastInboundAt && (
-                <p className="text-xs text-slate-500">最后收信: {formatRelTime(acc.lastInboundAt)}</p>
+                <p className="text-xs text-white/50">最后收信: {formatRelTime(acc.lastInboundAt)}</p>
               )}
             </div>
           ))}
@@ -583,7 +583,7 @@ export function ChannelsPage() {
 
   if (loading && !snap) {
     return (
-      <div className="h-full flex items-center justify-center gap-2 text-slate-500">
+      <div className="h-full flex items-center justify-center gap-2 text-white/50">
         <Loader2 className="w-5 h-5 animate-spin" />
         <span className="text-sm">加载中…</span>
       </div>
@@ -592,7 +592,7 @@ export function ChannelsPage() {
 
   if (error && !snap) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-3 text-slate-500">
+      <div className="h-full flex flex-col items-center justify-center gap-3 text-white/50">
         <AlertCircle className="w-7 h-7 text-red-500" />
         <p className="text-sm">{error}</p>
         <button
@@ -625,13 +625,13 @@ export function ChannelsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">频道</h1>
-          <p className="text-sm text-slate-500 mt-0.5">管理消息频道连接状态</p>
+          <h1 className="text-xl font-bold text-white">频道</h1>
+          <p className="text-sm text-white/50 mt-0.5">管理消息频道连接状态</p>
         </div>
         <button
           onClick={() => load(true)}
           disabled={probing || loading}
-          className="flex items-center gap-2 text-sm px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 text-sm px-4 py-2 bg-white/8 backdrop-blur-xl border border-white/10 text-white/80 hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50"
         >
           {probing
             ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -643,7 +643,7 @@ export function ChannelsPage() {
       {error && <ErrorBox msg={error} />}
 
       {sorted.length === 0 ? (
-        <div className="text-center py-16 text-slate-400 text-sm">
+        <div className="text-center py-16 text-white/40 text-sm">
           暂无频道数据
         </div>
       ) : (

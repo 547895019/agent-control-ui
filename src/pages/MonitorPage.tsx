@@ -21,8 +21,8 @@ const LEVELS_SET = new Set<string>(LEVELS);
 const LOG_BUFFER = 2000;
 
 const LEVEL_STYLES: Record<LogLevel, { chip: string; row: string; label: string }> = {
-  trace: { chip: 'text-slate-500 bg-slate-800 border-slate-700',      row: '',                        label: 'text-slate-500' },
-  debug: { chip: 'text-slate-400 bg-slate-800 border-slate-600',      row: '',                        label: 'text-slate-400' },
+  trace: { chip: 'text-white/50 bg-slate-800 border-white/15',      row: '',                        label: 'text-white/50' },
+  debug: { chip: 'text-white/40 bg-slate-800 border-slate-600',      row: '',                        label: 'text-white/40' },
   info:  { chip: 'text-sky-400   bg-sky-950/50  border-sky-800',      row: 'bg-sky-950/20',           label: 'text-sky-400'   },
   warn:  { chip: 'text-amber-400 bg-amber-950/50 border-amber-700',   row: 'bg-amber-950/20',         label: 'text-amber-400' },
   error: { chip: 'text-red-400   bg-red-950/50  border-red-700',      row: 'bg-red-950/20',           label: 'text-red-400'   },
@@ -169,12 +169,12 @@ export function MonitorPage() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-950 text-slate-300">
+    <div className="h-full flex flex-col bg-slate-950 text-white/30">
 
       {/* Toolbar */}
-      <div className="shrink-0 px-4 py-2 border-b border-slate-800 bg-slate-900 flex items-center gap-3 flex-wrap">
-        <span className="text-slate-400 text-xs font-medium uppercase tracking-wide">网关日志</span>
-        <span className="text-slate-600 text-xs">
+      <div className="shrink-0 px-4 py-2 border-b border-white/10 bg-slate-900 flex items-center gap-3 flex-wrap">
+        <span className="text-white/40 text-xs font-medium uppercase tracking-wide">网关日志</span>
+        <span className="text-white/70 text-xs">
           {filtered.length === entries.length ? `${entries.length} 条` : `${filtered.length} / ${entries.length} 条`}
         </span>
 
@@ -187,7 +187,7 @@ export function MonitorPage() {
               <label
                 key={level}
                 className={`flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-mono cursor-pointer transition-colors select-none ${
-                  active ? s.chip : 'text-slate-700 bg-slate-900 border-slate-800'
+                  active ? s.chip : 'text-white/80 bg-slate-900 border-white/10'
                 }`}
               >
                 <input
@@ -209,18 +209,18 @@ export function MonitorPage() {
               value={filterText}
               onChange={e => setFilterText(e.target.value)}
               placeholder="搜索..."
-              className="bg-slate-800 border border-slate-700 text-slate-300 text-xs px-2.5 py-1 rounded w-36 focus:outline-none focus:border-indigo-500 placeholder-slate-600"
+              className="bg-slate-800 border border-white/15 text-white/30 text-xs px-2.5 py-1 rounded w-36 focus:outline-none focus:border-indigo-500 placeholder:text-white/30"
             />
             {filterText && (
               <button
                 onClick={() => setFilterText('')}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/30"
               >
                 <X className="w-3 h-3" />
               </button>
             )}
           </div>
-          <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer select-none">
+          <label className="flex items-center gap-1.5 text-xs text-white/40 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={autoFollow}
@@ -232,7 +232,7 @@ export function MonitorPage() {
           <button
             onClick={() => load(true)}
             disabled={loading}
-            className="flex items-center gap-1 px-2.5 py-1 rounded text-xs text-slate-400 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1 px-2.5 py-1 rounded text-xs text-white/40 bg-slate-800 hover:bg-white/10 border border-white/15 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
             刷新
@@ -240,7 +240,7 @@ export function MonitorPage() {
           <button
             onClick={handleExport}
             disabled={filtered.length === 0}
-            className="flex items-center gap-1 px-2.5 py-1 rounded text-xs text-slate-400 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1 px-2.5 py-1 rounded text-xs text-white/40 bg-slate-800 hover:bg-white/10 border border-white/15 transition-colors disabled:opacity-50"
           >
             <Download className="w-3 h-3" />
             导出
@@ -250,8 +250,8 @@ export function MonitorPage() {
 
       {/* Status bar */}
       {(file || truncated || error) && (
-        <div className="shrink-0 px-4 py-1 bg-slate-900/80 border-b border-slate-800 flex items-center gap-4 text-[10px]">
-          {file && <span className="text-slate-600 font-mono truncate">{file}</span>}
+        <div className="shrink-0 px-4 py-1 bg-slate-900/80 border-b border-white/10 flex items-center gap-4 text-[10px]">
+          {file && <span className="text-white/70 font-mono truncate">{file}</span>}
           {truncated && <span className="text-amber-500">日志已截断，仅显示最新部分</span>}
           {error && <span className="text-red-400">{error}</span>}
         </div>
@@ -263,7 +263,7 @@ export function MonitorPage() {
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="w-2 h-2 rounded-full bg-indigo-500 animate-ping mx-auto mb-3" />
-              <p className="text-slate-600">等待日志…</p>
+              <p className="text-white/70">等待日志…</p>
             </div>
           </div>
         ) : (
@@ -274,18 +274,18 @@ export function MonitorPage() {
                 return (
                   <tr
                     key={i}
-                    className={`border-b border-slate-900/60 hover:bg-slate-800/30 ${s?.row ?? ''}`}
+                    className={`border-b border-slate-900/60 hover:bg-white/10/30 ${s?.row ?? ''}`}
                   >
-                    <td className="pl-4 pr-2 py-0.5 text-slate-600 whitespace-nowrap align-top w-24">
+                    <td className="pl-4 pr-2 py-0.5 text-white/70 whitespace-nowrap align-top w-24">
                       {formatTime(entry.time)}
                     </td>
-                    <td className={`px-2 py-0.5 whitespace-nowrap align-top w-12 ${s?.label ?? 'text-slate-600'}`}>
+                    <td className={`px-2 py-0.5 whitespace-nowrap align-top w-12 ${s?.label ?? 'text-white/70'}`}>
                       {entry.level ?? ''}
                     </td>
-                    <td className="px-2 py-0.5 text-slate-500 whitespace-nowrap align-top w-40 max-w-[10rem] truncate">
+                    <td className="px-2 py-0.5 text-white/50 whitespace-nowrap align-top w-40 max-w-[10rem] truncate">
                       {entry.subsystem ?? ''}
                     </td>
-                    <td className="px-2 py-0.5 pr-4 text-slate-300 break-all leading-relaxed align-top">
+                    <td className="px-2 py-0.5 pr-4 text-white/30 break-all leading-relaxed align-top">
                       {entry.message ?? entry.raw}
                     </td>
                   </tr>

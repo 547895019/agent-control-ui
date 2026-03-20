@@ -281,8 +281,8 @@ function runStatusLabel(status?: string): string {
 function runStatusColor(status?: string): string {
   if (status === 'ok') return 'text-emerald-600';
   if (status === 'error') return 'text-red-600';
-  if (status === 'skipped') return 'text-slate-400';
-  return 'text-slate-400';
+  if (status === 'skipped') return 'text-white/40';
+  return 'text-white/40';
 }
 
 function deliveryStatusLabel(s?: string): string {
@@ -296,7 +296,7 @@ function deliveryStatusLabel(s?: string): string {
 function deliveryStatusColor(s?: string): string {
   if (s === 'delivered') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
   if (s === 'not-delivered') return 'bg-red-50 text-red-600 border-red-200';
-  return 'bg-slate-100 text-slate-500 border-slate-200';
+  return 'bg-white/10 text-white/50 border-white/10';
 }
 
 function usageSummary(usage?: CronRunEntry['usage']): string | null {
@@ -310,12 +310,12 @@ function usageSummary(usage?: CronRunEntry['usage']): string | null {
 // ── RunStatusBadge ────────────────────────────────────────────────────────────
 
 function RunStatusBadge({ status }: { status?: string }) {
-  if (!status) return <span className="text-slate-400 text-xs">-</span>;
+  if (!status) return <span className="text-white/40 text-xs">-</span>;
   if (status === 'ok') return <span className="inline-flex items-center gap-1 text-emerald-600 text-xs"><CheckCircle2 className="w-3 h-3" />成功</span>;
   if (status === 'error') return <span className="inline-flex items-center gap-1 text-red-600 text-xs"><XCircle className="w-3 h-3" />失败</span>;
-  if (status === 'skipped') return <span className="inline-flex items-center gap-1 text-slate-400 text-xs"><SkipForward className="w-3 h-3" />跳过</span>;
+  if (status === 'skipped') return <span className="inline-flex items-center gap-1 text-white/40 text-xs"><SkipForward className="w-3 h-3" />跳过</span>;
   if (status === 'running') return <span className="inline-flex items-center gap-1 text-amber-500 text-xs"><RefreshCw className="w-3 h-3 animate-spin" />运行中</span>;
-  return <span className="text-slate-400 text-xs">{status}</span>;
+  return <span className="text-white/40 text-xs">{status}</span>;
 }
 
 // ── RunEntryCard ──────────────────────────────────────────────────────────────
@@ -325,12 +325,12 @@ function RunEntryCard({ entry }: { entry: CronRunEntry }) {
   const timeMs = entry.runAtMs ?? entry.ts;
 
   return (
-    <div className="border-b border-slate-100 px-4 py-3 hover:bg-slate-50 transition-colors">
+    <div className="border-b border-white/8 px-4 py-3 hover:bg-white/5 transition-colors">
       <div className="flex items-start justify-between gap-3">
         {/* Left */}
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="text-slate-700 text-xs font-medium truncate max-w-[200px]">
+            <span className="text-white/80 text-xs font-medium truncate max-w-[200px]">
               {entry.jobName ?? entry.jobId}
             </span>
             <span className={`text-xs ${runStatusColor(entry.status)}`}>
@@ -339,7 +339,7 @@ function RunEntryCard({ entry }: { entry: CronRunEntry }) {
           </div>
 
           {(entry.summary || entry.error) && (
-            <p className="text-slate-500 text-xs mt-1 line-clamp-2 leading-relaxed">
+            <p className="text-white/50 text-xs mt-1 line-clamp-2 leading-relaxed">
               {entry.summary ?? entry.error}
             </p>
           )}
@@ -349,17 +349,17 @@ function RunEntryCard({ entry }: { entry: CronRunEntry }) {
               {deliveryStatusLabel(entry.deliveryStatus)}
             </span>
             {entry.model && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/50 border border-white/10">
                 {entry.model}
               </span>
             )}
             {entry.provider && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/50 border border-white/10">
                 {entry.provider}
               </span>
             )}
             {usage && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/50 border border-white/10">
                 {usage}
               </span>
             )}
@@ -371,10 +371,10 @@ function RunEntryCard({ entry }: { entry: CronRunEntry }) {
         </div>
 
         {/* Right: meta */}
-        <div className="text-right text-[10px] text-slate-400 shrink-0 space-y-0.5 min-w-[90px]">
+        <div className="text-right text-[10px] text-white/40 shrink-0 space-y-0.5 min-w-[90px]">
           <div title={formatMsTime(timeMs)}>{formatMsRelTime(timeMs)}</div>
           {typeof entry.runAtMs === 'number' && entry.runAtMs !== entry.ts && (
-            <div className="text-slate-300" title={formatMsTime(entry.runAtMs)}>
+            <div className="text-white/30" title={formatMsTime(entry.runAtMs)}>
               计划 {formatMsRelTime(entry.runAtMs)}
             </div>
           )}
@@ -422,7 +422,7 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
       className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
         active
           ? 'bg-indigo-100 text-indigo-700 border-indigo-300'
-          : 'bg-white text-slate-500 border-slate-200 hover:text-slate-700'
+          : 'bg-white text-white/50 border-white/10 hover:text-white/80'
       }`}
     >
       {label}
@@ -517,33 +517,33 @@ function RunsPanel({ selectedJob, onClose }: { selectedJob: CronJob | null; onCl
     : `${runs.length} / ${total} 条`;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-white border-l border-slate-200">
+    <div className="flex flex-col h-full overflow-hidden bg-transparent border-l border-white/10">
       {/* Header */}
-      <div className="shrink-0 px-4 py-2 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
-        <History className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-        <span className="text-slate-600 text-xs font-medium">运行历史</span>
-        <span className="text-slate-400 text-xs">{shownOf}</span>
+      <div className="shrink-0 px-4 py-2 border-b border-white/10 bg-white/5 backdrop-blur-xl flex items-center gap-2">
+        <History className="w-3.5 h-3.5 text-white/40 shrink-0" />
+        <span className="text-white/70 text-xs font-medium">运行历史</span>
+        <span className="text-white/40 text-xs">{shownOf}</span>
         <div className="flex-1" />
         <button
           onClick={() => fetchRuns(false)}
           disabled={loading}
-          className="p-1 text-slate-400 hover:text-slate-600 disabled:opacity-50"
+          className="p-1 text-white/40 hover:text-white/70 disabled:opacity-50"
           title="刷新"
         >
           <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
         </button>
-        <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 ml-1">
+        <button onClick={onClose} className="p-1 text-white/40 hover:text-white/70 ml-1">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* Filters */}
-      <div className="shrink-0 border-b border-slate-200 px-4 py-2 space-y-2 bg-slate-50/50">
+      <div className="shrink-0 border-b border-white/10 px-4 py-2 space-y-2 bg-white/5/50">
         <div className="flex items-center gap-2 flex-wrap">
           <select
             value={scope}
             onChange={e => setScope(e.target.value as 'all' | 'job')}
-            className="bg-white border border-slate-200 text-slate-700 text-xs px-2 py-1 rounded focus:outline-none focus:border-indigo-400"
+            className="bg-white/8 backdrop-blur-xl border border-white/10 text-white/80 text-xs px-2 py-1 rounded focus:outline-none focus:border-indigo-400"
           >
             <option value="all">全部任务</option>
             <option value="job" disabled={!selectedJob}>
@@ -556,10 +556,10 @@ function RunsPanel({ selectedJob, onClose }: { selectedJob: CronJob | null; onCl
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="搜索运行记录..."
-              className="w-full bg-white border border-slate-200 text-slate-700 text-xs px-2.5 py-1 rounded focus:outline-none focus:border-indigo-400 placeholder-slate-400"
+              className="w-full bg-white/8 backdrop-blur-xl border border-white/10 text-white/80 text-xs px-2.5 py-1 rounded focus:outline-none focus:border-indigo-400 placeholder:text-white/30"
             />
             {query && (
-              <button onClick={() => setQuery('')} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <button onClick={() => setQuery('')} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70">
                 <X className="w-3 h-3" />
               </button>
             )}
@@ -568,7 +568,7 @@ function RunsPanel({ selectedJob, onClose }: { selectedJob: CronJob | null; onCl
           <select
             value={sortDir}
             onChange={e => setSortDir(e.target.value as 'desc' | 'asc')}
-            className="bg-white border border-slate-200 text-slate-700 text-xs px-2 py-1 rounded focus:outline-none focus:border-indigo-400"
+            className="bg-white/8 backdrop-blur-xl border border-white/10 text-white/80 text-xs px-2 py-1 rounded focus:outline-none focus:border-indigo-400"
           >
             <option value="desc">最新优先</option>
             <option value="asc">最早优先</option>
@@ -576,19 +576,19 @@ function RunsPanel({ selectedJob, onClose }: { selectedJob: CronJob | null; onCl
         </div>
 
         <div className="flex items-center gap-1 flex-wrap">
-          <span className="text-slate-400 text-[10px] mr-0.5">状态:</span>
+          <span className="text-white/40 text-[10px] mr-0.5">状态:</span>
           {RUN_STATUS_OPTIONS.map(o => (
             <FilterChip key={o.value} label={o.label} active={statusFilters.includes(o.value)} onClick={() => toggleStatus(o.value)} />
           ))}
-          <span className="text-slate-300 mx-1">|</span>
-          <span className="text-slate-400 text-[10px] mr-0.5">投递:</span>
+          <span className="text-white/30 mx-1">|</span>
+          <span className="text-white/40 text-[10px] mr-0.5">投递:</span>
           {DELIVERY_STATUS_OPTIONS.map(o => (
             <FilterChip key={o.value} label={o.label} active={deliveryFilters.includes(o.value)} onClick={() => toggleDelivery(o.value)} />
           ))}
           {(statusFilters.length > 0 || deliveryFilters.length > 0) && (
             <button
               onClick={() => { setStatusFilters([]); setDeliveryFilters([]); }}
-              className="text-[10px] text-slate-400 hover:text-slate-600 underline ml-1"
+              className="text-[10px] text-white/40 hover:text-white/70 underline ml-1"
             >
               清除
             </button>
@@ -607,15 +607,15 @@ function RunsPanel({ selectedJob, onClose }: { selectedJob: CronJob | null; onCl
       {/* Run list */}
       <div className="flex-1 overflow-auto">
         {scope === 'job' && !selectedJob ? (
-          <div className="flex items-center justify-center h-full text-slate-400 text-xs">
+          <div className="flex items-center justify-center h-full text-white/40 text-xs">
             请先在列表中选择一个任务
           </div>
         ) : loading ? (
           <div className="flex items-center justify-center h-full">
-            <RefreshCw className="w-4 h-4 text-slate-400 animate-spin" />
+            <RefreshCw className="w-4 h-4 text-white/40 animate-spin" />
           </div>
         ) : runs.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-slate-400 text-xs">
+          <div className="flex items-center justify-center h-full text-white/40 text-xs">
             暂无运行记录
           </div>
         ) : (
@@ -626,7 +626,7 @@ function RunsPanel({ selectedJob, onClose }: { selectedJob: CronJob | null; onCl
                 <button
                   onClick={() => fetchRuns(true)}
                   disabled={loadingMore}
-                  className="flex items-center gap-1.5 px-4 py-1.5 text-xs text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 rounded transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-4 py-1.5 text-xs text-white/70 bg-white/8 hover:bg-white/12 border border-white/10 rounded transition-colors disabled:opacity-50"
                 >
                   {loadingMore ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ChevronDown className="w-3 h-3" />}
                   加载更多
@@ -750,19 +750,19 @@ function CronJobModal({ initial, agents, onSave, onClose }: {
     finally { setSaving(false); }
   };
 
-  const inp = 'w-full bg-white border border-slate-200 text-slate-800 text-sm px-3 py-1.5 rounded focus:outline-none focus:border-indigo-400';
-  const lbl = 'block text-xs text-slate-600 mb-1';
-  const tabBtn = (a: boolean) => `px-3 py-1 text-xs rounded transition-colors ${a ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`;
-  const segBtn = (a: boolean) => `px-2.5 py-0.5 text-xs rounded transition-colors border ${a ? 'bg-slate-100 border-slate-300 text-slate-800' : 'border-transparent text-slate-400 hover:text-slate-700'}`;
+  const inp = 'w-full bg-white/8 backdrop-blur-xl border border-white/10 text-white text-sm px-3 py-1.5 rounded focus:outline-none focus:border-indigo-400';
+  const lbl = 'block text-xs text-white/70 mb-1';
+  const tabBtn = (a: boolean) => `px-3 py-1 text-xs rounded transition-colors ${a ? 'bg-indigo-600 text-white' : 'text-white/50 hover:text-white hover:bg-white/10'}`;
+  const segBtn = (a: boolean) => `px-2.5 py-0.5 text-xs rounded transition-colors border ${a ? 'bg-white/10 border-white/15 text-white' : 'border-transparent text-white/40 hover:text-white/80'}`;
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-xl max-h-[92vh] flex flex-col border border-slate-200">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 shrink-0">
-          <h2 className="text-slate-800 font-semibold text-sm">{initial ? '编辑定时任务' : '新建定时任务'}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><X className="w-4 h-4" /></button>
+      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-xl shadow-2xl shadow-black/50 w-full max-w-xl max-h-[92vh] flex flex-col border border-white/10">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 shrink-0">
+          <h2 className="text-white font-semibold text-sm">{initial ? '编辑定时任务' : '新建定时任务'}</h2>
+          <button onClick={onClose} className="text-white/40 hover:text-white/80"><X className="w-4 h-4" /></button>
         </div>
-        <div className="flex gap-1 px-5 pt-3 pb-1 shrink-0 border-b border-slate-100">
+        <div className="flex gap-1 px-5 pt-3 pb-1 shrink-0 border-b border-white/8">
           {FORM_TABS.map(t => (
             <button key={t.key} type="button" onClick={() => setTab(t.key)} className={tabBtn(tab === t.key)}>{t.label}</button>
           ))}
@@ -802,10 +802,10 @@ function CronJobModal({ initial, agents, onSave, onClose }: {
                 </div>
               </div>
               <div className="flex items-center gap-5 pt-1">
-                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
                   <input type="checkbox" checked={form.enabled} onChange={e => set('enabled', e.target.checked)} className="accent-indigo-500" />启用
                 </label>
-                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
                   <input type="checkbox" checked={form.deleteAfterRun} onChange={e => set('deleteAfterRun', e.target.checked)} className="accent-indigo-500" />运行后删除
                 </label>
               </div>
@@ -826,7 +826,7 @@ function CronJobModal({ initial, agents, onSave, onClose }: {
                 <div>
                   <label className={lbl}>间隔时间</label>
                   <div className="flex gap-2">
-                    <input className="bg-white border border-slate-200 text-slate-800 text-sm px-3 py-1.5 rounded focus:outline-none focus:border-indigo-400 w-24" type="number" min="1" value={form.everyAmount} onChange={e => set('everyAmount', e.target.value)} />
+                    <input className="bg-white/8 backdrop-blur-xl border border-white/10 text-white text-sm px-3 py-1.5 rounded focus:outline-none focus:border-indigo-400 w-24" type="number" min="1" value={form.everyAmount} onChange={e => set('everyAmount', e.target.value)} />
                     <select className={`${inp} flex-1`} value={form.everyUnit} onChange={e => set('everyUnit', e.target.value as FormState['everyUnit'])}>
                       <option value="minutes">分钟</option><option value="hours">小时</option><option value="days">天</option>
                     </select>
@@ -847,12 +847,12 @@ function CronJobModal({ initial, agents, onSave, onClose }: {
                   <div>
                     <label className={lbl}>最大抖动（可选）</label>
                     <div className="flex gap-2">
-                      <input className="bg-white border border-slate-200 text-slate-800 text-sm px-3 py-1.5 rounded focus:outline-none focus:border-indigo-400 w-24" type="number" min="0" value={form.staggerAmount} onChange={e => set('staggerAmount', e.target.value)} placeholder="0" />
+                      <input className="bg-white/8 backdrop-blur-xl border border-white/10 text-white text-sm px-3 py-1.5 rounded focus:outline-none focus:border-indigo-400 w-24" type="number" min="0" value={form.staggerAmount} onChange={e => set('staggerAmount', e.target.value)} placeholder="0" />
                       <select className={`${inp} flex-1`} value={form.staggerUnit} onChange={e => set('staggerUnit', e.target.value as FormState['staggerUnit'])}>
                         <option value="seconds">秒</option><option value="minutes">分钟</option>
                       </select>
                     </div>
-                    <p className="text-slate-400 text-xs mt-1">留空则由系统决定抖动范围</p>
+                    <p className="text-white/40 text-xs mt-1">留空则由系统决定抖动范围</p>
                   </div>
                 )}
               </>)}
@@ -878,7 +878,7 @@ function CronJobModal({ initial, agents, onSave, onClose }: {
                 <div><label className={lbl}>模型（可选）</label><ModelSelect value={form.payloadModel} onChange={v => set('payloadModel', v)} placeholder="如 claude-sonnet-4-6" /></div>
                 <div><label className={lbl}>Thinking 提示（可选）</label><input className={inp} value={form.payloadThinking} onChange={e => set('payloadThinking', e.target.value)} placeholder="thinking 模式提示" /></div>
                 <div><label className={lbl}>超时时间（秒，可选）</label><input className={inp} type="number" min="0" value={form.timeoutSeconds} onChange={e => set('timeoutSeconds', e.target.value)} placeholder="留空不限制" /></div>
-                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
                   <input type="checkbox" checked={form.payloadLightContext} onChange={e => set('payloadLightContext', e.target.checked)} className="accent-indigo-500" />
                   轻量上下文（lightContext）
                 </label>
@@ -902,7 +902,7 @@ function CronJobModal({ initial, agents, onSave, onClose }: {
                 <div><label className={lbl}>Webhook URL *</label><input className={inp} value={form.deliveryTo} onChange={e => set('deliveryTo', e.target.value)} placeholder="https://..." /></div>
               )}
               {form.deliveryMode !== 'none' && (
-                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
                   <input type="checkbox" checked={form.deliveryBestEffort} onChange={e => set('deliveryBestEffort', e.target.checked)} className="accent-indigo-500" />
                   尽力投递（失败不报错）
                 </label>
@@ -939,15 +939,15 @@ function CronJobModal({ initial, agents, onSave, onClose }: {
                 )}
                 <div><label className={lbl}>Account ID（可选）</label><input className={inp} value={form.failureAlertAccountId} onChange={e => set('failureAlertAccountId', e.target.value)} placeholder="可选" /></div>
               </>)}
-              {form.failureAlertMode === 'inherit' && <p className="text-slate-400 text-xs">使用系统/全局默认的失败告警配置。</p>}
-              {form.failureAlertMode === 'disabled' && <p className="text-slate-400 text-xs">此任务失败时不发送告警通知。</p>}
+              {form.failureAlertMode === 'inherit' && <p className="text-white/40 text-xs">使用系统/全局默认的失败告警配置。</p>}
+              {form.failureAlertMode === 'disabled' && <p className="text-white/40 text-xs">此任务失败时不发送告警通知。</p>}
             </>)}
 
             {error && <p className="text-red-600 text-xs pt-1">{error}</p>}
           </div>
 
-          <div className="flex justify-end gap-2 px-5 py-3 border-t border-slate-200 shrink-0">
-            <button type="button" onClick={onClose} className="px-4 py-1.5 text-sm text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded transition-colors">取消</button>
+          <div className="flex justify-end gap-2 px-5 py-3 border-t border-white/10 shrink-0">
+            <button type="button" onClick={onClose} className="px-4 py-1.5 text-sm text-white/70 hover:text-white bg-white/10 hover:bg-white/15 rounded transition-colors">取消</button>
             <button type="submit" disabled={saving} className="px-4 py-1.5 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded transition-colors disabled:opacity-50">
               {saving ? '保存中...' : '保存'}
             </button>
@@ -1040,18 +1040,18 @@ export function CronPage() {
   const showPanel = panelMode === 'runs';
 
   return (
-    <div className="h-full flex flex-col bg-slate-50 text-slate-700">
+    <div className="h-full flex flex-col bg-white/5 text-white/80">
 
       {/* Toolbar */}
-      <div className="shrink-0 px-4 py-2.5 border-b border-slate-200 bg-white flex items-center gap-3">
-        <span className="text-slate-500 text-xs font-semibold uppercase tracking-wide">定时任务</span>
-        <span className="text-slate-400 text-xs">{jobs.length} 个任务</span>
+      <div className="shrink-0 px-4 py-2.5 border-b border-white/10 bg-white/5 backdrop-blur-xl flex items-center gap-3">
+        <span className="text-white/50 text-xs font-semibold uppercase tracking-wide">定时任务</span>
+        <span className="text-white/40 text-xs">{jobs.length} 个任务</span>
         <div className="flex-1" />
         <div className="relative">
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜索..."
-            className="bg-slate-50 border border-slate-200 text-slate-700 text-xs px-2.5 py-1.5 rounded-lg w-36 focus:outline-none focus:border-indigo-400 placeholder-slate-400" />
+            className="bg-white/5 border border-white/10 text-white/80 text-xs px-2.5 py-1.5 rounded-lg w-36 focus:outline-none focus:border-indigo-400 placeholder:text-white/30" />
           {query && (
-            <button onClick={() => setQuery('')} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <button onClick={() => setQuery('')} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70">
               <X className="w-3 h-3" />
             </button>
           )}
@@ -1061,14 +1061,14 @@ export function CronPage() {
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border transition-colors ${
             panelMode === 'runs'
               ? 'text-indigo-600 bg-indigo-50 border-indigo-300'
-              : 'text-slate-500 bg-white hover:bg-slate-50 border-slate-200'
+              : 'text-white/50 bg-white hover:bg-white/5 border-white/10'
           }`}
         >
           <History className="w-3.5 h-3.5" />
           运行历史
         </button>
         <button onClick={loadJobs} disabled={loading}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-slate-600 bg-white hover:bg-slate-50 border border-slate-200 transition-colors disabled:opacity-50">
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-white/70 bg-white/8 hover:bg-white/12 border border-white/10 transition-colors disabled:opacity-50">
           <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />刷新
         </button>
         <button onClick={() => setModal({ mode: 'add' })}
@@ -1088,20 +1088,20 @@ export function CronPage() {
       <div className="flex-1 overflow-hidden flex">
 
         {/* Jobs list */}
-        <div className={`flex flex-col overflow-hidden ${showPanel ? 'w-[44%] border-r border-slate-200' : 'flex-1'}`}>
+        <div className={`flex flex-col overflow-hidden ${showPanel ? 'w-[44%] border-r border-white/10' : 'flex-1'}`}>
           <div className="flex-1 overflow-auto">
             {filteredJobs.length === 0 && !loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <Clock className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-400 text-sm">暂无定时任务</p>
+                  <Clock className="w-10 h-10 text-white/30 mx-auto mb-3" />
+                  <p className="text-white/40 text-sm">暂无定时任务</p>
                   <button onClick={() => setModal({ mode: 'add' })} className="mt-3 text-xs text-indigo-500 hover:text-indigo-700">+ 新建任务</button>
                 </div>
               </div>
             ) : (
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-500 sticky top-0 bg-white">
+                  <tr className="border-b border-white/10 text-white/50 sticky top-0 bg-slate-900/90 backdrop-blur-md">
                     <th className="text-left pl-4 pr-2 py-2 font-medium w-4"></th>
                     <th className="text-left px-2 py-2 font-medium">名称</th>
                     {!showPanel && <th className="text-left px-2 py-2 font-medium">调度</th>}
@@ -1114,36 +1114,36 @@ export function CronPage() {
                 <tbody>
                   {filteredJobs.map(job => (
                     <tr key={job.id} onClick={() => selectJob(job)}
-                      className={`border-b border-slate-100 cursor-pointer transition-colors ${
-                        selectedJob?.id === job.id ? 'bg-indigo-50' : 'hover:bg-slate-50'
+                      className={`border-b border-white/8 cursor-pointer transition-colors ${
+                        selectedJob?.id === job.id ? 'bg-indigo-500/15' : 'hover:bg-white/5'
                       } ${!job.enabled ? 'opacity-50' : ''}`}>
                       <td className="pl-4 pr-2 py-2.5">
                         <span className={`w-1.5 h-1.5 rounded-full inline-block ${job.enabled ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                       </td>
                       <td className="px-2 py-2.5">
-                        <p className="text-slate-800 font-medium truncate max-w-[140px]">{job.name}</p>
-                        {job.agentId && <p className="text-slate-400 text-[10px] truncate max-w-[140px]">{job.agentId}</p>}
+                        <p className="text-white font-medium truncate max-w-[140px]">{job.name}</p>
+                        {job.agentId && <p className="text-white/40 text-[10px] truncate max-w-[140px]">{job.agentId}</p>}
                       </td>
-                      {!showPanel && <td className="px-2 py-2.5 text-slate-500 font-mono whitespace-nowrap">{formatSchedule(job.schedule)}</td>}
-                      <td className="px-2 py-2.5 text-slate-400 whitespace-nowrap">{formatMsRelTime(job.state?.lastRunAtMs)}</td>
-                      {!showPanel && <td className="px-2 py-2.5 text-slate-400 whitespace-nowrap">{job.schedule.kind === 'at' ? '-' : formatMsRelTime(job.state?.nextRunAtMs)}</td>}
+                      {!showPanel && <td className="px-2 py-2.5 text-white/50 font-mono whitespace-nowrap">{formatSchedule(job.schedule)}</td>}
+                      <td className="px-2 py-2.5 text-white/40 whitespace-nowrap">{formatMsRelTime(job.state?.lastRunAtMs)}</td>
+                      {!showPanel && <td className="px-2 py-2.5 text-white/40 whitespace-nowrap">{job.schedule.kind === 'at' ? '-' : formatMsRelTime(job.state?.nextRunAtMs)}</td>}
                       <td className="px-2 py-2.5"><RunStatusBadge status={job.state?.lastStatus ?? job.state?.lastRunStatus} /></td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-0.5" onClick={e => e.stopPropagation()}>
                           <button title={job.enabled ? '禁用' : '启用'} onClick={() => handleToggle(job)} disabled={busy[job.id]}
-                            className="p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-50 transition-colors">
+                            className="p-1.5 rounded text-white/40 hover:text-white/80 hover:bg-white/10 disabled:opacity-50 transition-colors">
                             {job.enabled ? <ToggleRight className="w-4 h-4 text-emerald-500" /> : <ToggleLeft className="w-4 h-4" />}
                           </button>
                           <button title="立即运行" onClick={() => handleRun(job)} disabled={busy[`run_${job.id}`]}
-                            className="p-1.5 rounded text-slate-400 hover:text-amber-500 hover:bg-slate-100 disabled:opacity-50 transition-colors">
+                            className="p-1.5 rounded text-white/40 hover:text-amber-500 hover:bg-white/10 disabled:opacity-50 transition-colors">
                             <Play className="w-3.5 h-3.5" />
                           </button>
                           <button title="编辑" onClick={() => setModal({ mode: 'edit', job })}
-                            className="p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                            className="p-1.5 rounded text-white/40 hover:text-white/80 hover:bg-white/10 transition-colors">
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button title="删除" onClick={() => setConfirmDelete(job)}
-                            className="p-1.5 rounded text-slate-400 hover:text-red-600 hover:bg-slate-100 transition-colors">
+                            className="p-1.5 rounded text-white/40 hover:text-red-600 hover:bg-white/10 transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -1173,11 +1173,11 @@ export function CronPage() {
 
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 shadow-xl max-w-sm w-full mx-4 border border-slate-200">
-            <h3 className="text-slate-800 font-semibold mb-2">删除定时任务</h3>
-            <p className="text-slate-500 text-sm mb-4">确认删除 <strong className="text-slate-800">"{confirmDelete.name}"</strong>？此操作不可撤销。</p>
+          <div className="bg-slate-900/80 backdrop-blur-2xl rounded-xl p-6 shadow-2xl shadow-black/50 max-w-sm w-full mx-4 border border-white/10">
+            <h3 className="text-white font-semibold mb-2">删除定时任务</h3>
+            <p className="text-white/50 text-sm mb-4">确认删除 <strong className="text-white">"{confirmDelete.name}"</strong>？此操作不可撤销。</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setConfirmDelete(null)} className="px-4 py-1.5 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded transition-colors">取消</button>
+              <button onClick={() => setConfirmDelete(null)} className="px-4 py-1.5 text-sm text-white/70 bg-white/10 hover:bg-white/15 rounded transition-colors">取消</button>
               <button onClick={() => handleDelete(confirmDelete)} className="px-4 py-1.5 text-sm text-white bg-red-600 hover:bg-red-500 rounded transition-colors">删除</button>
             </div>
           </div>

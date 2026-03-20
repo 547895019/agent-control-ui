@@ -141,10 +141,10 @@ function StatCard({ label, value, sub, accent }: {
   accent?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 px-5 py-4">
-      <p className="text-xs text-slate-500 font-medium mb-1">{label}</p>
-      <p className={`text-2xl font-bold ${accent || 'text-slate-800'}`}>{value}</p>
-      {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+    <div className="bg-white/8 backdrop-blur-xl rounded-xl border border-white/10 px-5 py-4">
+      <p className="text-xs text-white/50 font-medium mb-1">{label}</p>
+      <p className={`text-2xl font-bold ${accent || 'text-white'}`}>{value}</p>
+      {sub && <p className="text-xs text-white/40 mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -155,7 +155,7 @@ function DailyChart({ data, selectedDays, chartMode, onSelectDay }: {
   chartMode: 'tokens' | 'cost';
   onSelectDay: (date: string) => void;
 }) {
-  if (!data.length) return <p className="text-sm text-slate-400 text-center py-8">无日期数据</p>;
+  if (!data.length) return <p className="text-sm text-white/40 text-center py-8">无日期数据</p>;
 
   const maxVal = Math.max(...data.map(d => chartMode === 'tokens' ? d.tokens : d.cost), 1);
 
@@ -185,7 +185,7 @@ function DailyChart({ data, selectedDays, chartMode, onSelectDay }: {
                   ? 'bg-orange-300 hover:bg-orange-400'
                   : val > 0
                   ? 'bg-slate-300 hover:bg-indigo-300'
-                  : 'bg-slate-100 hover:bg-slate-200'
+                  : 'bg-white/10 hover:bg-white/15'
               }`}
               style={{ height: val > 0 ? `${pct}%` : '2px', alignSelf: 'flex-end' }}
               title={`${d.date}\n${chartMode === 'tokens' ? formatTokens(val) + ' tokens' : formatCost(val)}${d.messages ? '\n' + d.messages + ' messages' : ''}${d.errors ? '\n' + d.errors + ' errors' : ''}`}
@@ -197,7 +197,7 @@ function DailyChart({ data, selectedDays, chartMode, onSelectDay }: {
         {data.map((d, idx) => (
           <div key={d.date} className="flex-1 min-w-0 text-center">
             {showLabel(idx) && (
-              <span className="text-[9px] text-slate-400">{shortDate(d.date)}</span>
+              <span className="text-[9px] text-white/40">{shortDate(d.date)}</span>
             )}
           </div>
         ))}
@@ -226,7 +226,7 @@ function TokenBreakdown({ totals, chartMode }: { totals: UsageTotals; chartMode:
   const visibleItems = items.filter(i => i.value > 0);
 
   if (!total || !visibleItems.length) {
-    return <p className="text-sm text-slate-400 text-center py-4">暂无数据</p>;
+    return <p className="text-sm text-white/40 text-center py-4">暂无数据</p>;
   }
 
   return (
@@ -236,13 +236,13 @@ function TokenBreakdown({ totals, chartMode }: { totals: UsageTotals; chartMode:
         return (
           <div key={item.label}>
             <div className="flex justify-between text-xs mb-0.5">
-              <span className="text-slate-600">{item.label}</span>
-              <span className="text-slate-800 font-medium">
+              <span className="text-white/70">{item.label}</span>
+              <span className="text-white font-medium">
                 {isToken ? formatTokens(item.value) : formatCost(item.value)}
-                <span className="text-slate-400 ml-1">({pct.toFixed(1)}%)</span>
+                <span className="text-white/40 ml-1">({pct.toFixed(1)}%)</span>
               </span>
             </div>
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
               <div className={`h-full ${item.color} rounded-full`} style={{ width: `${pct}%` }} />
             </div>
           </div>
@@ -290,7 +290,7 @@ function BreakdownPanel({ aggregates, chartMode }: {
             className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
               tab === t
                 ? 'bg-indigo-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                : 'bg-white/10 text-white/70 hover:bg-white/15'
             }`}
           >
             {t === 'model' ? '模型' : t === 'provider' ? '供应商' : 'Agent'}
@@ -299,20 +299,20 @@ function BreakdownPanel({ aggregates, chartMode }: {
       </div>
       <div className="space-y-2.5">
         {rows.length === 0 && (
-          <p className="text-sm text-slate-400 text-center py-6">无数据</p>
+          <p className="text-sm text-white/40 text-center py-6">无数据</p>
         )}
         {rows.map(row => {
           const pct = maxVal > 0 ? (row.value / maxVal) * 100 : 0;
           return (
             <div key={row.name}>
               <div className="flex justify-between text-xs mb-0.5">
-                <span className="text-slate-700 font-medium truncate max-w-[55%]" title={row.name}>{row.name}</span>
-                <span className="text-slate-600 shrink-0">
+                <span className="text-white/80 font-medium truncate max-w-[55%]" title={row.name}>{row.name}</span>
+                <span className="text-white/70 shrink-0">
                   {isToken ? formatTokens(row.value) : formatCost(row.value)}
-                  {row.count > 0 && <span className="text-slate-400 ml-1 font-normal">({row.count}次)</span>}
+                  {row.count > 0 && <span className="text-white/40 ml-1 font-normal">({row.count}次)</span>}
                 </span>
               </div>
-              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                 <div className="h-full bg-indigo-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
               </div>
             </div>
@@ -341,13 +341,13 @@ function SessionsTable({ sessions, chartMode }: {
     [sessions, isToken]
   );
 
-  if (!sorted.length) return <p className="text-sm text-slate-400 text-center py-6">无会话数据</p>;
+  if (!sorted.length) return <p className="text-sm text-white/40 text-center py-6">无会话数据</p>;
 
   return (
     <div className="overflow-auto max-h-80">
       <table className="w-full text-xs">
-        <thead className="sticky top-0 bg-white z-10">
-          <tr className="text-slate-500 border-b border-slate-100">
+        <thead className="sticky top-0 bg-slate-900/90 backdrop-blur-md z-10">
+          <tr className="text-white/50 border-b border-white/8">
             <th className="text-left py-1.5 pr-3 font-medium">会话</th>
             <th className="text-left py-1.5 pr-3 font-medium">Agent</th>
             <th className="text-left py-1.5 pr-3 font-medium hidden sm:table-cell">模型</th>
@@ -359,7 +359,7 @@ function SessionsTable({ sessions, chartMode }: {
             const val = isToken ? (s.usage?.totalTokens ?? 0) : (s.usage?.totalCost ?? 0);
             const label = s.label || s.key.split(':').slice(-2).join(':');
             return (
-              <tr key={s.key} className="border-b border-slate-50 hover:bg-slate-50">
+              <tr key={s.key} className="border-b border-slate-50 hover:bg-white/5">
                 <td className="py-1.5 pr-3 max-w-[180px]">
                   <span
                     className="font-mono text-indigo-600 cursor-pointer hover:underline block truncate"
@@ -369,9 +369,9 @@ function SessionsTable({ sessions, chartMode }: {
                     {label}
                   </span>
                 </td>
-                <td className="py-1.5 pr-3 text-slate-600 max-w-[100px] truncate">{s.agentId || '—'}</td>
-                <td className="py-1.5 pr-3 text-slate-500 max-w-[100px] truncate hidden sm:table-cell">{s.model || '—'}</td>
-                <td className="py-1.5 text-right font-medium text-slate-800 whitespace-nowrap">
+                <td className="py-1.5 pr-3 text-white/70 max-w-[100px] truncate">{s.agentId || '—'}</td>
+                <td className="py-1.5 pr-3 text-white/50 max-w-[100px] truncate hidden sm:table-cell">{s.model || '—'}</td>
+                <td className="py-1.5 text-right font-medium text-white whitespace-nowrap">
                   {isToken ? formatTokens(val) : formatCost(val)}
                 </td>
               </tr>
@@ -444,24 +444,24 @@ export function UsagePage() {
   }, [result, selectedDays, filteredSessions]);
 
   return (
-    <div className="p-6 space-y-5 bg-slate-50 min-h-full">
+    <div className="p-6 space-y-5 min-h-full">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+        <h1 className="text-xl font-bold text-white flex items-center gap-2">
           <BarChart2 className="w-5 h-5 text-indigo-500" />
           使用情况
         </h1>
-        <p className="text-sm text-slate-500 mt-0.5">查看 Token 消耗、成本和会话详情</p>
+        <p className="text-sm text-white/50 mt-0.5">查看 Token 消耗、成本和会话详情</p>
       </div>
 
       {/* Controls bar */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap items-center gap-3">
+      <div className="bg-white/8 backdrop-blur-xl rounded-xl border border-white/10 p-4 flex flex-wrap items-center gap-3">
         <div className="flex gap-1 shrink-0">
           {[{ label: '今天', days: 1 }, { label: '7天', days: 7 }, { label: '30天', days: 30 }].map(p => (
             <button
               key={p.days}
               onClick={() => applyPreset(p.days)}
-              className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-medium"
+              className="px-3 py-1.5 text-sm bg-white/10 hover:bg-white/15 text-white/80 rounded-lg transition-colors font-medium"
             >
               {p.label}
             </button>
@@ -472,23 +472,23 @@ export function UsagePage() {
             type="date"
             value={startDate}
             onChange={e => setStartDate(e.target.value)}
-            className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-indigo-400 bg-white"
+            className="border border-white/10 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-indigo-400 bg-white/10 text-white placeholder:text-white/30"
           />
-          <span className="text-slate-400 text-xs">至</span>
+          <span className="text-white/40 text-xs">至</span>
           <input
             type="date"
             value={endDate}
             onChange={e => setEndDate(e.target.value)}
-            className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-indigo-400 bg-white"
+            className="border border-white/10 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-indigo-400 bg-white/10 text-white placeholder:text-white/30"
           />
         </div>
-        <div className="flex rounded-lg overflow-hidden border border-slate-200 text-xs">
+        <div className="flex rounded-lg overflow-hidden border border-white/10 text-xs">
           {(['tokens', 'cost'] as const).map(mode => (
             <button
               key={mode}
               onClick={() => setChartMode(mode)}
               className={`px-3 py-1.5 transition-colors ${
-                chartMode === mode ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+                chartMode === mode ? 'bg-indigo-600 text-white' : 'bg-white text-white/70 hover:bg-white/5'
               }`}
             >
               {mode === 'tokens' ? 'Tokens' : '费用'}
@@ -515,7 +515,7 @@ export function UsagePage() {
 
       {/* Empty state */}
       {!result && !loading && !error && (
-        <div className="text-center py-20 text-slate-400">
+        <div className="text-center py-20 text-white/40">
           <BarChart2 className="w-12 h-12 mx-auto mb-3 opacity-20" />
           <p className="text-sm">选择日期范围并点击"刷新"加载使用数据</p>
         </div>
@@ -523,7 +523,7 @@ export function UsagePage() {
 
       {/* Loading state */}
       {loading && (
-        <div className="text-center py-20 text-slate-400">
+        <div className="text-center py-20 text-white/40">
           <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin opacity-40" />
           <p className="text-sm">加载中，请稍候...</p>
         </div>
@@ -552,21 +552,21 @@ export function UsagePage() {
               label="会话数"
               value={String(filteredSessions.length)}
               sub={selectedDays.length > 0 ? `共 ${result.sessions.length} 个（已筛选）` : undefined}
-              accent="text-slate-800"
+              accent="text-white"
             />
           </div>
 
           {/* Day filter chips */}
           {selectedDays.length > 0 && (
             <div className="flex items-center flex-wrap gap-2">
-              <span className="text-xs text-slate-500">按天筛选：</span>
+              <span className="text-xs text-white/50">按天筛选：</span>
               {[...selectedDays].sort().map(d => (
                 <span key={d} className="flex items-center gap-1 bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full">
                   {d}
                   <button onClick={() => toggleDay(d)} className="hover:text-indigo-900 leading-none">×</button>
                 </span>
               ))}
-              <button onClick={() => setSelectedDays([])} className="text-xs text-slate-400 hover:text-slate-600 underline">
+              <button onClick={() => setSelectedDays([])} className="text-xs text-white/40 hover:text-white/70 underline">
                 清除全部
               </button>
             </div>
@@ -576,10 +576,10 @@ export function UsagePage() {
           <div className="grid grid-cols-5 gap-5 items-start">
             {/* Left: chart + breakdown */}
             <div className="col-span-2 space-y-4">
-              <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
-                <h3 className="text-sm font-semibold text-slate-700">
+              <div className="bg-white/8 backdrop-blur-xl rounded-xl border border-white/10 p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-white/80">
                   每日{chartMode === 'tokens' ? ' Token' : '费用'}
-                  <span className="text-xs font-normal text-slate-400 ml-1.5">点击柱子筛选</span>
+                  <span className="text-xs font-normal text-white/40 ml-1.5">点击柱子筛选</span>
                 </h3>
                 <DailyChart
                   data={result.aggregates.daily}
@@ -590,8 +590,8 @@ export function UsagePage() {
               </div>
 
               {displayTotals && (
-                <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
-                  <h3 className="text-sm font-semibold text-slate-700">
+                <div className="bg-white/8 backdrop-blur-xl rounded-xl border border-white/10 p-4 space-y-3">
+                  <h3 className="text-sm font-semibold text-white/80">
                     {chartMode === 'tokens' ? 'Token 类型分布' : '费用类型分布'}
                   </h3>
                   <TokenBreakdown totals={displayTotals} chartMode={chartMode} />
@@ -601,15 +601,15 @@ export function UsagePage() {
 
             {/* Right: breakdown + sessions */}
             <div className="col-span-3 space-y-4">
-              <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
-                <h3 className="text-sm font-semibold text-slate-700">用量分布</h3>
+              <div className="bg-white/8 backdrop-blur-xl rounded-xl border border-white/10 p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-white/80">用量分布</h3>
                 <BreakdownPanel aggregates={result.aggregates} chartMode={chartMode} />
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
-                <h3 className="text-sm font-semibold text-slate-700 flex justify-between">
-                  <span>会话列表 <span className="text-slate-400 font-normal">({filteredSessions.length})</span></span>
-                  <span className="text-xs text-slate-400 font-normal">
+              <div className="bg-white/8 backdrop-blur-xl rounded-xl border border-white/10 p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-white/80 flex justify-between">
+                  <span>会话列表 <span className="text-white/40 font-normal">({filteredSessions.length})</span></span>
+                  <span className="text-xs text-white/40 font-normal">
                     按{chartMode === 'tokens' ? ' Token' : '费用'}降序 · 点击 key 可复制
                   </span>
                 </h3>

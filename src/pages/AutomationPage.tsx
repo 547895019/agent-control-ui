@@ -10,24 +10,24 @@ import {
 
 // ─── shared helpers ───────────────────────────────────────────────────────────
 
-const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white disabled:bg-slate-50 disabled:text-slate-400';
-const labelCls = 'block text-xs font-medium text-slate-600 mb-1';
+const inputCls = 'w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white disabled:bg-white/5 disabled:text-white/40';
+const labelCls = 'block text-xs font-medium text-white/70 mb-1';
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
       <label className={labelCls}>{label}</label>
       {children}
-      {hint && <p className="text-[11px] text-slate-400 mt-1">{hint}</p>}
+      {hint && <p className="text-[11px] text-white/40 mt-1">{hint}</p>}
     </div>
   );
 }
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
-        <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+    <div className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-white/8 bg-white/5">
+        <h3 className="text-sm font-semibold text-white/80">{title}</h3>
       </div>
       <div className="p-4">{children}</div>
     </div>
@@ -54,45 +54,45 @@ type HelpTabId = 'commands' | 'hooks' | 'plugins';
 
 const HELP_CONTENT: Record<HelpTabId, React.ReactNode> = {
   commands: (
-    <div className="space-y-5 text-sm text-slate-700">
+    <div className="space-y-5 text-sm text-white/80">
       <div>
-        <h4 className="font-semibold text-slate-800 mb-1">命令是什么？</h4>
-        <p className="text-slate-500 leading-relaxed">
+        <h4 className="font-semibold text-white mb-1">命令是什么？</h4>
+        <p className="text-white/50 leading-relaxed">
           命令（Webhook 映射）让外部系统可以通过 HTTP 请求触发 Agent 执行任务。
           比如：GitHub 有代码推送时自动通知 Agent、定时任务系统调用 Agent 处理数据等。
         </p>
       </div>
 
       <div>
-        <h4 className="font-semibold text-slate-800 mb-2">两种动作类型</h4>
+        <h4 className="font-semibold text-white mb-2">两种动作类型</h4>
         <div className="space-y-2">
           <div className="flex gap-2.5 p-3 bg-indigo-50 rounded-lg">
             <span className="text-indigo-600 font-mono text-xs bg-indigo-100 px-2 py-0.5 rounded h-fit shrink-0">agent</span>
-            <p className="text-slate-600 text-xs leading-relaxed">
+            <p className="text-white/70 text-xs leading-relaxed">
               触发 Agent 执行任务，Agent 处理完后可把结果推送到频道（WhatsApp、Slack 等）。
-              <br /><span className="text-slate-400">适合需要 AI 处理后回复的场景。</span>
+              <br /><span className="text-white/40">适合需要 AI 处理后回复的场景。</span>
             </p>
           </div>
           <div className="flex gap-2.5 p-3 bg-amber-50 rounded-lg">
             <span className="text-amber-700 font-mono text-xs bg-amber-100 px-2 py-0.5 rounded h-fit shrink-0">wake</span>
-            <p className="text-slate-600 text-xs leading-relaxed">
+            <p className="text-white/70 text-xs leading-relaxed">
               只唤醒 Agent，往主会话加一条系统通知，不开独立任务。
-              <br /><span className="text-slate-400">适合轻量提醒、不需要 AI 回复的场景。</span>
+              <br /><span className="text-white/40">适合轻量提醒、不需要 AI 回复的场景。</span>
             </p>
           </div>
         </div>
       </div>
 
       <div>
-        <h4 className="font-semibold text-slate-800 mb-2">消息模板变量</h4>
-        <p className="text-slate-500 text-xs mb-2">模板里用 <code className="bg-slate-100 px-1 rounded">{'{{变量}}'}</code> 取请求体里的数据：</p>
+        <h4 className="font-semibold text-white mb-2">消息模板变量</h4>
+        <p className="text-white/50 text-xs mb-2">模板里用 <code className="bg-white/10 px-1 rounded">{'{{变量}}'}</code> 取请求体里的数据：</p>
         <div className="bg-slate-900 rounded-lg p-3 text-xs font-mono space-y-1">
-          <p className="text-slate-400">{'// 请求体: {"from":"alice","subject":"你好"}'}</p>
+          <p className="text-white/40">{'// 请求体: {"from":"alice","subject":"你好"}'}</p>
           <p className="text-emerald-400">{'发件人：{{from}}'}</p>
           <p className="text-emerald-400">{'主题：{{subject}}'}</p>
-          <p className="text-slate-500 mt-2">{'// 数组取值'}</p>
+          <p className="text-white/50 mt-2">{'// 数组取值'}</p>
           <p className="text-emerald-400">{'第一封邮件：{{messages[0].subject}}'}</p>
-          <p className="text-slate-500 mt-2">{'// 其他内置变量'}</p>
+          <p className="text-white/50 mt-2">{'// 其他内置变量'}</p>
           <p className="text-blue-400">{'{{path}}   // 匹配的路径'}</p>
           <p className="text-blue-400">{'{{now}}    // 当前时间'}</p>
           <p className="text-blue-400">{'{{headers.x-event-type}}  // 请求头'}</p>
@@ -100,10 +100,10 @@ const HELP_CONTENT: Record<HelpTabId, React.ReactNode> = {
       </div>
 
       <div>
-        <h4 className="font-semibold text-slate-800 mb-2">完整示例</h4>
-        <p className="text-xs text-slate-400 mb-2">GitHub 推送时通知 Agent，结果发到 Slack：</p>
+        <h4 className="font-semibold text-white mb-2">完整示例</h4>
+        <p className="text-xs text-white/40 mb-2">GitHub 推送时通知 Agent，结果发到 Slack：</p>
         <div className="bg-slate-900 rounded-lg p-3 text-xs font-mono space-y-0.5">
-          <p className="text-slate-400">{'{'}</p>
+          <p className="text-white/40">{'{'}</p>
           <p className="text-blue-300 pl-4">{'id: "github-push",'}</p>
           <p className="text-blue-300 pl-4">{'name: "GitHub 推送",'}</p>
           <p className="text-yellow-300 pl-4">{'match: { path: "github" },'}</p>
@@ -112,39 +112,39 @@ const HELP_CONTENT: Record<HelpTabId, React.ReactNode> = {
           <p className="text-emerald-300 pl-4">{'messageTemplate: "仓库 {{repository}} 有新推送",'}</p>
           <p className="text-purple-300 pl-4">{'deliver: true,'}</p>
           <p className="text-purple-300 pl-4">{'channel: "slack",'}</p>
-          <p className="text-slate-400">{'}'}</p>
+          <p className="text-white/40">{'}'}</p>
         </div>
-        <p className="text-xs text-slate-400 mt-2">对应的 curl 调用：</p>
+        <p className="text-xs text-white/40 mt-2">对应的 curl 调用：</p>
         <div className="bg-slate-900 rounded-lg p-3 text-xs font-mono">
           <p className="text-emerald-300">{'curl -X POST /hooks/github \\'}</p>
-          <p className="text-slate-400 pl-2">{"-H 'Authorization: Bearer SECRET' \\"}</p>
-          <p className="text-slate-400 pl-2">{"  -d '{\"repository\":\"my-app\"}'"}</p>
+          <p className="text-white/40 pl-2">{"-H 'Authorization: Bearer SECRET' \\"}</p>
+          <p className="text-white/40 pl-2">{"  -d '{\"repository\":\"my-app\"}'"}</p>
         </div>
       </div>
 
       <div>
-        <h4 className="font-semibold text-slate-800 mb-2">会话 Key 有什么用？</h4>
-        <div className="space-y-1.5 text-xs text-slate-500 leading-relaxed">
-          <p>• <span className="text-slate-700">不填</span>：每次请求都开一个新的独立会话</p>
-          <p>• <span className="text-slate-700">固定值</span>，如 <code className="bg-slate-100 px-1 rounded">hook:email</code>：所有请求共用同一会话（可多轮对话）</p>
-          <p>• <span className="text-slate-700">带模板</span>，如 <code className="bg-slate-100 px-1 rounded">{'hook:email:{{messageId}}'}</code>：每封邮件独立会话，支持追溯</p>
+        <h4 className="font-semibold text-white mb-2">会话 Key 有什么用？</h4>
+        <div className="space-y-1.5 text-xs text-white/50 leading-relaxed">
+          <p>• <span className="text-white/80">不填</span>：每次请求都开一个新的独立会话</p>
+          <p>• <span className="text-white/80">固定值</span>，如 <code className="bg-white/10 px-1 rounded">hook:email</code>：所有请求共用同一会话（可多轮对话）</p>
+          <p>• <span className="text-white/80">带模板</span>，如 <code className="bg-white/10 px-1 rounded">{'hook:email:{{messageId}}'}</code>：每封邮件独立会话，支持追溯</p>
         </div>
       </div>
     </div>
   ),
 
   hooks: (
-    <div className="space-y-5 text-sm text-slate-700">
+    <div className="space-y-5 text-sm text-white/80">
       <div>
-        <h4 className="font-semibold text-slate-800 mb-1">钩子是什么？</h4>
-        <p className="text-slate-500 leading-relaxed">
+        <h4 className="font-semibold text-white mb-1">钩子是什么？</h4>
+        <p className="text-white/50 leading-relaxed">
           钩子（内部事件钩子）让你在 Agent 运行的特定时刻自动执行自定义代码。
           比如：收到消息时自动预处理、Agent 启动时加载自定义数据、会话结束时清理资源。
         </p>
       </div>
 
       <div>
-        <h4 className="font-semibold text-slate-800 mb-2">可以监听的事件</h4>
+        <h4 className="font-semibold text-white mb-2">可以监听的事件</h4>
         <div className="space-y-1">
           {[
             { event: 'message:received', desc: '收到新消息时触发（在 Agent 处理之前）' },
@@ -159,38 +159,38 @@ const HELP_CONTENT: Record<HelpTabId, React.ReactNode> = {
           ].map(({ event, desc }) => (
             <div key={event} className="flex gap-2 text-xs">
               <code className="text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-mono shrink-0 h-fit">{event}</code>
-              <span className="text-slate-500 leading-relaxed">{desc}</span>
+              <span className="text-white/50 leading-relaxed">{desc}</span>
             </div>
           ))}
         </div>
       </div>
 
       <div>
-        <h4 className="font-semibold text-slate-800 mb-2">处理器模块怎么写？</h4>
-        <p className="text-xs text-slate-400 mb-2">在工作区创建一个 JS 文件，导出一个函数：</p>
+        <h4 className="font-semibold text-white mb-2">处理器模块怎么写？</h4>
+        <p className="text-xs text-white/40 mb-2">在工作区创建一个 JS 文件，导出一个函数：</p>
         <div className="bg-slate-900 rounded-lg p-3 text-xs font-mono space-y-0.5">
-          <p className="text-slate-400">{'// hooks/on-message.js'}</p>
+          <p className="text-white/40">{'// hooks/on-message.js'}</p>
           <p className="text-blue-300">{'export default async function(ctx) {'}</p>
-          <p className="text-slate-400 pl-4">{'// ctx 包含事件相关数据'}</p>
+          <p className="text-white/40 pl-4">{'// ctx 包含事件相关数据'}</p>
           <p className="text-emerald-300 pl-4">{'console.log("收到消息:", ctx.from, ctx.content);'}</p>
           <p className="text-blue-300">{'}'}</p>
         </div>
-        <p className="text-xs text-slate-400 mt-2">然后在处理器列表里配置：</p>
+        <p className="text-xs text-white/40 mt-2">然后在处理器列表里配置：</p>
         <div className="space-y-1 text-xs mt-1">
-          <p className="text-slate-600">• <span className="font-medium">事件</span>：选择要监听的事件，如 <code className="bg-slate-100 px-1 rounded">message:received</code></p>
-          <p className="text-slate-600">• <span className="font-medium">模块路径</span>：相对于工作区的路径，如 <code className="bg-slate-100 px-1 rounded">hooks/on-message.js</code></p>
-          <p className="text-slate-600">• <span className="font-medium">导出名</span>：留空默认用 <code className="bg-slate-100 px-1 rounded">default</code> 导出</p>
+          <p className="text-white/70">• <span className="font-medium">事件</span>：选择要监听的事件，如 <code className="bg-white/10 px-1 rounded">message:received</code></p>
+          <p className="text-white/70">• <span className="font-medium">模块路径</span>：相对于工作区的路径，如 <code className="bg-white/10 px-1 rounded">hooks/on-message.js</code></p>
+          <p className="text-white/70">• <span className="font-medium">导出名</span>：留空默认用 <code className="bg-white/10 px-1 rounded">default</code> 导出</p>
         </div>
       </div>
 
       <div>
-        <h4 className="font-semibold text-slate-800 mb-2">全局设置说明</h4>
-        <div className="space-y-1.5 text-xs text-slate-500 leading-relaxed">
-          <p>• <span className="text-slate-700 font-medium">监听路径</span>：外部 Webhook 的根路径，默认 <code className="bg-slate-100 px-1 rounded">/hooks</code></p>
-          <p>• <span className="text-slate-700 font-medium">认证 Token</span>：外部调用必须携带此 Token，防止未授权访问</p>
-          <p>• <span className="text-slate-700 font-medium">最大请求体</span>：限制外部请求的大小，防止超大数据攻击</p>
-          <p>• <span className="text-slate-700 font-medium">默认会话 Key</span>：外部 Hook 请求没有指定会话时使用的默认会话</p>
-          <p>• <span className="text-slate-700 font-medium">允许的 Agent ID</span>：限制外部请求只能路由到这些 Agent，留空表示不限制</p>
+        <h4 className="font-semibold text-white mb-2">全局设置说明</h4>
+        <div className="space-y-1.5 text-xs text-white/50 leading-relaxed">
+          <p>• <span className="text-white/80 font-medium">监听路径</span>：外部 Webhook 的根路径，默认 <code className="bg-white/10 px-1 rounded">/hooks</code></p>
+          <p>• <span className="text-white/80 font-medium">认证 Token</span>：外部调用必须携带此 Token，防止未授权访问</p>
+          <p>• <span className="text-white/80 font-medium">最大请求体</span>：限制外部请求的大小，防止超大数据攻击</p>
+          <p>• <span className="text-white/80 font-medium">默认会话 Key</span>：外部 Hook 请求没有指定会话时使用的默认会话</p>
+          <p>• <span className="text-white/80 font-medium">允许的 Agent ID</span>：限制外部请求只能路由到这些 Agent，留空表示不限制</p>
         </div>
       </div>
 
@@ -201,18 +201,18 @@ const HELP_CONTENT: Record<HelpTabId, React.ReactNode> = {
   ),
 
   plugins: (
-    <div className="space-y-5 text-sm text-slate-700">
+    <div className="space-y-5 text-sm text-white/80">
       <div>
-        <h4 className="font-semibold text-slate-800 mb-1">插件是什么？</h4>
-        <p className="text-slate-500 leading-relaxed">
+        <h4 className="font-semibold text-white mb-1">插件是什么？</h4>
+        <p className="text-white/50 leading-relaxed">
           插件给系统增加新能力，比如接入新的 AI 模型提供商、添加新的消息频道、扩展 Agent 的工具等。
           这里可以控制哪些插件启用、每个插件的权限和配置。
         </p>
       </div>
 
       <div>
-        <h4 className="font-semibold text-slate-800 mb-2">插件类型</h4>
-        <div className="space-y-1.5 text-xs text-slate-600">
+        <h4 className="font-semibold text-white mb-2">插件类型</h4>
+        <div className="space-y-1.5 text-xs text-white/70">
           {[
             { name: '模型提供商', desc: '接入新的 AI 模型，如 OpenAI、Anthropic、Moonshot 等' },
             { name: '消息频道', desc: '支持新的聊天平台，如 Telegram、WhatsApp、Slack 等' },
@@ -222,52 +222,52 @@ const HELP_CONTENT: Record<HelpTabId, React.ReactNode> = {
           ].map(({ name, desc }) => (
             <div key={name} className="flex gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 shrink-0" />
-              <span><span className="font-medium text-slate-700">{name}</span>：{desc}</span>
+              <span><span className="font-medium text-white/80">{name}</span>：{desc}</span>
             </div>
           ))}
         </div>
       </div>
 
       <div>
-        <h4 className="font-semibold text-slate-800 mb-2">允许/拒绝列表</h4>
-        <div className="space-y-1.5 text-xs text-slate-500 leading-relaxed">
-          <p>• <span className="text-slate-700 font-medium">允许列表</span>：只加载列表里的插件，留空表示加载全部</p>
-          <p>• <span className="text-slate-700 font-medium">拒绝列表</span>：屏蔽特定插件，即使它在允许列表里也不加载</p>
-          <p className="text-slate-400">两者同时设置时，先过滤允许列表，再排除拒绝列表。</p>
+        <h4 className="font-semibold text-white mb-2">允许/拒绝列表</h4>
+        <div className="space-y-1.5 text-xs text-white/50 leading-relaxed">
+          <p>• <span className="text-white/80 font-medium">允许列表</span>：只加载列表里的插件，留空表示加载全部</p>
+          <p>• <span className="text-white/80 font-medium">拒绝列表</span>：屏蔽特定插件，即使它在允许列表里也不加载</p>
+          <p className="text-white/40">两者同时设置时，先过滤允许列表，再排除拒绝列表。</p>
         </div>
       </div>
 
       <div>
-        <h4 className="font-semibold text-slate-800 mb-2">插件权限配置</h4>
-        <p className="text-xs text-slate-400 mb-2">点击插件条目右侧的箭头展开详细配置：</p>
+        <h4 className="font-semibold text-white mb-2">插件权限配置</h4>
+        <p className="text-xs text-white/40 mb-2">点击插件条目右侧的箭头展开详细配置：</p>
         <div className="space-y-2">
-          <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-xs">
-            <p className="font-medium text-slate-700 mb-0.5">允许 Prompt 注入</p>
-            <p className="text-slate-500">允许插件修改发给 AI 的系统提示词。默认关闭，开启后插件可以加入自定义指令。</p>
+          <div className="p-2.5 bg-white/5 rounded-lg border border-white/10 text-xs">
+            <p className="font-medium text-white/80 mb-0.5">允许 Prompt 注入</p>
+            <p className="text-white/50">允许插件修改发给 AI 的系统提示词。默认关闭，开启后插件可以加入自定义指令。</p>
           </div>
-          <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-xs">
-            <p className="font-medium text-slate-700 mb-0.5">允许模型覆盖</p>
-            <p className="text-slate-500">允许插件在运行子任务时切换到其他 AI 模型。可以配合"允许的模型列表"限制范围。</p>
+          <div className="p-2.5 bg-white/5 rounded-lg border border-white/10 text-xs">
+            <p className="font-medium text-white/80 mb-0.5">允许模型覆盖</p>
+            <p className="text-white/50">允许插件在运行子任务时切换到其他 AI 模型。可以配合"允许的模型列表"限制范围。</p>
           </div>
-          <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-xs">
-            <p className="font-medium text-slate-700 mb-0.5">插件配置（JSON）</p>
-            <p className="text-slate-500">插件特有的配置，比如 API 密钥、账号信息等。格式是 JSON，具体字段取决于插件。</p>
+          <div className="p-2.5 bg-white/5 rounded-lg border border-white/10 text-xs">
+            <p className="font-medium text-white/80 mb-0.5">插件配置（JSON）</p>
+            <p className="text-white/50">插件特有的配置，比如 API 密钥、账号信息等。格式是 JSON，具体字段取决于插件。</p>
           </div>
         </div>
       </div>
 
       <div>
-        <h4 className="font-semibold text-slate-800 mb-2">特殊插槽</h4>
-        <div className="space-y-1.5 text-xs text-slate-500 leading-relaxed">
-          <p>• <span className="text-slate-700 font-medium">Memory 插槽</span>：指定哪个插件负责管理 Agent 的长期记忆</p>
-          <p>• <span className="text-slate-700 font-medium">Context Engine 插槽</span>：指定哪个插件负责构建 Agent 的上下文信息</p>
-          <p className="text-slate-400">同一时间只能有一个插件占据每个插槽。</p>
+        <h4 className="font-semibold text-white mb-2">特殊插槽</h4>
+        <div className="space-y-1.5 text-xs text-white/50 leading-relaxed">
+          <p>• <span className="text-white/80 font-medium">Memory 插槽</span>：指定哪个插件负责管理 Agent 的长期记忆</p>
+          <p>• <span className="text-white/80 font-medium">Context Engine 插槽</span>：指定哪个插件负责构建 Agent 的上下文信息</p>
+          <p className="text-white/40">同一时间只能有一个插件占据每个插槽。</p>
         </div>
       </div>
 
       <div>
-        <h4 className="font-semibold text-slate-800 mb-2">添加插件步骤</h4>
-        <div className="space-y-1 text-xs text-slate-500">
+        <h4 className="font-semibold text-white mb-2">添加插件步骤</h4>
+        <div className="space-y-1 text-xs text-white/50">
           <p className="flex gap-2"><span className="text-indigo-600 font-bold shrink-0">1.</span>在下方输入框输入插件 ID，点击"添加"</p>
           <p className="flex gap-2"><span className="text-indigo-600 font-bold shrink-0">2.</span>勾选"启用"开关</p>
           <p className="flex gap-2"><span className="text-indigo-600 font-bold shrink-0">3.</span>点击展开配置权限和参数（如需要）</p>
@@ -292,21 +292,21 @@ function HelpPanel({ activeTab, onClose }: { activeTab: HelpTabId; onClose: () =
   };
 
   return (
-    <div className="w-[360px] shrink-0 border-l border-slate-200 bg-white sticky top-0 h-screen overflow-y-auto flex flex-col">
+    <div className="w-[360px] shrink-0 border-l border-white/10 bg-slate-900/80 backdrop-blur-2xl sticky top-0 h-screen overflow-y-auto flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-slate-100 shrink-0 bg-white sticky top-0 z-10">
+      <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-white/8 shrink-0 bg-slate-900/90 sticky top-0 z-10">
         <BookOpen className="w-4 h-4 text-indigo-500 shrink-0" />
-        <span className="font-semibold text-slate-800 text-sm">使用说明</span>
+        <span className="font-semibold text-white text-sm">使用说明</span>
         <button
           onClick={onClose}
-          className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+          className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10 hover:text-white/70 transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Sub-tabs */}
-      <div className="flex gap-1 px-4 pt-3 pb-2 shrink-0 border-b border-slate-100 bg-white">
+      <div className="flex gap-1 px-4 pt-3 pb-2 shrink-0 border-b border-white/8 bg-slate-900/90">
         {(Object.keys(tabLabels) as HelpTabId[]).map(t => {
           const { label, icon: Icon } = tabLabels[t];
           const active = tab === t;
@@ -315,7 +315,7 @@ function HelpPanel({ activeTab, onClose }: { activeTab: HelpTabId; onClose: () =
               key={t}
               onClick={() => setTab(t)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
-                active ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                active ? 'bg-indigo-600 text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/10'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -373,12 +373,12 @@ function MappingForm({ mapping, onSave, onCancel }: {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <h3 className="text-sm font-semibold text-slate-800">
+      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 shrink-0">
+          <h3 className="text-sm font-semibold text-white">
             {mapping.name ? '编辑命令' : '新建命令'}
           </h3>
-          <button onClick={onCancel} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100">
+          <button onClick={onCancel} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -460,14 +460,14 @@ function MappingForm({ mapping, onSave, onCancel }: {
             </Field>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-white/80 cursor-pointer">
             <input type="checkbox" checked={!!form.deliver} onChange={e => set('deliver', e.target.checked || undefined)}
               className="w-4 h-4 accent-indigo-600" />
             投递结果到频道
           </label>
         </div>
-        <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 shrink-0">
-          <button onClick={onCancel} className="px-4 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">取消</button>
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-white/8 shrink-0">
+          <button onClick={onCancel} className="px-4 py-2 text-sm text-white/70 bg-white/10 hover:bg-white/15 rounded-lg transition-colors">取消</button>
           <button onClick={() => onSave(form)} className="px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors">保存</button>
         </div>
       </div>
@@ -523,9 +523,9 @@ function CommandsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Webhook 命令映射 — 外部 HTTP 请求触发 Agent</p>
+        <p className="text-sm text-white/50">Webhook 命令映射 — 外部 HTTP 请求触发 Agent</p>
         <div className="flex gap-2">
-          <button onClick={load} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 border border-slate-200 bg-white rounded-lg hover:bg-slate-50 disabled:opacity-50">
+          <button onClick={load} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/70 border border-white/10 bg-white/8 backdrop-blur-xl rounded-lg hover:bg-white/5 disabled:opacity-50">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> 刷新
           </button>
           <button onClick={() => { setEditingMapping(newMapping()); setShowForm(true); }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg">
@@ -537,9 +537,9 @@ function CommandsTab() {
       {error && <ErrorBanner msg={error} onDismiss={() => setError('')} />}
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+        <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-white/40" /></div>
       ) : mappings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center gap-2 text-slate-400">
+        <div className="flex flex-col items-center justify-center py-16 text-center gap-2 text-white/40">
           <Webhook className="w-10 h-10 opacity-30" />
           <p className="text-sm">暂无命令映射</p>
           <button onClick={() => { setEditingMapping(newMapping()); setShowForm(true); }} className="text-xs text-indigo-600 hover:text-indigo-500">+ 创建第一个</button>
@@ -547,27 +547,27 @@ function CommandsTab() {
       ) : (
         <div className="space-y-2">
           {mappings.map(m => (
-            <div key={m.id} className="bg-white border border-slate-200 rounded-xl px-4 py-3 flex items-start gap-3 hover:border-indigo-200 transition-colors">
+            <div key={m.id} className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 flex items-start gap-3 hover:border-indigo-200 transition-colors">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-slate-800">{m.name || m.id}</span>
-                  <span className="text-xs font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{m.id}</span>
+                  <span className="text-sm font-medium text-white">{m.name || m.id}</span>
+                  <span className="text-xs font-mono text-white/40 bg-white/10 px-1.5 py-0.5 rounded">{m.id}</span>
                   {m.action && <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${m.action === 'agent' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-700'}`}>{m.action}</span>}
                 </div>
                 <div className="flex items-center gap-3 mt-1 flex-wrap">
-                  {m.match?.path && <span className="text-xs text-slate-500 font-mono">{m.match.path}</span>}
-                  {m.agentId && <span className="text-xs text-slate-400">→ {m.agentId}</span>}
-                  {m.model && <span className="text-xs text-slate-400 font-mono">{m.model}</span>}
+                  {m.match?.path && <span className="text-xs text-white/50 font-mono">{m.match.path}</span>}
+                  {m.agentId && <span className="text-xs text-white/40">→ {m.agentId}</span>}
+                  {m.model && <span className="text-xs text-white/40 font-mono">{m.model}</span>}
                 </div>
                 {m.messageTemplate && (
-                  <p className="text-xs text-slate-400 mt-1 truncate">{m.messageTemplate}</p>
+                  <p className="text-xs text-white/40 mt-1 truncate">{m.messageTemplate}</p>
                 )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <button onClick={() => { setEditingMapping(m); setShowForm(true); }} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
+                <button onClick={() => { setEditingMapping(m); setShowForm(true); }} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-600 hover:bg-indigo-50">
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => handleDelete(m.id)} disabled={saving} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50">
+                <button onClick={() => handleDelete(m.id)} disabled={saving} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-red-500 hover:bg-red-50">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -608,10 +608,10 @@ function HandlerForm({ handler, onSave, onCancel }: {
   const set = (k: keyof InternalHandler, v: string) => setForm(f => ({ ...f, [k]: v }));
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-800">内部钩子处理器</h3>
-          <button onClick={onCancel} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100"><X className="w-4 h-4" /></button>
+      <div className="bg-slate-900/80 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+          <h3 className="text-sm font-semibold text-white">内部钩子处理器</h3>
+          <button onClick={onCancel} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10"><X className="w-4 h-4" /></button>
         </div>
         <div className="px-6 py-4 space-y-3">
           <Field label="事件" hint="监听的事件类型">
@@ -625,8 +625,8 @@ function HandlerForm({ handler, onSave, onCancel }: {
             <input className={inputCls} value={form.export ?? ''} onChange={e => set('export', e.target.value || '')} placeholder="default" />
           </Field>
         </div>
-        <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100">
-          <button onClick={onCancel} className="px-4 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">取消</button>
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-white/8">
+          <button onClick={onCancel} className="px-4 py-2 text-sm text-white/70 bg-white/10 hover:bg-white/15 rounded-lg">取消</button>
           <button
             onClick={() => onSave({ ...form, export: form.export || undefined })}
             disabled={!form.event || !form.module}
@@ -722,12 +722,12 @@ function HooksTab() {
       {error && <ErrorBanner msg={error} onDismiss={() => setError('')} />}
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+        <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-white/40" /></div>
       ) : (
         <>
           <SectionCard title="全局设置">
             <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-white/80 cursor-pointer">
                 <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} className="w-4 h-4 accent-indigo-600" />
                 启用 Hooks 系统
               </label>
@@ -755,28 +755,28 @@ function HooksTab() {
 
           <SectionCard title="内部事件钩子">
             <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-white/80 cursor-pointer">
                 <input type="checkbox" checked={internalEnabled} onChange={e => setInternalEnabled(e.target.checked)} className="w-4 h-4 accent-indigo-600" />
                 启用内部事件钩子
               </label>
 
               <div className="space-y-2">
                 {handlers.map((h, i) => (
-                  <div key={i} className="flex items-center gap-3 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
+                  <div key={i} className="flex items-center gap-3 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">{h.event}</span>
-                        <span className="text-xs text-slate-500 font-mono truncate">{h.module}</span>
+                        <span className="text-xs text-white/50 font-mono truncate">{h.module}</span>
                       </div>
-                      {h.export && <span className="text-[11px] text-slate-400">导出: {h.export}</span>}
+                      {h.export && <span className="text-[11px] text-white/40">导出: {h.export}</span>}
                     </div>
                     <div className="flex gap-1 shrink-0">
                       <button onClick={() => { setEditingHandler(h); setEditingHandlerIdx(i); setShowHandlerForm(true); }}
-                        className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50">
+                        className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-indigo-600 hover:bg-indigo-50">
                         <Pencil className="w-3 h-3" />
                       </button>
                       <button onClick={() => setHandlers(prev => prev.filter((_, idx) => idx !== i))}
-                        className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-red-500 hover:bg-red-50">
+                        className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-red-500 hover:bg-red-50">
                         <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
@@ -834,29 +834,29 @@ function PluginEntryRow({ entry, onChange, onRemove }: {
   const set = (k: keyof PluginEntry, v: any) => onChange({ ...entry, [k]: v });
 
   return (
-    <div className="border border-slate-200 rounded-lg overflow-hidden">
-      <div className="flex items-center gap-3 px-3 py-2.5 bg-white hover:bg-slate-50">
-        <button onClick={() => setExpanded(v => !v)} className="text-slate-400 hover:text-slate-600">
+    <div className="border border-white/10 rounded-lg overflow-hidden">
+      <div className="flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10">
+        <button onClick={() => setExpanded(v => !v)} className="text-white/40 hover:text-white/70">
           {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
         <label className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer">
           <input type="checkbox" checked={entry.enabled !== false} onChange={e => set('enabled', e.target.checked)}
             className="w-4 h-4 accent-indigo-600 shrink-0" />
-          <span className="text-sm font-mono text-slate-700 truncate">{entry.id}</span>
+          <span className="text-sm font-mono text-white/80 truncate">{entry.id}</span>
         </label>
-        <button onClick={onRemove} className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-red-500 hover:bg-red-50 shrink-0">
+        <button onClick={onRemove} className="w-6 h-6 flex items-center justify-center rounded text-white/40 hover:text-red-500 hover:bg-red-50 shrink-0">
           <Trash2 className="w-3 h-3" />
         </button>
       </div>
       {expanded && (
-        <div className="px-4 py-3 border-t border-slate-100 bg-slate-50 space-y-3">
+        <div className="px-4 py-3 border-t border-white/8 bg-white/5 space-y-3">
           <div className="flex gap-4 flex-wrap">
-            <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
               <input type="checkbox" checked={!!entry.allowPromptInjection} onChange={e => set('allowPromptInjection', e.target.checked)}
                 className="w-3.5 h-3.5 accent-indigo-600" />
               允许 Prompt 注入
             </label>
-            <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
               <input type="checkbox" checked={!!entry.allowModelOverride} onChange={e => set('allowModelOverride', e.target.checked)}
                 className="w-3.5 h-3.5 accent-indigo-600" />
               允许模型覆盖
@@ -978,12 +978,12 @@ function PluginsTab() {
       {error && <ErrorBanner msg={error} onDismiss={() => setError('')} />}
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+        <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-white/40" /></div>
       ) : (
         <>
           <SectionCard title="全局设置">
             <div className="space-y-3">
-              <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-white/80 cursor-pointer">
                 <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} className="w-4 h-4 accent-indigo-600" />
                 启用插件系统
               </label>
@@ -1013,7 +1013,7 @@ function PluginsTab() {
           <SectionCard title="插件配置">
             <div className="space-y-2">
               {entries.length === 0 && (
-                <p className="text-sm text-slate-400 text-center py-4">暂无插件配置项</p>
+                <p className="text-sm text-white/40 text-center py-4">暂无插件配置项</p>
               )}
               {entries.map((e, i) => (
                 <PluginEntryRow
@@ -1074,15 +1074,15 @@ export function AutomationPage() {
         <div className={showHelp ? 'max-w-3xl' : 'max-w-5xl'}>
           <div className="flex items-start justify-between mb-6">
             <div>
-              <h2 className="text-xl font-semibold text-slate-800">自动化</h2>
-              <p className="text-slate-500 text-sm mt-0.5">命令、钩子和插件设置</p>
+              <h2 className="text-xl font-semibold text-white">自动化</h2>
+              <p className="text-white/50 text-sm mt-0.5">命令、钩子和插件设置</p>
             </div>
             <button
               onClick={() => setShowHelp(v => !v)}
               className={`flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors ${
                 showHelp
                   ? 'text-indigo-600 border-indigo-300 bg-indigo-50'
-                  : 'text-slate-500 border-slate-200 bg-white hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50'
+                  : 'text-white/50 border-white/10 bg-white hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50'
               }`}
               title="使用说明"
             >
@@ -1092,7 +1092,7 @@ export function AutomationPage() {
           </div>
 
           {/* Tab bar */}
-          <div className="flex gap-1 mb-5 bg-slate-100 p-1 rounded-xl w-fit">
+          <div className="flex gap-1 mb-5 bg-white/10 p-1 rounded-xl w-fit">
             {TABS.map(t => {
               const Icon = t.icon;
               const active = tab === t.id;
@@ -1101,7 +1101,7 @@ export function AutomationPage() {
                   key={t.id}
                   onClick={() => setTab(t.id)}
                   className={`flex items-center gap-2 px-4 py-2 text-sm rounded-lg font-medium transition-all ${
-                    active ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                    active ? 'bg-white text-white shadow-sm' : 'text-white/50 hover:text-white/80'
                   }`}
                 >
                   <Icon className="w-4 h-4" />

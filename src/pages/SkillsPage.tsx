@@ -131,11 +131,11 @@ function StatusChips({ skill }: { skill: SkillStatusEntry }) {
   const showBundledBadge = skill.bundled && skill.source !== 'openclaw-bundled';
   return (
     <div className="flex flex-wrap gap-1 mt-1.5">
-      <span className="px-1.5 py-0.5 text-[10px] rounded bg-slate-100 text-slate-600 font-medium">
+      <span className="px-1.5 py-0.5 text-[10px] rounded bg-white/10 text-white/70 font-medium">
         {sourceLabel(skill.source)}
       </span>
       {showBundledBadge && (
-        <span className="px-1.5 py-0.5 text-[10px] rounded bg-slate-100 text-slate-600 font-medium">
+        <span className="px-1.5 py-0.5 text-[10px] rounded bg-white/10 text-white/70 font-medium">
           bundled
         </span>
       )}
@@ -181,10 +181,10 @@ function SkillCard({
   const firstInstall = skill.install[0];
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-4 flex gap-4">
+    <div className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-lg p-4 flex gap-4">
       {/* Left: info */}
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-slate-800 text-sm">
+        <div className="font-medium text-white text-sm">
           {skill.emoji ? `${skill.emoji} ` : ''}{skill.name}
           {skill.homepage && (
             <a
@@ -197,19 +197,19 @@ function SkillCard({
             </a>
           )}
         </div>
-        <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+        <p className="text-xs text-white/50 mt-0.5 leading-relaxed">
           {clampText(skill.description, 140)}
         </p>
         <StatusChips skill={skill} />
         {missing.length > 0 && (
-          <p className="text-xs text-slate-400 mt-1.5">
-            <span className="text-slate-500 font-medium">Missing:</span>{' '}
+          <p className="text-xs text-white/40 mt-1.5">
+            <span className="text-white/50 font-medium">Missing:</span>{' '}
             {missing.join(', ')}
           </p>
         )}
         {reasons.length > 0 && (
-          <p className="text-xs text-slate-400 mt-0.5">
-            <span className="text-slate-500 font-medium">Reason:</span>{' '}
+          <p className="text-xs text-white/40 mt-0.5">
+            <span className="text-white/50 font-medium">Reason:</span>{' '}
             {reasons.join(', ')}
           </p>
         )}
@@ -224,7 +224,7 @@ function SkillCard({
           className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors disabled:opacity-50 ${
             skill.disabled
               ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              : 'bg-white/10 hover:bg-white/15 text-white/80'
           }`}
         >
           {busy ? <RefreshCw className="w-3 h-3 animate-spin inline" /> : (skill.disabled ? 'Enable' : 'Disable')}
@@ -249,7 +249,7 @@ function SkillCard({
                 key={opt.id}
                 onClick={() => onInstall(opt.id)}
                 disabled={busy}
-                className="px-2 py-1 text-[10px] rounded font-medium bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors disabled:opacity-50 whitespace-nowrap text-right"
+                className="px-2 py-1 text-[10px] rounded font-medium bg-white/5 hover:bg-white/10 text-white/70 border border-white/10 transition-colors disabled:opacity-50 whitespace-nowrap text-right"
               >
                 {opt.label}
               </button>
@@ -269,19 +269,19 @@ function SkillCard({
         {/* API key input */}
         {skill.primaryEnv && (
           <div className="w-full space-y-1.5 mt-1">
-            <p className="text-[10px] text-slate-400 text-right">{skill.primaryEnv}</p>
+            <p className="text-[10px] text-white/40 text-right">{skill.primaryEnv}</p>
             <div className="flex items-center gap-1">
               <input
                 type={showKey ? 'text' : 'password'}
                 value={apiKeyEdit}
                 onChange={e => onEditKey(e.target.value)}
                 placeholder="API key"
-                className="flex-1 min-w-0 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-indigo-400 font-mono"
+                className="flex-1 min-w-0 border border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:border-indigo-400 font-mono"
               />
               <button
                 type="button"
                 onClick={() => setShowKey(v => !v)}
-                className="p-1 text-slate-400 hover:text-slate-600"
+                className="p-1 text-white/40 hover:text-white/70"
               >
                 {showKey ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
               </button>
@@ -323,32 +323,32 @@ function SkillGroupSection({
   const eligibleCount = group.skills.filter(s => s.eligible).length;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+    <div className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
       {/* Group header */}
       <button
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"
         onClick={() => setExpanded(v => !v)}
       >
         <div className="flex items-center gap-2">
           {expanded ? (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <ChevronDown className="w-4 h-4 text-white/40" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-slate-400" />
+            <ChevronRight className="w-4 h-4 text-white/40" />
           )}
-          <span className="font-semibold text-sm text-slate-700">{group.label}</span>
-          <span className="text-xs text-slate-400 font-normal">
+          <span className="font-semibold text-sm text-white/80">{group.label}</span>
+          <span className="text-xs text-white/40 font-normal">
             {group.skills.length} 个
             {eligibleCount < group.skills.length && (
               <span className="text-amber-500 ml-1">({group.skills.length - eligibleCount} blocked)</span>
             )}
           </span>
         </div>
-        <span className="text-xs text-slate-400">{expanded ? '收起' : '展开'}</span>
+        <span className="text-xs text-white/40">{expanded ? '收起' : '展开'}</span>
       </button>
 
       {/* Skill cards */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-2.5 border-t border-slate-100">
+        <div className="px-4 pb-4 space-y-2.5 border-t border-white/8">
           <div className="pt-3 space-y-2.5">
             {group.skills.map(skill => (
               <SkillCard
@@ -479,15 +479,15 @@ export function SkillsPage() {
   const totalEligible = useMemo(() => (report?.skills ?? []).filter(s => s.eligible).length, [report]);
 
   return (
-    <div className="p-6 space-y-5 bg-slate-50 min-h-full">
+    <div className="p-6 space-y-5 min-h-full">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-white flex items-center gap-2">
             <Puzzle className="w-5 h-5 text-indigo-500" />
             技能管理
           </h1>
-          <p className="text-sm text-slate-500 mt-0.5">管理和配置可用技能</p>
+          <p className="text-sm text-white/50 mt-0.5">管理和配置可用技能</p>
         </div>
         <button
           onClick={() => loadSkills(true)}
@@ -500,12 +500,12 @@ export function SkillsPage() {
       </div>
 
       {/* Search bar + stats */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-wrap items-center gap-3">
+      <div className="bg-white/8 backdrop-blur-xl rounded-xl border border-white/10 p-4 flex flex-wrap items-center gap-3">
         <a
           href="https://clawhub.com"
           target="_blank"
           rel="noreferrer"
-          className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-medium whitespace-nowrap"
+          className="px-3 py-1.5 text-sm bg-white/10 hover:bg-white/15 text-white/80 rounded-lg transition-colors font-medium whitespace-nowrap"
         >
           技能商店 ↗
         </a>
@@ -514,10 +514,10 @@ export function SkillsPage() {
           value={filter}
           onChange={e => setFilter(e.target.value)}
           placeholder="搜索技能..."
-          className="flex-1 min-w-[180px] border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-400 bg-white"
+          className="flex-1 min-w-[180px] border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-400 bg-white/10 text-white placeholder:text-white/30"
         />
         {report && (
-          <span className="text-xs text-slate-500 whitespace-nowrap">
+          <span className="text-xs text-white/50 whitespace-nowrap">
             {filtered.length} / {report.skills.length} 个
             {totalEligible < report.skills.length && (
               <span className="text-amber-500 ml-1">({totalEligible} eligible)</span>
@@ -538,7 +538,7 @@ export function SkillsPage() {
 
       {/* Empty / loading states */}
       {!report && !loading && (
-        <div className="text-center py-20 text-slate-400">
+        <div className="text-center py-20 text-white/40">
           <Puzzle className="w-12 h-12 mx-auto mb-3 opacity-20" />
           <p className="text-sm mb-3">点击"刷新"加载技能列表</p>
           <button
@@ -551,7 +551,7 @@ export function SkillsPage() {
       )}
 
       {loading && (
-        <div className="text-center py-20 text-slate-400">
+        <div className="text-center py-20 text-white/40">
           <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin opacity-40" />
           <p className="text-sm">加载中...</p>
         </div>
@@ -577,7 +577,7 @@ export function SkillsPage() {
       )}
 
       {!loading && report && filtered.length === 0 && (
-        <div className="text-center py-12 text-slate-400">
+        <div className="text-center py-12 text-white/40">
           <p className="text-sm">未找到匹配的技能</p>
         </div>
       )}
