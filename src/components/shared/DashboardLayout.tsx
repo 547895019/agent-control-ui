@@ -196,7 +196,7 @@ function UpdateModal({ onClose }: { onClose: () => void }) {
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-sm">更新版本</p>
             {commit && (
-              <p className="text-white/35 text-xs font-mono mt-0.5">当前：{commit} · v{__BUILD_DATE__}</p>
+              <p className="text-white/35 text-xs font-mono mt-0.5">当前：v{__APP_VERSION__} · {commit}</p>
             )}
           </div>
           <button
@@ -367,7 +367,7 @@ export function DashboardLayout() {
             Disconnect
           </button>
           <div className="px-3 pt-1 flex items-center justify-between">
-            <span className="text-[10px] text-white/20 font-mono">v{__BUILD_DATE__}</span>
+            <span className="text-[10px] text-white/20 font-mono">v{__APP_VERSION__}</span>
             <button
               onClick={() => setShowUpdate(true)}
               title="更新版本"
