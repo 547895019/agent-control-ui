@@ -7,7 +7,7 @@
     "url": "https://github.com/547895019/agent-control-ui.git"
   },
   "bin": {
-    "openclaw-ui": "./bin/cli.mjs"
+    "openclaw-ui": "bin/cli.mjs"
   },
   "files": [
     "bin/",
