@@ -97,10 +97,15 @@ createServer((req, res) => {
       }
       const [cmd, args] = steps[i];
       res.write(`\n$ ${cmd} ${args.join(' ')}\n`);
-      const p = spawn(cmd, args, {
-        cwd: __dirname,
-        env: { ...process.env, FORCE_COLOR: '0' },
-      });
+      const spawnEnv = {
+        ...process.env,
+        FORCE_COLOR: '0',
+        // Allow git to operate in this directory regardless of owner mismatch
+        GIT_CONFIG_COUNT: '1',
+        GIT_CONFIG_KEY_0: 'safe.directory',
+        GIT_CONFIG_VALUE_0: __dirname,
+      };
+      const p = spawn(cmd, args, { cwd: __dirname, env: spawnEnv });
       p.stdout.on('data', d => res.write(d));
       p.stderr.on('data', d => res.write(d));
       p.on('close', code => {
@@ -109,7 +114,7 @@ createServer((req, res) => {
           res.write('fallback: npm install\n');
           const p2 = spawn('npm', ['install', '--no-fund', '--no-audit'], {
             cwd: __dirname,
-            env: { ...process.env, FORCE_COLOR: '0' },
+            env: spawnEnv,
           });
           p2.stdout.on('data', d => res.write(d));
           p2.stderr.on('data', d => res.write(d));
