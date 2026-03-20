@@ -116,6 +116,24 @@ npm run build && npm run preview
 
 访问 `http://localhost:4173`。
 
+## 版本更新
+
+### systemd 方式
+
+```bash
+chmod +x update.sh
+./update.sh
+```
+
+拉取最新代码 → 重新构建 → 自动重启服务，一步完成。
+
+### Docker 方式
+
+```bash
+git pull
+docker compose up -d --build
+```
+
 ## 代理说明
 
 开发模式下 Vite 自动代理：
