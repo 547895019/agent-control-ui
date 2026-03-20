@@ -6,9 +6,9 @@ import {
   WifiOff, RefreshCw, AlertCircle, Loader2, Zap, Users, ArrowUpCircle, X, RotateCcw,
 } from 'lucide-react';
 
-// Safe accessor — older builds may not have APP_VERSION substituted by Vite
+// Safe accessor — older builds may not have __APP_VERSION__ substituted by Vite
 const APP_VERSION: string = (() => {
-  try { return APP_VERSION; } catch { return __BUILD_DATE__; }
+  try { return __APP_VERSION__; } catch { return __BUILD_DATE__; }
 })();
 
 const BRAND_KEY = 'openclaw:brand';

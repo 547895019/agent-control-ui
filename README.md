@@ -18,7 +18,27 @@ OpenClaw 的 Web 控制面板，用于管理 Agent、组织、定时任务、频
 - Node.js >= 18
 - OpenClaw 后端服务已运行（默认端口 `18789`）
 
-## 安装
+## 快速安装（推荐）
+
+```bash
+# 全局安装
+sudo npm install -g agent-control-ui
+
+# 注册系统服务并启动（需要 sudo）
+openclaw-ui install
+```
+
+访问 `http://服务器IP:8080`，自定义端口：`PORT=3000 openclaw-ui install`
+
+**更新版本：**
+```bash
+openclaw-ui update
+# 或在页面左下角点 ↑ 按钮
+```
+
+---
+
+## 从源码安装
 
 ```bash
 npm install

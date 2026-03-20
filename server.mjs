@@ -15,25 +15,6 @@ const PORT   = Number(process.env.PORT) || 8080;
 const DIST   = join(__dirname, 'dist');
 const TF     = join(__dirname, '.update-token');
 
-// Read GitHub repo from package.json repository field or .git/config
-function getRepoSlug() {
-  try {
-    const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
-    if (pkg.repository?.url) {
-      const m = pkg.repository.url.match(/github\.com[/:]([\w-]+\/[\w.-]+?)(?:\.git)?$/);
-      if (m) return m[1];
-    }
-  } catch {}
-  try {
-    const cfg = readFileSync(join(__dirname, '.git', 'config'), 'utf8');
-    const m = cfg.match(/url\s*=\s*https:\/\/github\.com\/([\w-]+\/[\w.-]+?)(?:\.git)?\s*$/m);
-    if (m) return m[1];
-  } catch {}
-  return null;
-}
-
-const REPO_SLUG = getRepoSlug();
-
 // Generate or load update token
 const UPDATE_TOKEN = existsSync(TF)
   ? readFileSync(TF, 'utf8').trim()
@@ -68,40 +49,6 @@ function serveStatic(req, res) {
   }
 }
 
-// Download latest source from GitHub tarball and extract (no git needed)
-function downloadLatest(write, onDone) {
-  if (!REPO_SLUG) {
-    write('✗ 无法获取仓库地址，请检查 package.json 或 .git/config\n');
-    return onDone(1);
-  }
-  const url = `https://github.com/${REPO_SLUG}/archive/refs/heads/main.tar.gz`;
-  write(`$ 下载最新代码: ${url}\n`);
-
-  // Preserve files that must not be overwritten
-  const exclude = [
-    '--exclude=*/.git',
-    '--exclude=*/node_modules',
-    '--exclude=*/dist',
-    '--exclude=*/.update-token',
-    '--exclude=*/openclaw-ui.pid',
-    '--exclude=*/openclaw-ui.log',
-    '--exclude=*/start.sh',
-    '--exclude=*/stop.sh',
-  ];
-
-  const tar = spawn('tar', ['-xz', '--strip-components=1', ...exclude, '-C', __dirname]);
-  const curl = spawn('curl', ['-fsSL', '--', url]);
-
-  curl.stdout.pipe(tar.stdin);
-  curl.stderr.on('data', d => write(String(d)));
-  tar.stderr.on('data', d => write(String(d)));
-
-  let done = false;
-  const finish = (code) => { if (!done) { done = true; onDone(code); } };
-
-  curl.on('close', code => { if (code !== 0) { write(`curl exit ${code}\n`); finish(code); } });
-  tar.on('close', finish);
-}
 
 createServer((req, res) => {
   const url    = req.url.split('?')[0];
@@ -137,59 +84,23 @@ createServer((req, res) => {
     });
 
     const write = (s) => res.write(s);
-    // NODE_ENV=production causes npm ci to skip devDependencies (tsc, vite, etc.)
-    const env   = { ...process.env, FORCE_COLOR: '0', NODE_ENV: 'development' };
+    const env   = { ...process.env, FORCE_COLOR: '0' };
+    const pkg   = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
 
-    // Step runner for npm steps
-    // Remove stale compiled vite config so Vite always uses vite.config.ts
-    for (const f of ['vite.config.js', 'vite.config.d.ts']) {
-      try { (await import('node:fs')).unlinkSync(join(__dirname, f)); } catch {}
-    }
-
-    const npmSteps = [
-      ['npm', ['ci', '--prefer-offline', '--no-fund', '--no-audit']],
-      ['npm', ['run', 'build']],
-    ];
-
-    const runNpm = (i) => {
-      if (i >= npmSteps.length) {
-        write('\n✓ 构建完成，服务即将重启…\n');
-        res.end();
-        // Spawn a detached process to restart the service after response is flushed.
-        // systemctl restart kills this process; start.sh is fallback for non-systemd.
-        const restarter = spawn('bash', ['-c',
-          `sleep 1 && systemctl restart openclaw-ui 2>/dev/null || bash "${join(__dirname, 'start.sh')}" 2>/dev/null`
-        ], { detached: true, stdio: 'ignore' });
-        restarter.unref();
-        setTimeout(() => process.exit(0), 800);
-        return;
-      }
-      const [cmd, args] = npmSteps[i];
-      write(`\n$ ${cmd} ${args.join(' ')}\n`);
-      const p = spawn(cmd, args, { cwd: __dirname, env });
-      p.stdout.on('data', d => write(d));
-      p.stderr.on('data', d => write(d));
-      p.on('close', code => {
-        if (code !== 0 && i === 0) {
-          write('fallback: npm install\n');
-          const p2 = spawn('npm', ['install', '--no-fund', '--no-audit'], { cwd: __dirname, env });
-          p2.stdout.on('data', d => write(d));
-          p2.stderr.on('data', d => write(d));
-          p2.on('close', () => runNpm(i + 1));
-        } else if (code !== 0) {
-          write(`\n✗ 失败 (exit ${code})\n`);
-          res.end();
-        } else {
-          runNpm(i + 1);
-        }
-      });
-    };
-
-    // 1. Download → 2. npm ci → 3. npm run build
-    downloadLatest(write, (code) => {
-      if (code !== 0) { write(`\n✗ 下载失败 (exit ${code})\n`); res.end(); return; }
-      write('✓ 下载完成\n');
-      runNpm(0);
+    // npm install -g fetches the pre-built package — no build step needed
+    write(`$ npm install -g ${pkg.name}@latest\n`);
+    const p = spawn('npm', ['install', '-g', `${pkg.name}@latest`, '--no-fund', '--no-audit'], { env });
+    p.stdout.on('data', d => write(d));
+    p.stderr.on('data', d => write(d));
+    p.on('close', code => {
+      if (code !== 0) { write(`\n✗ 失败 (exit ${code})\n`); res.end(); return; }
+      write('\n✓ 安装完成，服务即将重启…\n');
+      res.end();
+      const restarter = spawn('bash', ['-c',
+        `sleep 1 && systemctl restart openclaw-ui 2>/dev/null || bash "${join(__dirname, 'start.sh')}" 2>/dev/null`
+      ], { detached: true, stdio: 'ignore' });
+      restarter.unref();
+      setTimeout(() => process.exit(0), 800);
     });
 
     return;

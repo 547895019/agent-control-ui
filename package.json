@@ -1,17 +1,28 @@
 {
   "name": "agent-control-ui",
-  "private": true,
   "version": "2026.3.20",
+  "description": "OpenClaw Agent Control UI — web control panel for OpenClaw gateway",
   "repository": {
     "type": "git",
     "url": "https://github.com/547895019/agent-control-ui.git"
   },
+  "bin": {
+    "openclaw-ui": "./bin/cli.mjs"
+  },
+  "files": [
+    "bin/",
+    "dist/",
+    "server.mjs",
+    "public/",
+    "README.md"
+  ],
   "type": "module",
   "scripts": {
     "dev": "node localfile-server.mjs & vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
