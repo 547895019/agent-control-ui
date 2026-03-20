@@ -162,7 +162,7 @@ export function AgentsPage() {
           {agentList.map(([id, config]: [string, any]) => (
             <div
               key={id}
-              className="glass glass-shine card-hover rounded-2xl p-4 group cursor-pointer shadow-xl shadow-black/25"
+              className="glass card-hover rounded-2xl p-4 group cursor-pointer shadow-xl shadow-black/25"
               onClick={() => setFilesAgent({ id, config })}
             >
               {/* Card header */}

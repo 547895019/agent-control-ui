@@ -1501,7 +1501,7 @@ export function OrgPage() {
               </button>
 
               {orgDropdownOpen && (
-                <div className="absolute left-0 top-full mt-1.5 w-80 glass glass-shine rounded-2xl shadow-lg z-40 overflow-hidden">
+                <div className="absolute left-0 top-full mt-1.5 w-80 glass rounded-2xl shadow-lg z-40 overflow-hidden">
                   <div className="px-3 py-2 border-b border-white/8 bg-white/5">
                     <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider">组织列表</span>
                   </div>
@@ -1848,7 +1848,7 @@ export function OrgPage() {
                         return (
                           <div
                             key={member.agentId}
-                            className="glass glass-shine rounded-2xl p-4 flex flex-col items-center gap-2.5 hover:border-indigo-200 hover:shadow-sm transition-all group"
+                            className="glass rounded-2xl p-4 flex flex-col items-center gap-2.5 hover:border-indigo-200 hover:shadow-sm transition-all group"
                           >
                             <div className={`w-12 h-12 rounded-full ${getAvatarColor(member.agentId)} flex items-center justify-center text-white font-semibold text-sm shrink-0`}>
                               {getInitials(member.agentId, displayName)}

@@ -22,13 +22,13 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3730a3 30%, #4f46e5 60%, #0369a1 85%, #164e63 100%)' }}>
-      {/* Glow orbs */}
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at 20% 50%, #0d0528 0%, #020210 55%, #000b18 100%)' }}>
+      {/* Neon glow orbs */}
       <div className="pointer-events-none">
-        <div className="orb w-[700px] h-[700px] -top-64 -right-48" style={{ background: 'rgba(99,102,241,0.45)' }} />
-        <div className="orb w-[500px] h-[500px] bottom-0 -left-32" style={{ background: 'rgba(37,99,235,0.35)' }} />
-        <div className="orb w-[350px] h-[350px] top-1/3 right-1/4" style={{ background: 'rgba(6,182,212,0.28)' }} />
-        <div className="orb w-[250px] h-[250px] bottom-1/4 left-1/3" style={{ background: 'rgba(14,165,233,0.20)' }} />
+        <div className="orb w-[750px] h-[750px] -top-72 -right-52" style={{ background: 'rgba(168,85,247,0.50)' }} />
+        <div className="orb w-[600px] h-[600px] bottom-0 -left-40" style={{ background: 'rgba(59,130,246,0.32)' }} />
+        <div className="orb w-[400px] h-[400px] top-1/3 right-1/4" style={{ background: 'rgba(0,200,255,0.25)' }} />
+        <div className="orb w-[280px] h-[280px] bottom-1/4 left-1/3" style={{ background: 'rgba(0,255,170,0.12)' }} />
       </div>
 
       <div className="relative w-full max-w-sm">
@@ -42,7 +42,7 @@ export function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="glass-heavy glass-shine rounded-2xl p-6 shadow-2xl shadow-black/50 ring-1 ring-white/10">
+        <div className="glass-heavy rounded-2xl p-6 shadow-2xl shadow-black/50 ring-1 ring-white/10">
           <h2 className="text-white font-semibold text-lg mb-1">Connect to Gateway</h2>
           <p className="text-white/50 text-sm mb-6">Enter your operator token to continue</p>
 

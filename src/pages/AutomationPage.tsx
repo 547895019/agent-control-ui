@@ -25,7 +25,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="glass glass-shine rounded-2xl overflow-hidden">
+    <div className="glass rounded-2xl overflow-hidden">
       <div className="px-4 py-3 border-b border-white/8 bg-white/5">
         <h3 className="text-sm font-semibold text-white/80">{title}</h3>
       </div>
@@ -547,7 +547,7 @@ function CommandsTab() {
       ) : (
         <div className="space-y-2">
           {mappings.map(m => (
-            <div key={m.id} className="glass glass-shine rounded-2xl px-4 py-3 flex items-start gap-3 hover:border-indigo-200 transition-colors">
+            <div key={m.id} className="glass rounded-2xl px-4 py-3 flex items-start gap-3 hover:border-indigo-200 transition-colors">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium text-white">{m.name || m.id}</span>

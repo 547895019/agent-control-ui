@@ -323,7 +323,7 @@ function SkillGroupSection({
   const eligibleCount = group.skills.filter(s => s.eligible).length;
 
   return (
-    <div className="glass glass-shine rounded-2xl overflow-hidden">
+    <div className="glass rounded-2xl overflow-hidden">
       {/* Group header */}
       <button
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors"

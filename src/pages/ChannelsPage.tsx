@@ -289,7 +289,7 @@ function WhatsAppCard({ channelId, status, accounts, label, onRefresh, configVal
   };
 
   return (
-    <div className="glass glass-shine rounded-2xl p-4 space-y-3">
+    <div className="glass rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <span className="text-2xl">📱</span>
@@ -422,7 +422,7 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
   const lastError = s.lastError || acc0?.lastError;
 
   return (
-    <div className="glass glass-shine rounded-2xl p-4 space-y-3">
+    <div className="glass rounded-2xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <span className="text-2xl">{icon}</span>
