@@ -159,6 +159,12 @@ function UpdateModal({ onClose }: { onClose: () => void }) {
         setOutput(buf);
       }
 
+      // Already latest — no restart needed
+      if (buf.includes('已是最新版本')) {
+        setStatus('done');
+        return;
+      }
+
       // Stream closed — server exited to restart
       setStatus('restarting');
       setOutput(prev => prev + '\n正在等待服务重启…\n');
