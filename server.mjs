@@ -87,7 +87,7 @@ createServer((req, res) => {
     const env   = { ...process.env, FORCE_COLOR: '0' };
     const pkg   = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
 
-    const repo  = (pkg.repository?.url || '').replace(/^git\+https:\/\/github\.com\//, '').replace(/\.git$/, '');
+    const repo  = (pkg.repository?.url || '').replace(/^(git\+)?https:\/\/github\.com\//, '').replace(/\.git$/, '');
     const ghPkg = repo ? `github:${repo}` : pkg.name;
 
     // Check latest version before installing

@@ -74,7 +74,7 @@ WantedBy=multi-user.target
   // ── update ──────────────────────────────────────────────────────────────────
   case 'update': {
     const pkg = JSON.parse((await import('node:fs')).readFileSync(join(ROOT, 'package.json'), 'utf8'));
-    const repo = (pkg.repository?.url || '').replace(/^git\+https:\/\/github\.com\//, '').replace(/\.git$/, '');
+    const repo = (pkg.repository?.url || '').replace(/^(git\+)?https:\/\/github\.com\//, '').replace(/\.git$/, '');
     const ghPkg = repo ? `github:${repo}` : pkg.name;
 
     if (repo) {
