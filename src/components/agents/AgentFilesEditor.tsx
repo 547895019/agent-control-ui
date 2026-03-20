@@ -96,18 +96,18 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
       <div className="glass-heavy rounded-2xl w-full max-w-5xl h-[80vh] flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 shrink-0">
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
+            <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
             <span className="font-semibold text-white text-sm truncate">{agentName}</span>
-            <span className="text-slate-400 text-xs font-mono truncate hidden sm:block">
+            <span className="text-white/40 text-xs font-mono truncate hidden sm:block">
               {workspace.length > 50 ? '…' + workspace.slice(-47) : workspace}
             </span>
           </div>
           <div className="ml-auto flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => setShowGuide(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-white/50 hover:text-indigo-300 hover:bg-indigo-500/15 transition-colors"
               title="查看核心文件操作指南"
             >
               <HelpCircle className="w-4 h-4" />
@@ -115,7 +115,7 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
             </button>
             <button
               onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -125,7 +125,7 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
         {/* Body */}
         <div className="flex flex-1 min-h-0">
           {/* File list sidebar */}
-          <div className="w-44 shrink-0 border-r border-slate-100 overflow-y-auto py-2">
+          <div className="w-44 shrink-0 border-r border-white/10 overflow-y-auto py-2">
             {CORE_FILES.map(name => {
               const f = files[name];
               const dirty = f.loaded && f.content !== f.original;
@@ -136,16 +136,16 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
                   onClick={() => setActiveFile(name)}
                   className={`w-full flex items-center gap-2 px-4 py-2 text-left text-sm transition-colors ${
                     isActive
-                      ? 'bg-indigo-50 text-indigo-700 font-medium'
-                      : 'text-slate-600 hover:bg-slate-50'
+                      ? 'bg-indigo-500/20 text-indigo-300 font-medium'
+                      : 'text-white/60 hover:bg-white/8'
                   }`}
                 >
                   <span className="flex-1 truncate font-mono text-xs">{name}</span>
-                  {f.loading && <Loader2 className="w-3 h-3 animate-spin text-slate-400 shrink-0" />}
+                  {f.loading && <Loader2 className="w-3 h-3 animate-spin text-white/40 shrink-0" />}
                   {!f.loading && dirty && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />}
-                  {!f.loading && f.savedAt && !dirty && <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />}
+                  {!f.loading && f.savedAt && !dirty && <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />}
                   {!f.loading && f.missing && !dirty && (
-                    <span className="text-[10px] text-slate-400 shrink-0">新建</span>
+                    <span className="text-[10px] text-white/40 shrink-0">新建</span>
                   )}
                 </button>
               );
@@ -155,10 +155,10 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
           {/* Editor area */}
           <div className="flex-1 flex flex-col min-w-0">
             {/* File name bar */}
-            <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-100 bg-slate-50 shrink-0">
-              <span className="text-xs font-mono text-slate-500">{activeFile}</span>
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-white/10 bg-white/5 shrink-0">
+              <span className="text-xs font-mono text-white/50">{activeFile}</span>
               {current.missing && !isDirty && (
-                <span className="text-xs text-slate-400 italic">— 文件尚未创建</span>
+                <span className="text-xs text-white/40 italic">— 文件尚未创建</span>
               )}
               {isDirty && <span className="text-xs text-amber-500">● 未保存</span>}
               <div className="ml-auto flex items-center gap-2">
@@ -184,11 +184,11 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
             {/* Textarea */}
             {current.loading ? (
               <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                <Loader2 className="w-5 h-5 animate-spin text-white/40" />
               </div>
             ) : (
               <textarea
-                className="flex-1 w-full px-4 py-3 font-mono text-sm text-emerald-300 bg-slate-950 resize-none focus:outline-none leading-relaxed"
+                className="flex-1 w-full px-4 py-3 font-mono text-sm text-emerald-300 bg-black/40 resize-none focus:outline-none leading-relaxed"
                 value={current.content}
                 onChange={e => setFile(activeFile, { content: e.target.value })}
                 spellCheck={false}
@@ -199,8 +199,8 @@ export function AgentFilesEditor({ agentId, agentName, workspace, onClose }: Age
         </div>
 
         {/* Footer hint */}
-        <div className="px-5 py-2 border-t border-slate-100 bg-slate-50 shrink-0">
-          <p className="text-xs text-slate-400">修改直接写入 Agent 工作区。编辑后点击 Save 或按 Ctrl+S 保存。</p>
+        <div className="px-5 py-2 border-t border-white/10 bg-white/5 shrink-0">
+          <p className="text-xs text-white/40">修改直接写入 Agent 工作区。编辑后点击 Save 或按 Ctrl+S 保存。</p>
         </div>
       </div>
     </div>

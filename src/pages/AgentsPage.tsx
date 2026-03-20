@@ -163,7 +163,7 @@ export function AgentsPage() {
             <div
               key={id}
               className="glass card-hover rounded-2xl p-4 group cursor-pointer shadow-xl shadow-black/25"
-              onClick={() => setFilesAgent({ id, config })}
+              onClick={() => setChatAgent({ id, config })}
             >
               {/* Card header */}
               <div className="flex items-start gap-3 mb-3">
@@ -179,7 +179,7 @@ export function AgentsPage() {
                   </div>
                   <p className="text-white/40 text-xs font-mono mt-0.5 truncate">{id}</p>
                 </div>
-                <FolderOpen className="w-4 h-4 text-white/20 group-hover:text-indigo-400 transition-colors shrink-0 mt-0.5" />
+                <MessageSquare className="w-4 h-4 text-white/20 group-hover:text-indigo-400 transition-colors shrink-0 mt-0.5" />
               </div>
 
               {/* Info */}
@@ -188,14 +188,14 @@ export function AgentsPage() {
                   <span className="text-xs text-white/40">模型</span>
                   <ModelBadge model={config.model} />
                 </div>
-                {config.workspace && (
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-white/40 shrink-0">工作区</span>
-                    <span className="text-xs text-white/50 truncate font-mono" title={config.workspace}>
-                      …/{config.workspace.split('/').pop()}
-                    </span>
-                  </div>
-                )}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-white/40 shrink-0">工作区</span>
+                  <span className="text-xs text-white/50 truncate font-mono" title={config.workspace || '~/workspace'}>
+                    {config.workspace
+                      ? `…/${config.workspace.split('/').pop()}`
+                      : '~/workspace'}
+                  </span>
+                </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs text-white/40 shrink-0">工具权限</span>
                   <span className="text-xs text-white/50 font-mono">
@@ -238,6 +238,13 @@ export function AgentsPage() {
                 >
                   <MessageSquare className="w-3 h-3" />
                   聊天
+                </button>
+                <button
+                  onClick={() => setFilesAgent({ id, config })}
+                  className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs text-white/60 bg-white/8 hover:bg-white/15 rounded-lg transition-colors border border-white/8"
+                >
+                  <FolderOpen className="w-3 h-3" />
+                  文件
                 </button>
                 <button
                   onClick={() => setSkillsAgent({ id, config })}

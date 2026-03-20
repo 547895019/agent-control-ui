@@ -22,7 +22,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at 20% 50%, #0d0528 0%, #020210 55%, #000b18 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at 20% 50%, #351c7a 0%, #17103c 55%, #112438 100%)' }}>
       {/* Neon glow orbs */}
       <div className="pointer-events-none">
         <div className="orb w-[750px] h-[750px] -top-72 -right-52" style={{ background: 'rgba(168,85,247,0.50)' }} />

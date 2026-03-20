@@ -107,7 +107,7 @@ function StatusBadge({ ok, label }: { ok: boolean | undefined | null; label: str
   return (
     <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium border ${
       ok
-        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
         : 'bg-white/10 text-white/40 border-white/10'
     }`}>
       {ok ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
@@ -126,13 +126,14 @@ function ErrorBox({ msg }: { msg: string }) {
 }
 
 // Collapsible config editor for a channel
-function ChannelConfigEditor({ channelId, configValue, configHash, onSaved }: {
+function ChannelConfigEditor({ channelId, configValue, configHash, onSaved, isOpen, onToggle }: {
   channelId: string;
   configValue: Record<string, any> | null;
   configHash: string | null;
   onSaved: () => void;
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -140,12 +141,12 @@ function ChannelConfigEditor({ channelId, configValue, configHash, onSaved }: {
 
   // Sync textarea when config changes externally or panel opens
   useEffect(() => {
-    if (open) {
+    if (isOpen) {
       setText(JSON.stringify(configValue ?? {}, null, 2));
       setError(null);
       setSuccess(false);
     }
-  }, [open, configValue]);
+  }, [isOpen, configValue]);
 
   const handleSave = async () => {
     setError(null);
@@ -177,15 +178,15 @@ function ChannelConfigEditor({ channelId, configValue, configHash, onSaved }: {
   return (
     <div className="border-t border-white/8 pt-3 mt-1">
       <button
-        onClick={() => setOpen(v => !v)}
+        onClick={onToggle}
         className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white/80 transition-colors w-full text-left"
       >
-        {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+        {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         <Settings className="w-3.5 h-3.5" />
         配置
       </button>
 
-      {open && (
+      {isOpen && (
         <div className="mt-2 space-y-2">
           <textarea
             value={text}
@@ -224,7 +225,7 @@ function ChannelConfigEditor({ channelId, configValue, configHash, onSaved }: {
 }
 
 // WhatsApp Card with QR login flow
-function WhatsAppCard({ channelId, status, accounts, label, onRefresh, configValue, configHash, onConfigSaved }: {
+function WhatsAppCard({ channelId, status, accounts, label, onRefresh, configValue, configHash, onConfigSaved, configOpen, onConfigToggle }: {
   channelId: string;
   status: any;
   accounts: ChannelAccountSnapshot[];
@@ -233,6 +234,8 @@ function WhatsAppCard({ channelId, status, accounts, label, onRefresh, configVal
   configValue: Record<string, any> | null;
   configHash: string | null;
   onConfigSaved: () => void;
+  configOpen: boolean;
+  onConfigToggle: () => void;
 }) {
   const [qrLoading, setQrLoading] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
@@ -386,13 +389,15 @@ function WhatsAppCard({ channelId, status, accounts, label, onRefresh, configVal
         configValue={configValue}
         configHash={configHash}
         onSaved={onConfigSaved}
+        isOpen={configOpen}
+        onToggle={onConfigToggle}
       />
     </div>
   );
 }
 
 // Generic channel card (Telegram, Discord, Slack, etc.)
-function GenericChannelCard({ channelId, status, accounts, label, icon, onRefresh, onLogout, configValue, configHash, onConfigSaved }: {
+function GenericChannelCard({ channelId, status, accounts, label, icon, onRefresh, onLogout, configValue, configHash, onConfigSaved, configOpen, onConfigToggle }: {
   channelId: string;
   status: any;
   accounts: ChannelAccountSnapshot[];
@@ -403,6 +408,8 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
   configValue: Record<string, any> | null;
   configHash: string | null;
   onConfigSaved: () => void;
+  configOpen: boolean;
+  onConfigToggle: () => void;
 }) {
   const [logoutId, setLogoutId] = useState<string | null>(null);
   const s = status || {};
@@ -522,6 +529,8 @@ function GenericChannelCard({ channelId, status, accounts, label, icon, onRefres
         configValue={configValue}
         configHash={configHash}
         onSaved={onConfigSaved}
+        isOpen={configOpen}
+        onToggle={onConfigToggle}
       />
     </div>
   );
@@ -539,6 +548,7 @@ export function ChannelsPage() {
   // Config state
   const [configObj, setConfigObj] = useState<Record<string, any> | null>(null);
   const [configHash, setConfigHash] = useState<string | null>(null);
+  const [openConfigId, setOpenConfigId] = useState<string | null>(null);
 
   const loadConfig = useCallback(async () => {
     try {
@@ -647,7 +657,7 @@ export function ChannelsPage() {
           暂无频道数据
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
           {sorted.map(channelId => {
             const status = channels[channelId];
             const accounts = channelAccounts[channelId] ?? [];
@@ -658,6 +668,9 @@ export function ChannelsPage() {
             const chCfg = (configObj?.channels as Record<string, any> | undefined)?.[channelId]
               ?? (configObj?.[channelId] as Record<string, any> | undefined)
               ?? null;
+
+            const configOpen = openConfigId === channelId;
+            const onConfigToggle = () => setOpenConfigId(id => id === channelId ? null : channelId);
 
             if (channelId === 'whatsapp') {
               return (
@@ -671,6 +684,8 @@ export function ChannelsPage() {
                   configValue={chCfg}
                   configHash={configHash}
                   onConfigSaved={loadConfig}
+                  configOpen={configOpen}
+                  onConfigToggle={onConfigToggle}
                 />
               );
             }
@@ -688,6 +703,8 @@ export function ChannelsPage() {
                 configValue={chCfg}
                 configHash={configHash}
                 onConfigSaved={loadConfig}
+                configOpen={configOpen}
+                onConfigToggle={onConfigToggle}
               />
             );
           })}

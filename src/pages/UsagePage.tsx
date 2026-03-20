@@ -488,7 +488,7 @@ export function UsagePage() {
               key={mode}
               onClick={() => setChartMode(mode)}
               className={`px-3 py-1.5 transition-colors ${
-                chartMode === mode ? 'bg-indigo-600 text-white' : 'bg-white text-white/70 hover:bg-white/5'
+                chartMode === mode ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/15'
               }`}
             >
               {mode === 'tokens' ? 'Tokens' : '费用'}

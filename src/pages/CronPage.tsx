@@ -294,7 +294,7 @@ function deliveryStatusLabel(s?: string): string {
 }
 
 function deliveryStatusColor(s?: string): string {
-  if (s === 'delivered') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  if (s === 'delivered') return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
   if (s === 'not-delivered') return 'bg-red-500/15 text-red-300 border-red-500/30';
   return 'bg-white/10 text-white/50 border-white/10';
 }
@@ -1061,7 +1061,7 @@ export function CronPage() {
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border transition-colors ${
             panelMode === 'runs'
               ? 'text-indigo-300 bg-indigo-500/15 border-indigo-500/40'
-              : 'text-white/50 bg-white hover:bg-white/5 border-white/10'
+              : 'text-white/50 bg-white/10 hover:bg-white/15 border-white/10'
           }`}
         >
           <History className="w-3.5 h-3.5" />

@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../stores/useAppStore';
 import {
   Bot, ScrollText, LogOut, Building2, Clock, BarChart2, Puzzle, MessageSquare,
-  WifiOff, RefreshCw, AlertCircle, Loader2, Zap,
+  WifiOff, RefreshCw, AlertCircle, Loader2, Zap, Users,
 } from 'lucide-react';
 
 const BRAND_KEY = 'openclaw:brand';
@@ -61,6 +61,7 @@ const NAV_ITEMS = [
   { path: '/usage', label: '用量', icon: BarChart2 },
   { path: '/skills', label: '技能', icon: Puzzle },
   { path: '/channels',    label: '频道', icon: MessageSquare },
+  { path: '/meeting',     label: '会议', icon: Users },
   { path: '/automation',  label: '自动化', icon: Zap },
 ];
 
@@ -104,7 +105,7 @@ export function DashboardLayout() {
   const [editingBrand, setEditingBrand] = useState(false);
 
   return (
-    <div className="h-screen flex relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at 20% 50%, #0d0528 0%, #020210 55%, #000b18 100%)' }}>
+    <div className="h-screen flex relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at 20% 50%, #351c7a 0%, #17103c 55%, #112438 100%)' }}>
       {/* Neon glow orbs */}
       <div className="pointer-events-none">
         <div className="orb w-[750px] h-[750px] -top-72 -left-52" style={{ background: 'rgba(168,85,247,0.50)' }} />

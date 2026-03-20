@@ -929,85 +929,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
             )}
 
             {/* Input area */}
-            <div className="px-4 pb-4 pt-2 shrink-0 border-t border-white/10 relative">
-
-              {/* Slash command dropdown */}
-              {showCmds && (
-                <div ref={cmdListRef} className="absolute left-4 right-4 bottom-full mb-1 glass-heavy rounded-xl overflow-hidden z-10 max-h-72 overflow-y-auto">
-
-                  {/* ── Args mode: show argOptions for the selected command ── */}
-                  {cmdMode === 'args' && argCmd && filteredArgs.length > 0 && (
-                    <>
-                      <div className="px-3 py-1.5 bg-white/8 border-b border-white/10 flex items-center gap-2">
-                        <span className="text-[10px] font-semibold text-indigo-300 font-mono">{argCmd.cmd}</span>
-                        <span className="text-[10px] text-white/40">{argCmd.desc}</span>
-                        <span className="ml-auto text-[10px] text-white/30">Tab 填入 · Enter 执行</span>
-                      </div>
-                      {filteredArgs.map((arg, i) => (
-                        <button
-                          key={arg}
-                          onClick={() => selectArg(arg, true)}
-                          className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
-                            i === cmdIdx ? 'bg-indigo-500/15' : 'hover:bg-white/8'
-                          }`}
-                        >
-                          <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${
-                            i === cmdIdx ? 'bg-indigo-500/30' : 'bg-white/10'
-                          }`}>
-                            <Hash className={`w-2.5 h-2.5 ${i === cmdIdx ? 'text-indigo-300' : 'text-white/40'}`} />
-                          </div>
-                          <span className={`text-xs font-mono font-medium ${i === cmdIdx ? 'text-indigo-300' : 'text-white/80'}`}>
-                            {arg}
-                          </span>
-                        </button>
-                      ))}
-                    </>
-                  )}
-
-                  {/* ── Command mode: show command list ── */}
-                  {cmdMode === 'commands' && filteredCmds.length > 0 && (() => {
-                    const items: React.ReactNode[] = [];
-                    let lastCat = '';
-                    filteredCmds.forEach((c, i) => {
-                      if (c.category !== lastCat) {
-                        lastCat = c.category;
-                        items.push(
-                          <div key={`cat-${c.category}`} className="px-3 py-1 bg-white/8 border-b border-white/10">
-                            <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
-                              {CATEGORY_LABELS[c.category]}
-                            </span>
-                          </div>
-                        );
-                      }
-                      items.push(
-                        <button
-                          key={c.cmd}
-                          onClick={() => tabCompleteCmd(c)}
-                          className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
-                            i === cmdIdx ? 'bg-indigo-500/15' : 'hover:bg-white/8'
-                          }`}
-                        >
-                          <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${
-                            i === cmdIdx ? 'bg-indigo-500/30' : 'bg-white/10'
-                          }`}>
-                            <Hash className={`w-2.5 h-2.5 ${i === cmdIdx ? 'text-indigo-300' : 'text-white/40'}`} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <span className={`text-xs font-medium font-mono ${i === cmdIdx ? 'text-indigo-300' : 'text-white/80'}`}>
-                              {c.cmd}{c.args ? <span className="text-white/40 font-normal ml-1">{c.args}</span> : null}
-                            </span>
-                            <span className="text-[11px] text-white/40 ml-2">{c.desc}</span>
-                          </div>
-                          {!c.executeLocal && (
-                            <span className="text-[10px] text-white/30 shrink-0">agent</span>
-                          )}
-                        </button>
-                      );
-                    });
-                    return items;
-                  })()}
-                </div>
-              )}
+            <div className="px-4 pb-4 pt-2 shrink-0 border-t border-white/10">
 
               {/* Hidden file input */}
               <input
@@ -1039,6 +961,87 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                   ))}
                 </div>
               )}
+
+              {/* Input box with slash-command dropdown anchored just above it */}
+              <div className="relative">
+
+                {/* Slash command dropdown */}
+                {showCmds && (
+                  <div ref={cmdListRef} className="absolute left-0 right-0 bottom-full mb-2 glass-heavy rounded-xl overflow-hidden z-10 max-h-72 overflow-y-auto shadow-2xl shadow-black/40">
+
+                    {/* ── Args mode: show argOptions for the selected command ── */}
+                    {cmdMode === 'args' && argCmd && filteredArgs.length > 0 && (
+                      <>
+                        <div className="px-3 py-1.5 bg-white/8 border-b border-white/10 flex items-center gap-2">
+                          <span className="text-[10px] font-semibold text-indigo-300 font-mono">{argCmd.cmd}</span>
+                          <span className="text-[10px] text-white/40">{argCmd.desc}</span>
+                          <span className="ml-auto text-[10px] text-white/30">Tab 填入 · Enter 执行</span>
+                        </div>
+                        {filteredArgs.map((arg, i) => (
+                          <button
+                            key={arg}
+                            onClick={() => selectArg(arg, true)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
+                              i === cmdIdx ? 'bg-indigo-500/15' : 'hover:bg-white/8'
+                            }`}
+                          >
+                            <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${
+                              i === cmdIdx ? 'bg-indigo-500/30' : 'bg-white/10'
+                            }`}>
+                              <Hash className={`w-2.5 h-2.5 ${i === cmdIdx ? 'text-indigo-300' : 'text-white/40'}`} />
+                            </div>
+                            <span className={`text-xs font-mono font-medium ${i === cmdIdx ? 'text-indigo-300' : 'text-white/80'}`}>
+                              {arg}
+                            </span>
+                          </button>
+                        ))}
+                      </>
+                    )}
+
+                    {/* ── Command mode: show command list ── */}
+                    {cmdMode === 'commands' && filteredCmds.length > 0 && (() => {
+                      const items: React.ReactNode[] = [];
+                      let lastCat = '';
+                      filteredCmds.forEach((c, i) => {
+                        if (c.category !== lastCat) {
+                          lastCat = c.category;
+                          items.push(
+                            <div key={`cat-${c.category}`} className="px-3 py-1 bg-white/8 border-b border-white/10">
+                              <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
+                                {CATEGORY_LABELS[c.category]}
+                              </span>
+                            </div>
+                          );
+                        }
+                        items.push(
+                          <button
+                            key={c.cmd}
+                            onClick={() => tabCompleteCmd(c)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
+                              i === cmdIdx ? 'bg-indigo-500/15' : 'hover:bg-white/8'
+                            }`}
+                          >
+                            <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${
+                              i === cmdIdx ? 'bg-indigo-500/30' : 'bg-white/10'
+                            }`}>
+                              <Hash className={`w-2.5 h-2.5 ${i === cmdIdx ? 'text-indigo-300' : 'text-white/40'}`} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <span className={`text-xs font-medium font-mono ${i === cmdIdx ? 'text-indigo-300' : 'text-white/80'}`}>
+                                {c.cmd}{c.args ? <span className="text-white/40 font-normal ml-1">{c.args}</span> : null}
+                              </span>
+                              <span className="text-[11px] text-white/40 ml-2">{c.desc}</span>
+                            </div>
+                            {!c.executeLocal && (
+                              <span className="text-[10px] text-white/30 shrink-0">agent</span>
+                            )}
+                          </button>
+                        );
+                      });
+                      return items;
+                    })()}
+                  </div>
+                )}
 
               <div
                 className="flex items-end gap-2 border border-white/20 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-white/40 focus-within:border-white/40 transition-all"
@@ -1085,6 +1088,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                   </button>
                 )}
               </div>
+              </div>{/* end relative wrapper */}
             </div>
           </div>
         </div>

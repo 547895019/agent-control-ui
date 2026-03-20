@@ -10,7 +10,7 @@ import {
 
 // ─── shared helpers ───────────────────────────────────────────────────────────
 
-const inputCls = 'w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white disabled:bg-white/5 disabled:text-white/40';
+const inputCls = 'w-full px-3 py-2 text-sm border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white/10 text-white placeholder:text-white/30 disabled:bg-white/5 disabled:text-white/40';
 const labelCls = 'block text-xs font-medium text-white/70 mb-1';
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {

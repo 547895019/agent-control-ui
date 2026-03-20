@@ -11,6 +11,7 @@ import { UsagePage } from './pages/UsagePage';
 import { SkillsPage } from './pages/SkillsPage';
 import { ChannelsPage } from './pages/ChannelsPage';
 import { AutomationPage } from './pages/AutomationPage';
+import { MeetingPage } from './pages/MeetingPage';
 
 function App() {
   const { token, connect, connectionStatus } = useAppStore();
@@ -38,6 +39,7 @@ function App() {
           <Route path="skills" element={<SkillsPage />} />
           <Route path="channels" element={<ChannelsPage />} />
           <Route path="automation" element={<AutomationPage />} />
+          <Route path="meeting" element={<MeetingPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
