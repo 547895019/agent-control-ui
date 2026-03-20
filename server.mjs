@@ -15,6 +15,25 @@ const PORT   = Number(process.env.PORT) || 8080;
 const DIST   = join(__dirname, 'dist');
 const TF     = join(__dirname, '.update-token');
 
+// Read GitHub repo from package.json repository field or .git/config
+function getRepoSlug() {
+  try {
+    const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
+    if (pkg.repository?.url) {
+      const m = pkg.repository.url.match(/github\.com[/:]([\w-]+\/[\w.-]+?)(?:\.git)?$/);
+      if (m) return m[1];
+    }
+  } catch {}
+  try {
+    const cfg = readFileSync(join(__dirname, '.git', 'config'), 'utf8');
+    const m = cfg.match(/url\s*=\s*https:\/\/github\.com\/([\w-]+\/[\w.-]+?)(?:\.git)?\s*$/m);
+    if (m) return m[1];
+  } catch {}
+  return null;
+}
+
+const REPO_SLUG = getRepoSlug();
+
 // Generate or load update token
 const UPDATE_TOKEN = existsSync(TF)
   ? readFileSync(TF, 'utf8').trim()
@@ -47,6 +66,41 @@ function serveStatic(req, res) {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': stat.size });
     createReadStream(idx).pipe(res);
   }
+}
+
+// Download latest source from GitHub tarball and extract (no git needed)
+function downloadLatest(write, onDone) {
+  if (!REPO_SLUG) {
+    write('✗ 无法获取仓库地址，请检查 package.json 或 .git/config\n');
+    return onDone(1);
+  }
+  const url = `https://github.com/${REPO_SLUG}/archive/refs/heads/main.tar.gz`;
+  write(`$ 下载最新代码: ${url}\n`);
+
+  // Preserve files that must not be overwritten
+  const exclude = [
+    '--exclude=*/.git',
+    '--exclude=*/node_modules',
+    '--exclude=*/dist',
+    '--exclude=*/.update-token',
+    '--exclude=*/openclaw-ui.pid',
+    '--exclude=*/openclaw-ui.log',
+    '--exclude=*/start.sh',
+    '--exclude=*/stop.sh',
+  ];
+
+  const tar = spawn('tar', ['-xz', '--strip-components=1', ...exclude, '-C', __dirname]);
+  const curl = spawn('curl', ['-fsSL', '--', url]);
+
+  curl.stdout.pipe(tar.stdin);
+  curl.stderr.on('data', d => write(String(d)));
+  tar.stderr.on('data', d => write(String(d)));
+
+  let done = false;
+  const finish = (code) => { if (!done) { done = true; onDone(code); } };
+
+  curl.on('close', code => { if (code !== 0) { write(`curl exit ${code}\n`); finish(code); } });
+  tar.on('close', finish);
 }
 
 createServer((req, res) => {
@@ -82,45 +136,50 @@ createServer((req, res) => {
       'X-Accel-Buffering': 'no',
     });
 
-    const steps = [
-      ['git', ['-c', `safe.directory=${__dirname}`, 'pull', '--ff-only']],
+    const write = (s) => res.write(s);
+    const env   = { ...process.env, FORCE_COLOR: '0' };
+
+    // Step runner for npm steps
+    const npmSteps = [
       ['npm', ['ci', '--prefer-offline', '--no-fund', '--no-audit']],
       ['npm', ['run', 'build']],
     ];
 
-    const run = (i) => {
-      if (i >= steps.length) {
-        res.write('\n✓ 构建完成，服务即将重启…\n');
+    const runNpm = (i) => {
+      if (i >= npmSteps.length) {
+        write('\n✓ 构建完成，服务即将重启…\n');
         res.end();
-        setTimeout(() => process.exit(0), 800);  // systemd/start.sh will restart
+        setTimeout(() => process.exit(0), 800);
         return;
       }
-      const [cmd, args] = steps[i];
-      res.write(`\n$ ${cmd} ${args.join(' ')}\n`);
-      const spawnEnv = { ...process.env, FORCE_COLOR: '0' };
-      const p = spawn(cmd, args, { cwd: __dirname, env: spawnEnv });
-      p.stdout.on('data', d => res.write(d));
-      p.stderr.on('data', d => res.write(d));
+      const [cmd, args] = npmSteps[i];
+      write(`\n$ ${cmd} ${args.join(' ')}\n`);
+      const p = spawn(cmd, args, { cwd: __dirname, env });
+      p.stdout.on('data', d => write(d));
+      p.stderr.on('data', d => write(d));
       p.on('close', code => {
-        if (code !== 0 && i === 1) {
-          // npm ci failed → fallback to npm install
-          res.write('fallback: npm install\n');
-          const p2 = spawn('npm', ['install', '--no-fund', '--no-audit'], {
-            cwd: __dirname,
-            env: spawnEnv,
-          });
-          p2.stdout.on('data', d => res.write(d));
-          p2.stderr.on('data', d => res.write(d));
-          p2.on('close', () => run(i + 1));
+        if (code !== 0 && i === 0) {
+          write('fallback: npm install\n');
+          const p2 = spawn('npm', ['install', '--no-fund', '--no-audit'], { cwd: __dirname, env });
+          p2.stdout.on('data', d => write(d));
+          p2.stderr.on('data', d => write(d));
+          p2.on('close', () => runNpm(i + 1));
         } else if (code !== 0) {
-          res.write(`\n✗ 失败 (exit ${code})\n`);
+          write(`\n✗ 失败 (exit ${code})\n`);
           res.end();
         } else {
-          run(i + 1);
+          runNpm(i + 1);
         }
       });
     };
-    run(0);
+
+    // 1. Download → 2. npm ci → 3. npm run build
+    downloadLatest(write, (code) => {
+      if (code !== 0) { write(`\n✗ 下载失败 (exit ${code})\n`); res.end(); return; }
+      write('✓ 下载完成\n');
+      runNpm(0);
+    });
+
     return;
   }
 

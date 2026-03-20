@@ -2,6 +2,10 @@
   "name": "agent-control-ui",
   "private": true,
   "version": "2026.3.20",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/547895019/agent-control-ui.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "node localfile-server.mjs & vite",
