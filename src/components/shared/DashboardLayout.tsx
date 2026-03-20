@@ -111,7 +111,7 @@ function UpdateModal({ onClose }: { onClose: () => void }) {
   const [status, setStatus]   = useState<UpdateStatus>('idle');
   const [output, setOutput]   = useState('');
   const [token, setToken]     = useState<string | null>(null);
-  const [commit, setCommit]   = useState('');
+  const [serverVersion, setServerVersion] = useState('');
   const outputRef             = useRef<HTMLPreElement>(null);
 
   // Fetch update token + current version on mount
@@ -126,7 +126,7 @@ function UpdateModal({ onClose }: { onClose: () => void }) {
 
     fetch('/self/version')
       .then(r => r.ok ? r.json() : null)
-      .then(d => d && setCommit(d.commit))
+      .then(d => d && setServerVersion(d.version))
       .catch(() => {});
   }, []);
 
@@ -206,8 +206,8 @@ function UpdateModal({ onClose }: { onClose: () => void }) {
           <ArrowUpCircle className="w-5 h-5 text-indigo-300 shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-sm">更新版本</p>
-            {commit && (
-              <p className="text-white/35 text-xs font-mono mt-0.5">当前：v{APP_VERSION} · {commit}</p>
+            {serverVersion && (
+              <p className="text-white/35 text-xs font-mono mt-0.5">当前版本：v{serverVersion}</p>
             )}
           </div>
           <button

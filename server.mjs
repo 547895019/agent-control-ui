@@ -65,10 +65,9 @@ createServer((req, res) => {
 
   // ── GET /self/version ─────────────────────────────────────────────────────
   if (url === '/self/version' && method === 'GET') {
-    let commit = 'unknown';
-    try { commit = execSync('git rev-parse --short HEAD', { cwd: __dirname }).toString().trim(); } catch {}
+    const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ commit, uptime: process.uptime() }));
+    return res.end(JSON.stringify({ version: pkg.version, uptime: process.uptime() }));
   }
 
   // ── POST /self/update  (stream output → exit 0 → systemd restarts) ───────
