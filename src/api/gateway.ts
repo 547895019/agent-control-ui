@@ -87,7 +87,7 @@ export class GatewayClient {
 
     // Device ID = SHA-256 of raw public key bytes, hex encoded
     const publicKeyBytes = base64urlToBytes(pubJwk.x);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', publicKeyBytes);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', publicKeyBytes as unknown as ArrayBuffer);
     const deviceId = Array.from(new Uint8Array(hashBuffer))
       .map(b => b.toString(16).padStart(2, '0')).join('');
 

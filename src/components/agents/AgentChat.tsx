@@ -134,7 +134,7 @@ function getCompletions(filter: string): SlashCmd[] {
   return (lower
     ? ALL_CMDS.filter(c => c.cmd.slice(1).startsWith(lower) || c.desc.toLowerCase().includes(lower))
     : ALL_CMDS
-  ).toSorted((a, b) => {
+  ).slice().sort((a, b) => {
     const ai = CATEGORY_ORDER.indexOf(a.category), bi = CATEGORY_ORDER.indexOf(b.category);
     if (ai !== bi) return ai - bi;
     if (lower) {
