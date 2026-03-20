@@ -21,8 +21,8 @@ OpenClaw 的 Web 控制面板，用于管理 Agent、组织、定时任务、频
 ## 快速安装（推荐）
 
 ```bash
-# 全局安装（直接从 GitHub 仓库安装，无需 npm registry）
-sudo npm install -g github:547895019/agent-control-ui
+# 全局安装（从 GitHub Release 安装预构建包）
+sudo npm install -g https://github.com/547895019/agent-control-ui/releases/latest/download/agent-control-ui.tgz
 
 # 注册系统服务并启动（需要 sudo）
 openclaw-ui install
@@ -32,7 +32,9 @@ openclaw-ui install
 
 **更新版本：**
 ```bash
-sudo npm install -g github:547895019/agent-control-ui
+# 方式一：页面左下角点 ↑ 按钮一键更新
+# 方式二：手动更新
+sudo npm install -g https://github.com/547895019/agent-control-ui/releases/latest/download/agent-control-ui.tgz
 sudo systemctl restart openclaw-ui
 ```
 

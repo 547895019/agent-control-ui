@@ -74,8 +74,8 @@ WantedBy=multi-user.target
   // ── update ──────────────────────────────────────────────────────────────────
   case 'update': {
     const pkg = JSON.parse((await import('node:fs')).readFileSync(join(ROOT, 'package.json'), 'utf8'));
-    const repo = (pkg.repository?.url || '').replace(/^(git\+)?https:\/\/github\.com\//, '').replace(/\.git$/, '');
-    const ghPkg = repo ? `github:${repo}` : pkg.name;
+    const repo   = (pkg.repository?.url || '').replace(/^(git\+)?https:\/\/github\.com\//, '').replace(/\.git$/, '');
+    const tgzUrl = repo ? `https://github.com/${repo}/releases/latest/download/${pkg.name}.tgz` : null;
 
     if (repo) {
       try {
@@ -91,7 +91,8 @@ WantedBy=multi-user.target
       }
     }
 
-    const r = spawnSync('npm', ['install', '-g', ghPkg, '--no-fund', '--no-audit'], { stdio: 'inherit' });
+    const installTarget = tgzUrl || pkg.name;
+    const r = spawnSync('npm', ['install', '-g', installTarget, '--no-fund', '--no-audit'], { stdio: 'inherit' });
     if (r.status !== 0) err('npm install failed');
 
     const hasSystemd = spawnSync('systemctl', ['is-active', '--quiet', SERVICE]).status === 0;

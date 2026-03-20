@@ -86,8 +86,10 @@ createServer((req, res) => {
     const env   = { ...process.env, FORCE_COLOR: '0' };
     const pkg   = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
 
-    const repo  = (pkg.repository?.url || '').replace(/^(git\+)?https:\/\/github\.com\//, '').replace(/\.git$/, '');
-    const ghPkg = repo ? `github:${repo}` : pkg.name;
+    const repo    = (pkg.repository?.url || '').replace(/^(git\+)?https:\/\/github\.com\//, '').replace(/\.git$/, '');
+    const tgzUrl  = repo
+      ? `https://github.com/${repo}/releases/latest/download/${pkg.name}.tgz`
+      : null;
 
     (async () => {
       // Check latest version before installing
@@ -106,9 +108,10 @@ createServer((req, res) => {
         }
       }
 
-      // npm install -g from GitHub — fetches pre-built dist, no build step needed
-      write(`$ npm install -g ${ghPkg}\n`);
-      const p = spawn('npm', ['install', '-g', ghPkg, '--no-fund', '--no-audit'], { env });
+      // Install from GitHub release tarball (fixed URL, always latest)
+      const installTarget = tgzUrl || pkg.name;
+      write(`$ npm install -g ${installTarget}\n`);
+      const p = spawn('npm', ['install', '-g', installTarget, '--no-fund', '--no-audit'], { env });
       p.stdout.on('data', d => write(d));
       p.stderr.on('data', d => write(d));
       p.on('close', code => {
