@@ -474,14 +474,32 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
   }, [messages, streamText]);
 
   // ── new session ───────────────────────────────────────────────────────────────
-  const handleNewSession = () => {
+  const sendStartup = (key: string, cmd: '/new' | '/reset') => {
+    preSendCountRef.current = 0;
+    streamTextRef.current = '';
+    streamThinkingRef.current = '';
+    setStreamText('');
+    setStreamThinking('');
+    setSending(true);
+    setSendError('');
+    client.chatSend(key, cmd)
+      .then(res => { activeRunIdRef.current = res.runId; setRunId(res.runId); })
+      .catch((e: any) => { setSending(false); setSendError(e.message || 'Failed'); });
+  };
+
+  const handleNewSession = (withStartup = true) => {
     const newKey = `agent:${agentId}:web_${Date.now()}`;
     setSessions(prev => [{ key: newKey, derivedTitle: '新会话', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, ...prev]);
     setActiveKey(newKey);
     setMessages([]);
     setInput('');
     setShowCmds(false);
-    setTimeout(() => inputRef.current?.focus(), 50);
+    if (withStartup) {
+      // slight delay so sessionKey state propagates before event listener re-mounts
+      setTimeout(() => sendStartup(newKey, '/new'), 50);
+    } else {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
   };
 
   // ── clear/reload ──────────────────────────────────────────────────────────────
@@ -500,8 +518,16 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
   // ── local command execution ───────────────────────────────────────────────────
   const executeLocalCmd = async (cmdName: string, args: string): Promise<string | null> => {
     switch (cmdName) {
-      case 'new':   handleNewSession(); return null;
-      case 'reset': handleNewSession(); return null;
+      case 'new':   handleNewSession(true); return null;
+      case 'reset': {
+        // Reset session context on gateway, then send /reset to trigger startup sequence
+        try { await client.sessionsReset(sessionKey, 'reset'); } catch {}
+        setMessages([]);
+        setInput('');
+        setShowCmds(false);
+        sendStartup(sessionKey, '/reset');
+        return null;
+      }
       case 'clear': handleClear(); return null;
       case 'stop':  handleAbort(); return null;
       case 'focus': setFocusMode(v => !v); return null;
@@ -983,7 +1009,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
             </div>
             <div className="border-t border-white/10 p-2">
               <button
-                onClick={handleNewSession}
+                onClick={() => handleNewSession(true)}
                 className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-white/40 hover:text-indigo-300 hover:bg-indigo-500/15 rounded-lg transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />

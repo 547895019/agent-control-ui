@@ -432,6 +432,10 @@ export class GatewayClient {
     return this.rpc('sessions.compact', { key });
   }
 
+  sessionsReset(key: string, reason: 'new' | 'reset' = 'reset'): Promise<any> {
+    return this.rpc('sessions.reset', { key, reason });
+  }
+
   sessionsPatch(key: string, patch: Record<string, any>): Promise<any> {
     return this.rpc('sessions.patch', { key, ...patch });
   }
