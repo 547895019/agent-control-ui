@@ -312,6 +312,14 @@ export function DashboardLayout() {
     () => localStorage.getItem('openclaw:sidebar:collapsed') === '1'
   );
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [serverVersion, setServerVersion] = useState(APP_VERSION);
+
+  useEffect(() => {
+    fetch('/self/version')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.version) setServerVersion(d.version); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement);
@@ -438,7 +446,7 @@ export function DashboardLayout() {
                 Disconnect
               </button>
               <div className="px-3 pt-1 flex items-center justify-between">
-                <span className="text-[10px] text-white/20 font-mono">v{APP_VERSION}</span>
+                <span className="text-[10px] text-white/20 font-mono">v{serverVersion}</span>
                 <div className="flex items-center gap-1">
                   <button onClick={toggleFullscreen} title={isFullscreen ? '退出全屏' : '全屏显示'} className="w-5 h-5 flex items-center justify-center rounded text-white/20 hover:text-indigo-300 hover:bg-indigo-500/20 transition-colors">
                     {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
