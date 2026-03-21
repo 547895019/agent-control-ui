@@ -81,7 +81,7 @@ function parseHistory(res: any): { role: 'user' | 'assistant'; content: any }[] 
 
 // ── slash commands ────────────────────────────────────────────────────────────
 
-type SlashCategory = 'session' | 'model' | 'tools' | 'agents';
+type SlashCategory = 'session' | 'model' | 'tools' | 'agents' | 'gateway';
 
 interface SlashCmd {
   cmd: string;
@@ -93,32 +93,54 @@ interface SlashCmd {
 }
 
 const CATEGORY_LABELS: Record<SlashCategory, string> = {
-  session: '会话', model: '模型', tools: '工具', agents: 'Agents',
+  session: '会话', model: '模型', tools: '工具', agents: 'Agents', gateway: '网关',
 };
 
 const ALL_CMDS: SlashCmd[] = [
   // session
-  { cmd: '/new',     desc: '开启新会话',         category: 'session', executeLocal: true },
-  { cmd: '/reset',   desc: '重置当前会话',        category: 'session', executeLocal: true },
-  { cmd: '/compact', desc: '压缩会话上下文',      category: 'session', executeLocal: true },
-  { cmd: '/stop',    desc: '停止当前运行',        category: 'session', executeLocal: true },
-  { cmd: '/clear',   desc: '清空聊天历史',        category: 'session', executeLocal: true },
-  { cmd: '/focus',   desc: '切换专注模式',        category: 'session', executeLocal: true },
+  { cmd: '/new',        desc: '开启新会话',                   category: 'session', executeLocal: true },
+  { cmd: '/reset',      desc: '重置当前会话',                 category: 'session', executeLocal: true },
+  { cmd: '/compact',    desc: '压缩会话上下文',               category: 'session', executeLocal: true },
+  { cmd: '/stop',       desc: '停止当前运行',                 category: 'session', executeLocal: true },
+  { cmd: '/clear',      desc: '清空聊天历史',                 category: 'session', executeLocal: true },
+  { cmd: '/focus',      desc: '切换专注模式',                 category: 'session', executeLocal: true },
+  { cmd: '/session',    desc: '显示当前会话信息',             category: 'session', executeLocal: true },
+  { cmd: '/activation', desc: '设置组激活模式',               args: '<mention|always>', category: 'session', executeLocal: true, argOptions: ['mention','always'] },
+  { cmd: '/send',       desc: '设置发送策略',                 args: '<on|off|inherit>', category: 'session', executeLocal: true, argOptions: ['on','off','inherit'] },
   // model
-  { cmd: '/model',   desc: '查看或切换模型',      args: '[name]',              category: 'model', executeLocal: true },
-  { cmd: '/think',   desc: '设置思考级别',        args: '<off|low|medium|high>', category: 'model', executeLocal: true, argOptions: ['off','low','medium','high'] },
-  { cmd: '/verbose', desc: '设置详细模式',        args: '<on|off|full>',         category: 'model', executeLocal: true, argOptions: ['on','off','full'] },
-  { cmd: '/fast',    desc: '设置快速模式',        args: '<on|off|status>',       category: 'model', executeLocal: true, argOptions: ['on','off','status'] },
+  { cmd: '/model',      desc: '查看或切换模型',               args: '[name]',                    category: 'model', executeLocal: true },
+  { cmd: '/models',     desc: '列出所有可用模型',             category: 'model', executeLocal: true },
+  { cmd: '/think',      desc: '设置思考级别',                 args: '<off|minimal|low|medium|high|xhigh>', category: 'model', executeLocal: true, argOptions: ['off','minimal','low','medium','high','xhigh'] },
+  { cmd: '/verbose',    desc: '设置详细模式',                 args: '<on|off>',                  category: 'model', executeLocal: true, argOptions: ['on','off'] },
+  { cmd: '/fast',       desc: '设置快速模式',                 args: '<on|off|status>',           category: 'model', executeLocal: true, argOptions: ['on','off','status'] },
+  { cmd: '/reasoning',  desc: '设置推理可见性',               args: '<on|off|stream>',           category: 'model', executeLocal: true, argOptions: ['on','off','stream'] },
+  { cmd: '/elevated',   desc: '设置提升模式',                 args: '<on|off|ask|full>',         category: 'model', executeLocal: true, argOptions: ['on','off','ask','full'] },
   // tools
-  { cmd: '/help',    desc: '显示可用命令',        category: 'tools', executeLocal: true },
-  { cmd: '/usage',   desc: '查看 token 用量',     category: 'tools', executeLocal: true },
-  { cmd: '/export',  desc: '导出为 Markdown',     category: 'tools', executeLocal: true },
-  { cmd: '/status',  desc: '显示会话状态',        category: 'tools', executeLocal: false },
-  { cmd: '/skill',   desc: '运行技能',            args: '<name>',  category: 'tools',   executeLocal: false },
+  { cmd: '/help',       desc: '显示可用命令',                 category: 'tools', executeLocal: true },
+  { cmd: '/usage',      desc: '查看 token 用量',              category: 'tools', executeLocal: true },
+  { cmd: '/export',     desc: '导出会话为 Markdown',          category: 'tools', executeLocal: true },
+  { cmd: '/status',     desc: '显示网关状态',                 category: 'tools', executeLocal: false },
+  { cmd: '/whoami',     desc: '显示当前发送者 ID',            category: 'tools', executeLocal: false },
+  { cmd: '/context',    desc: '解释上下文构建方式',           category: 'tools', executeLocal: false },
+  { cmd: '/skill',      desc: '按名称运行技能',               args: '<name> [input]',            category: 'tools', executeLocal: false },
+  { cmd: '/btw',        desc: '不影响上下文的附加问题',       args: '<message>',                 category: 'tools', executeLocal: false },
   // agents
-  { cmd: '/agents',  desc: '列出所有 Agent',      category: 'agents', executeLocal: true },
-  { cmd: '/kill',    desc: '中止子任务',          args: '<id|all>', category: 'agents', executeLocal: true },
-  { cmd: '/steer',   desc: '引导子任务',          args: '<id> <msg>', category: 'agents', executeLocal: false },
+  { cmd: '/agents',     desc: '列出所有 Agent',               category: 'agents', executeLocal: true },
+  { cmd: '/subagents',  desc: '管理子代理',                   args: '<list|kill|log> [id]',      category: 'agents', executeLocal: false },
+  { cmd: '/kill',       desc: '中止子任务',                   args: '<id|all>',                  category: 'agents', executeLocal: true },
+  { cmd: '/steer',      desc: '引导子任务',                   args: '<id> <msg>',                category: 'agents', executeLocal: false },
+  { cmd: '/acp',        desc: '管理 ACP 会话',                args: '<action> [value]',          category: 'agents', executeLocal: false },
+  // gateway
+  { cmd: '/config',     desc: '查看或设置配置',               args: '<show|get|set|unset> [path] [value]', category: 'gateway', executeLocal: false },
+  { cmd: '/mcp',        desc: '管理 MCP 服务器',              args: '<show|get|set|unset> [path] [value]', category: 'gateway', executeLocal: false },
+  { cmd: '/plugins',    desc: '管理插件',                     args: '<list|show|enable|disable> [name]',   category: 'gateway', executeLocal: false },
+  { cmd: '/debug',      desc: '设置运行时调试覆盖',           args: '<show|reset|set|unset> [path] [value]', category: 'gateway', executeLocal: false },
+  { cmd: '/bash',       desc: '运行主机 Shell 命令',          args: '<command>',                 category: 'gateway', executeLocal: false },
+  { cmd: '/tts',        desc: '控制文本转语音',               args: '<on|off|status|provider>',  category: 'gateway', executeLocal: false, argOptions: ['on','off','status','provider','limit','summary','audio','help'] },
+  { cmd: '/approval',   desc: '管理执行审批请求',             category: 'gateway', executeLocal: false },
+  { cmd: '/restart',    desc: '重启 OpenClaw 网关',           category: 'gateway', executeLocal: false },
+  { cmd: '/queue',      desc: '调整队列设置',                 args: '<mode> [debounce] [cap]',   category: 'gateway', executeLocal: false },
+  { cmd: '/allowlist',  desc: '管理执行白名单',               args: '[list|add|remove] [entry]', category: 'gateway', executeLocal: false },
 ];
 
 function fmtTokens(n: number): string {
@@ -495,23 +517,95 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
       }
       case 'think':
       case 'verbose':
-      case 'fast': {
+      case 'fast':
+      case 'reasoning':
+      case 'elevated': {
         try {
           if (!args) {
             const res = await client.sessionsList({ agentId, limit: 100 });
             const s = (res?.sessions ?? []).find((x: any) => x.key === sessionKey);
-            const val = cmdName === 'think' ? (s?.thinkingLevel ?? 'off')
-              : cmdName === 'verbose' ? (s?.verboseLevel ?? 'off')
-              : (s?.fastMode ? 'on' : 'off');
+            const val = cmdName === 'think'     ? (s?.thinkingLevel ?? 'off')
+              : cmdName === 'verbose'           ? (s?.verboseLevel ?? 'off')
+              : cmdName === 'fast'              ? (s?.fastMode ? 'on' : 'off')
+              : cmdName === 'reasoning'         ? (s?.reasoningLevel ?? 'off')
+              :                                   (s?.elevatedLevel ?? 'off');
             const c = ALL_CMDS.find(x => x.cmd === `/${cmdName}`);
             return `Current **${cmdName}**: \`${val}\`\nOptions: ${c?.args ?? ''}`;
           }
-          const patch = cmdName === 'think' ? { thinkingLevel: args.trim() }
-            : cmdName === 'verbose' ? { verboseLevel: args.trim() }
-            : { fastMode: args.trim() === 'on' };
+          const a = args.trim();
+          const patch = cmdName === 'think'     ? { thinkingLevel: a }
+            : cmdName === 'verbose'             ? { verboseLevel: a }
+            : cmdName === 'fast'                ? { fastMode: a === 'on' }
+            : cmdName === 'reasoning'           ? { reasoningLevel: a }
+            :                                     { elevatedLevel: a };
           await client.sessionsPatch(sessionKey, patch);
-          return `**${cmdName}** set to \`${args.trim()}\`.`;
+          return `**${cmdName}** set to \`${a}\`.`;
         } catch (err: any) { return `Failed: ${err.message}`; }
+      }
+      case 'activation': {
+        try {
+          if (!args) {
+            const res = await client.sessionsList({ agentId, limit: 100 });
+            const s = (res?.sessions ?? []).find((x: any) => x.key === sessionKey);
+            return `Current **activation**: \`${s?.groupActivation ?? 'mention'}\`\nOptions: \`mention\` | \`always\``;
+          }
+          await client.sessionsPatch(sessionKey, { groupActivation: args.trim() });
+          return `**activation** set to \`${args.trim()}\`.`;
+        } catch (err: any) { return `Failed: ${err.message}`; }
+      }
+      case 'send': {
+        try {
+          if (!args) {
+            const res = await client.sessionsList({ agentId, limit: 100 });
+            const s = (res?.sessions ?? []).find((x: any) => x.key === sessionKey);
+            return `Current **send policy**: \`${s?.sendPolicy ?? 'inherit'}\`\nOptions: \`on\` | \`off\` | \`inherit\``;
+          }
+          const a = args.trim();
+          const sendPolicy = a === 'on' ? 'allow' : a === 'off' ? 'deny' : null;
+          await client.sessionsPatch(sessionKey, { sendPolicy });
+          return `**send** set to \`${a}\`.`;
+        } catch (err: any) { return `Failed: ${err.message}`; }
+      }
+      case 'session': {
+        try {
+          const res = await client.sessionsList({ agentId, limit: 100, includeDerivedTitles: true });
+          const s = (res?.sessions ?? []).find((x: any) => x.key === sessionKey);
+          if (!s) return 'Session not found.';
+          const lines = [
+            `**Session Info**`,
+            `Key: \`${s.key}\``,
+            `Model: \`${s.model ?? 'default'}\``,
+            `Think: \`${s.thinkingLevel ?? 'off'}\``,
+            `Fast: \`${s.fastMode ? 'on' : 'off'}\``,
+            `Verbose: \`${s.verboseLevel ?? 'off'}\``,
+            `Reasoning: \`${s.reasoningLevel ?? 'off'}\``,
+            `Elevated: \`${s.elevatedLevel ?? 'off'}\``,
+            `Activation: \`${s.groupActivation ?? 'mention'}\``,
+            `Send: \`${s.sendPolicy ?? 'inherit'}\``,
+          ];
+          if (s.inputTokens || s.outputTokens) {
+            lines.push(`Tokens: \`${fmtTokens(s.inputTokens ?? 0)}\` in / \`${fmtTokens(s.outputTokens ?? 0)}\` out`);
+          }
+          return lines.join('\n');
+        } catch (err: any) { return `Failed: ${err.message}`; }
+      }
+      case 'models': {
+        try {
+          const res = await client.modelsList();
+          const models = res?.models ?? res ?? [];
+          if (!models.length) return 'No models available.';
+          const lines = [`**Available Models** (${models.length})`];
+          let lastProvider = '';
+          for (const m of models) {
+            if (m.provider !== lastProvider) {
+              lastProvider = m.provider;
+              lines.push(`\n**${m.provider}**`);
+            }
+            const tags = [m.reasoning ? '🧠' : '', m.contextWindow ? `${fmtTokens(m.contextWindow)} ctx` : ''].filter(Boolean).join(' ');
+            lines.push(`- \`${m.id}\` — ${m.name}${tags ? ' ' + tags : ''}`);
+          }
+          return lines.join('\n');
+        } catch (err: any) { return `Failed to list models: ${err.message}`; }
       }
       case 'agents': {
         try {
