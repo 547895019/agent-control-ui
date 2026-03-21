@@ -3,7 +3,7 @@ import { client } from '../../api/gateway';
 import {
   X, Send, Square, Loader2, AlertCircle,
   Bot, User, Wrench, ChevronDown, ChevronRight,
-  MessageSquare, Plus, Hash, Paperclip,
+  MessageSquare, Plus, Hash, Paperclip, Brain,
 } from 'lucide-react';
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -189,20 +189,23 @@ function ToolBlock({ name, args }: { name: string; args: string }) {
   );
 }
 
-function ThinkingBlock({ text }: { text: string }) {
+function ThinkingBlock({ text, forceOpen }: { text: string; forceOpen?: boolean }) {
   const [open, setOpen] = useState(false);
+  const isOpen = forceOpen ?? open;
   if (!text.trim()) return null;
   return (
-    <div className="mt-1 rounded-lg border border-indigo-500/20 bg-indigo-500/10 text-xs overflow-hidden">
+    <div className="mt-1 rounded-lg border border-indigo-500/25 bg-indigo-500/8 text-xs overflow-hidden">
       <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-1.5 px-3 py-1.5 text-indigo-300 hover:bg-indigo-500/15 transition-colors text-left"
+        onClick={() => !forceOpen && setOpen(v => !v)}
+        className={`w-full flex items-center gap-1.5 px-3 py-1.5 text-indigo-300 transition-colors text-left ${forceOpen ? 'cursor-default' : 'hover:bg-indigo-500/15'}`}
       >
-        {open ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+        {isOpen ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
+        <Brain className="w-3 h-3 shrink-0 opacity-60" />
         <span className="italic">思考过程</span>
+        <span className="ml-auto text-indigo-400/50">{text.length > 0 ? `${text.length} chars` : ''}</span>
       </button>
-      {open && (
-        <p className="px-3 py-2 text-indigo-300 leading-relaxed border-t border-indigo-500/20 whitespace-pre-wrap">
+      {isOpen && (
+        <p className="px-3 py-2 text-indigo-200/70 leading-relaxed border-t border-indigo-500/20 whitespace-pre-wrap font-mono text-[11px]">
           {text}
         </p>
       )}
@@ -210,18 +213,22 @@ function ThinkingBlock({ text }: { text: string }) {
   );
 }
 
-function ChatBubble({ role, content }: { role: 'user' | 'assistant'; content: any }) {
+function ChatBubble({ role, content, showThinking }: { role: 'user' | 'assistant'; content: any; showThinking: boolean }) {
   const blocks = extractContent(content);
   const isUser = role === 'user';
 
-  const textBlocks = blocks.filter(b => b.kind === 'text') as { kind: 'text'; text: string }[];
+  const textBlocks    = blocks.filter(b => b.kind === 'text')    as { kind: 'text'; text: string }[];
+  const thinkingBlocks = blocks.filter(b => b.kind === 'thinking') as { kind: 'thinking'; text: string }[];
+  const toolBlocks    = blocks.filter(b => b.kind === 'tool')    as { kind: 'tool'; name: string; args: string }[];
+  const imageBlocks   = blocks.filter(b => b.kind === 'image')   as { kind: 'image'; dataUrl: string }[];
+
   const mainText = textBlocks.map(b => b.text).join('\n').trim();
   const displayText = mainText
     .replace(/^\[.*?\]\s*(\[Subagent .*?\]\s*)?(\[Subagent Task\]:?\s*)?/s, '')
     .trim() || mainText;
 
-  const imageBlocks = blocks.filter(b => b.kind === 'image') as { kind: 'image'; dataUrl: string }[];
-  if (!displayText && blocks.every(b => b.kind !== 'tool' && b.kind !== 'thinking' && b.kind !== 'image')) return null;
+  const hasContent = displayText || toolBlocks.length > 0 || imageBlocks.length > 0 || thinkingBlocks.length > 0;
+  if (!hasContent) return null;
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
@@ -234,18 +241,20 @@ function ChatBubble({ role, content }: { role: 'user' | 'assistant'; content: an
         {imageBlocks.map((b, i) => (
           <img key={i} src={b.dataUrl} alt="attachment" className="max-w-xs max-h-64 rounded-xl object-cover border border-white/20" />
         ))}
+        {/* Thinking blocks — shown when showThinking is on */}
+        {thinkingBlocks.length > 0 && thinkingBlocks.map((b, i) => (
+          <ThinkingBlock key={i} text={b.text} forceOpen={showThinking || undefined} />
+        ))}
+        {/* Work output — dimmed when showThinking is on */}
         {displayText && (
-          <div className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-            isUser ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white/10 text-white/85 rounded-tl-sm'
-          }`}>
+          <div className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap transition-opacity ${
+            isUser ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white/10 rounded-tl-sm'
+          } ${showThinking && thinkingBlocks.length > 0 ? 'text-white/35' : 'text-white/85'}`}>
             {displayText}
           </div>
         )}
-        {blocks.filter(b => b.kind === 'thinking').map((b, i) => (
-          <ThinkingBlock key={i} text={(b as any).text} />
-        ))}
-        {blocks.filter(b => b.kind === 'tool').map((b, i) => (
-          <ToolBlock key={i} name={(b as any).name} args={(b as any).args} />
+        {toolBlocks.map((b, i) => (
+          <ToolBlock key={i} name={b.name} args={b.args} />
         ))}
       </div>
     </div>
@@ -285,6 +294,8 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
   const [sending, setSending] = useState(false);
   const [runId, setRunId] = useState<string | null>(null);
   const [streamText, setStreamText] = useState('');
+  const [streamThinking, setStreamThinking] = useState('');
+  const [showThinking, setShowThinking] = useState(false);
   const [sendError, setSendError] = useState('');
 
   // ── slash commands ──────────────────────────────────────────────────────────
@@ -299,6 +310,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
 
   // ── refs ─────────────────────────────────────────────────────────────────────
   const streamTextRef = useRef('');
+  const streamThinkingRef = useRef('');
   const activeRunIdRef = useRef<string | null>(null);
   const preSendCountRef = useRef(0);
   const autoSentRef = useRef(false);
@@ -358,20 +370,32 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
       const { state, message } = payload;
 
       if (state === 'delta') {
-        // Each delta contains the FULL accumulated text so far — replace, not append
+        // Each delta contains the FULL accumulated content — replace, not append
         const raw = message?.content ?? message?.text ?? '';
-        const next = typeof raw === 'string' ? raw
-          : Array.isArray(raw) ? raw.map((c: any) => c.text ?? '').join('') : '';
-        const current = streamTextRef.current ?? '';
-        if (!current || next.length >= current.length) {
-          streamTextRef.current = next;
-          setStreamText(next);
+        let nextText = '';
+        let nextThinking = '';
+        if (typeof raw === 'string') {
+          nextText = raw;
+        } else if (Array.isArray(raw)) {
+          nextText     = raw.filter((c: any) => c.type === 'text').map((c: any) => c.text ?? '').join('');
+          nextThinking = raw.filter((c: any) => c.type === 'thinking').map((c: any) => c.thinking ?? '').join('');
+        }
+        if (!streamTextRef.current || nextText.length >= streamTextRef.current.length) {
+          streamTextRef.current = nextText;
+          setStreamText(nextText);
+        }
+        if (!streamThinkingRef.current || nextThinking.length >= streamThinkingRef.current.length) {
+          streamThinkingRef.current = nextThinking;
+          setStreamThinking(nextThinking);
         }
       } else if (state === 'final') {
-        const content = streamTextRef.current || message?.content || '';
+        // Prefer the full content array from the final message (preserves thinking blocks)
+        const content = message?.content ?? streamTextRef.current ?? '';
         streamTextRef.current = '';
+        streamThinkingRef.current = '';
         activeRunIdRef.current = null;
         setStreamText('');
+        setStreamThinking('');
         setRunId(null);
         setSending(false);
         setMessages(prev => [...prev, { role: 'assistant', content }]);
@@ -381,12 +405,15 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
             (b.updatedAt ?? '') > (a.updatedAt ?? '') ? 1 : -1)))
           .catch(() => {});
       } else if (state === 'aborted' || state === 'error') {
-        if (streamTextRef.current) {
-          setMessages(prev => [...prev, { role: 'assistant', content: streamTextRef.current }]);
+        const savedContent = message?.content || streamTextRef.current || '';
+        if (savedContent) {
+          setMessages(prev => [...prev, { role: 'assistant', content: savedContent }]);
         }
         streamTextRef.current = '';
+        streamThinkingRef.current = '';
         activeRunIdRef.current = null;
         setStreamText('');
+        setStreamThinking('');
         setRunId(null);
         setSending(false);
       }
@@ -901,6 +928,15 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
             <span className="font-semibold text-white text-sm">{agentName}</span>
             <span className="text-white/40 text-xs ml-2 truncate hidden sm:inline">{sessionTitle}</span>
           </div>
+          <button
+            onClick={() => setShowThinking(v => !v)}
+            title={showThinking ? '当前：思考模式 — 点击切换到工作输出' : '当前：工作输出 — 点击切换到思考过程'}
+            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors shrink-0 ${
+              showThinking ? 'text-indigo-300 bg-indigo-500/20' : 'text-white/40 hover:text-white/70 hover:bg-white/10'
+            }`}
+          >
+            <Brain className="w-4 h-4" />
+          </button>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors shrink-0">
             <X className="w-4 h-4" />
           </button>
@@ -978,19 +1014,35 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                 </div>
               ) : (
                 messages.map((msg, i) => (
-                  <ChatBubble key={i} role={msg.role} content={msg.content} />
+                  <ChatBubble key={i} role={msg.role} content={msg.content} showThinking={showThinking} />
                 ))
               )}
 
               {/* Streaming bubble */}
-              {streamText && (
+              {(streamText || streamThinking) && (
                 <div className="flex gap-3">
                   <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 bg-white/10">
                     <Bot className="w-3.5 h-3.5 text-white/50" />
                   </div>
-                  <div className="max-w-[78%] bg-white/10 text-white/85 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap">
-                    {streamText}
-                    <span className="inline-block w-0.5 h-3.5 bg-white/50 ml-0.5 align-middle animate-pulse" />
+                  <div className="max-w-[78%] flex flex-col gap-1">
+                    {/* Thinking stream */}
+                    {streamThinking && (
+                      <div className={`rounded-lg border border-indigo-500/25 bg-indigo-500/8 px-3.5 py-2.5 text-[11px] font-mono text-indigo-200/70 leading-relaxed whitespace-pre-wrap transition-opacity ${showThinking ? 'opacity-100' : 'opacity-40'}`}>
+                        <div className="flex items-center gap-1.5 mb-1.5 text-indigo-300 text-xs">
+                          <Brain className="w-3 h-3" />
+                          <span className="italic">思考中…</span>
+                        </div>
+                        {streamThinking}
+                        <span className="inline-block w-0.5 h-3 bg-indigo-400/60 ml-0.5 align-middle animate-pulse" />
+                      </div>
+                    )}
+                    {/* Text stream */}
+                    {streamText && (
+                      <div className={`bg-white/10 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap transition-opacity ${showThinking && streamThinking ? 'text-white/35' : 'text-white/85'}`}>
+                        {streamText}
+                        {!streamThinking && <span className="inline-block w-0.5 h-3.5 bg-white/50 ml-0.5 align-middle animate-pulse" />}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
