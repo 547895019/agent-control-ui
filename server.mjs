@@ -34,14 +34,20 @@ function serveStatic(req, res) {
   try {
     const stat = statSync(filePath);
     if (!stat.isFile()) throw 0;
-    const mime = MIME[extname(filePath).toLowerCase()] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': mime, 'Content-Length': stat.size });
+    const ext  = extname(filePath).toLowerCase();
+    const mime = MIME[ext] || 'application/octet-stream';
+    // HTML entry point must never be cached — it embeds hashed asset filenames.
+    // Hashed assets (*.js, *.css with content hash in name) are safe to cache forever.
+    const cacheControl = ext === '.html'
+      ? 'no-store'
+      : 'public, max-age=31536000, immutable';
+    res.writeHead(200, { 'Content-Type': mime, 'Content-Length': stat.size, 'Cache-Control': cacheControl });
     createReadStream(filePath).pipe(res);
   } catch {
-    // SPA fallback
+    // SPA fallback — always serve fresh index.html
     const idx = join(DIST, 'index.html');
     const stat = statSync(idx);
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': stat.size });
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': stat.size, 'Cache-Control': 'no-store' });
     createReadStream(idx).pipe(res);
   }
 }
@@ -63,7 +69,7 @@ createServer((req, res) => {
   // ── GET /self/version ─────────────────────────────────────────────────────
   if (url === '/self/version' && method === 'GET') {
     const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     return res.end(JSON.stringify({ version: pkg.version, uptime: process.uptime() }));
   }
 
@@ -129,5 +135,5 @@ createServer((req, res) => {
   serveStatic(req, res);
 }).listen(PORT, () => {
   console.log(`[openclaw-ui] http://localhost:${PORT}`);
-  console.log(`[openclaw-ui] update token: ${UPDATE_TOKEN}`);
+  console.log(`[openclaw-ui] started (update token: ${UPDATE_TOKEN.slice(0, 4)}****)`);
 });
