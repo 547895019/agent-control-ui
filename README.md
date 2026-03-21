@@ -84,6 +84,75 @@ sudo journalctl -u openclaw-ui -f   # 查看日志
 
 ---
 
+## 发布新版本
+
+### 完整流程
+
+```bash
+# 1. 升版本号（patch / minor / major）
+npm version patch --no-git-tag-version
+
+# 2. 构建生产包
+npm run build
+
+# 3. 提交代码（包含 dist/）
+git add src/ dist/ package.json package-lock.json
+# 如有改动其他文件一并加入
+git commit -m "feat/fix: 描述本次变更 (vX.Y.Z)"
+
+# 4. 打 tag 并推送
+git tag vX.Y.Z
+git push origin main
+git push origin vX.Y.Z
+
+# 5. 打包
+npm pack
+mv agent-control-ui-X.Y.Z.tgz agent-control-ui.tgz
+
+# 6. 创建 GitHub Release 并上传
+gh release create vX.Y.Z agent-control-ui.tgz \
+  --repo 547895019/agent-control-ui \
+  --title "vX.Y.Z" \
+  --notes "变更说明"
+
+# 7. 清理
+rm agent-control-ui.tgz
+```
+
+> **注意**：`npm pack` 会自动执行 `prepublishOnly: npm run build` 再次构建，确保 tarball 里的 dist 始终是最新的。
+
+### 关键约定
+
+- tarball 文件名必须是固定的 `agent-control-ui.tgz`（不带版本号），UI 的一键更新依赖此 URL 不变
+- `dist/` 必须随源码一起提交到 git，生产服务直接 serve 已构建的 dist
+- 版本号格式 `YYYY.M.D`，同一天多次发布用 patch 递增（如 `2026.3.20` → `2026.3.21`）
+
+### 常见问题
+
+**更新后服务仍显示旧版本**
+
+检查 systemd 服务指向的路径是否与 npm 全局安装路径一致：
+
+```bash
+sudo systemctl cat openclaw-ui | grep ExecStart
+which openclaw-ui
+```
+
+若两者不一致（如 systemd 指向 `/home/user/agent-control-ui/` 而 npm 安装到 `/usr/lib/node_modules/`），重新注册服务：
+
+```bash
+sudo systemctl stop openclaw-ui
+sudo openclaw-ui install
+```
+
+**浏览器显示旧界面**
+
+从旧版本（v2026.3.21 之前）升级时，浏览器可能缓存了旧的 `index.html`。
+强制刷新一次：`Ctrl + Shift + R`（Windows/Linux）或 `Cmd + Shift + R`（macOS）。
+v2026.3.22 起服务端已对 HTML 设置 `Cache-Control: no-store`，后续更新无需此操作。
+
+---
+
 ## 开发模式
 
 ```bash
