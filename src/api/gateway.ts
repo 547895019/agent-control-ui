@@ -61,23 +61,13 @@ export class GatewayClient {
   private async initDeviceKeys(): Promise<DeviceKeys> {
     if (this.deviceKeys) return this.deviceKeys;
 
-    const STORAGE_KEY = 'openclaw_web_device_v1';
-    const stored = localStorage.getItem(STORAGE_KEY);
+    // Remove any old entry that may have stored the private key in plaintext.
+    localStorage.removeItem('openclaw_web_device_v1');
 
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        const privateKey = await crypto.subtle.importKey(
-          'jwk', parsed.privateKeyJwk, { name: 'Ed25519' } as any, false, ['sign']
-        );
-        this.deviceKeys = { deviceId: parsed.deviceId, publicKey: parsed.publicKeyB64, privateKey };
-        return this.deviceKeys;
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    }
-
-    // Generate new Ed25519 key pair
+    // Generate an extractable key pair so we can export the public key for
+    // deviceId derivation and server verification. The private key JWK is
+    // immediately re-imported as non-extractable and the JWK discarded — the
+    // private key never reaches localStorage or any persistent storage.
     const keyPair = await crypto.subtle.generateKey(
       { name: 'Ed25519' } as any, true, ['sign', 'verify']
     );
@@ -85,19 +75,18 @@ export class GatewayClient {
     const pubJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey as CryptoKey) as any;
     const privJwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey as CryptoKey) as any;
 
+    // Re-import private key as non-extractable so XSS cannot exfiltrate it.
+    const privateKey = await crypto.subtle.importKey(
+      'jwk', privJwk, { name: 'Ed25519' } as any, false, ['sign']
+    );
+
     // Device ID = SHA-256 of raw public key bytes, hex encoded
     const publicKeyBytes = base64urlToBytes(pubJwk.x);
     const hashBuffer = await crypto.subtle.digest('SHA-256', publicKeyBytes as unknown as ArrayBuffer);
     const deviceId = Array.from(new Uint8Array(hashBuffer))
       .map(b => b.toString(16).padStart(2, '0')).join('');
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      deviceId,
-      publicKeyB64: pubJwk.x,
-      privateKeyJwk: privJwk
-    }));
-
-    this.deviceKeys = { deviceId, publicKey: pubJwk.x, privateKey: keyPair.privateKey as CryptoKey };
+    this.deviceKeys = { deviceId, publicKey: pubJwk.x, privateKey };
     return this.deviceKeys;
   }
 
@@ -370,10 +359,35 @@ export class GatewayClient {
     return `http://${window.location.hostname}:19876`;
   }
 
+  // Token fetched once from /token (no-auth bootstrap endpoint, only reachable from localhost)
+  private _localToken: string | null = null;
+  private _localTokenPromise: Promise<string> | null = null;
+
+  async localToken(): Promise<string> {
+    if (this._localToken !== null) return this._localToken;
+    if (!this._localTokenPromise) {
+      this._localTokenPromise = fetch(`${this.localFileBase}/token`)
+        .then(r => r.json())
+        .then(d => { this._localToken = d.token ?? ''; return this._localToken!; })
+        .catch(() => { this._localToken = ''; return ''; });
+    }
+    return this._localTokenPromise;
+  }
+
+  /** Build a /raw URL with the auth token embedded (for use in <img src="...">). */
+  async rawFileUrl(filePath: string): Promise<string> {
+    const tok = await this.localToken();
+    return `${this.localFileBase}/raw?token=${tok}&path=${encodeURIComponent(filePath)}`;
+  }
+
+  private async localHeaders(): Promise<Record<string, string>> {
+    return { 'Content-Type': 'application/json', 'X-Local-Token': await this.localToken() };
+  }
+
   async writeFile(filePath: string, content: string): Promise<void> {
     const res = await fetch(`${this.localFileBase}/?path=${encodeURIComponent(filePath)}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await this.localHeaders(),
       body: JSON.stringify({ content }),
     });
     if (!res.ok) {
@@ -383,7 +397,9 @@ export class GatewayClient {
   }
 
   async readFile(filePath: string): Promise<string> {
-    const res = await fetch(`${this.localFileBase}/?path=${encodeURIComponent(filePath)}`);
+    const res = await fetch(`${this.localFileBase}/?path=${encodeURIComponent(filePath)}`, {
+      headers: { 'X-Local-Token': await this.localToken() },
+    });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.statusText }));
       throw new Error(err.error ?? 'Read failed');
@@ -393,7 +409,9 @@ export class GatewayClient {
   }
 
   async listDir(dirPath: string): Promise<string[]> {
-    const res = await fetch(`${this.localFileBase}/?dir=${encodeURIComponent(dirPath)}`);
+    const res = await fetch(`${this.localFileBase}/?dir=${encodeURIComponent(dirPath)}`, {
+      headers: { 'X-Local-Token': await this.localToken() },
+    });
     const data = await res.json();
     return data.files ?? [];
   }
@@ -401,6 +419,7 @@ export class GatewayClient {
   async deleteFile(filePath: string): Promise<void> {
     const res = await fetch(`${this.localFileBase}/?path=${encodeURIComponent(filePath)}`, {
       method: 'DELETE',
+      headers: { 'X-Local-Token': await this.localToken() },
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -411,6 +430,7 @@ export class GatewayClient {
   async deleteDir(dirPath: string): Promise<void> {
     const res = await fetch(`${this.localFileBase}/?dir=${encodeURIComponent(dirPath)}`, {
       method: 'DELETE',
+      headers: { 'X-Local-Token': await this.localToken() },
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.statusText }));

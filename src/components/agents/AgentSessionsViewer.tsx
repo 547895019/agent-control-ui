@@ -12,6 +12,10 @@ interface SessionMeta {
   agentId?: string;
 }
 
+function sessionLabel(s: { key: string }): string {
+  return s.key.split(':').pop() ?? s.key;
+}
+
 // ── message content extraction ────────────────────────────────────────────────
 
 type ContentBlock =
@@ -211,7 +215,7 @@ export function AgentSessionsViewer({ agentId, agentName, workspace: _workspace,
   }, [messages]);
 
   const activeSession = sessions.find(s => s.key === activeKey);
-  const sessionTitle = activeSession?.derivedTitle ?? activeSession?.title ?? activeKey?.slice(0, 8);
+  const sessionTitle = sessionLabel(activeSession ?? { key: activeKey ?? '' });
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -267,7 +271,7 @@ export function AgentSessionsViewer({ agentId, agentName, workspace: _workspace,
                 </div>
               ) : (
                 sessions.map(s => {
-                  const title = s.derivedTitle ?? s.title ?? s.key.slice(0, 12) + '…';
+                  const title = sessionLabel(s);
                   const date = formatDate(s.updatedAt ?? s.createdAt);
                   const isActive = s.key === activeKey;
                   return (

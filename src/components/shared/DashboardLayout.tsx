@@ -4,6 +4,7 @@ import { useAppStore } from '../../stores/useAppStore';
 import {
   Bot, ScrollText, LogOut, Building2, Clock, BarChart2, Puzzle, MessageSquare,
   WifiOff, RefreshCw, AlertCircle, Loader2, Zap, Users, ArrowUpCircle, X, RotateCcw,
+  ChevronLeft, ChevronRight, Maximize2, Minimize2,
 } from 'lucide-react';
 
 // Safe accessor — older builds may not have __APP_VERSION__ substituted by Vite
@@ -69,6 +70,12 @@ const NAV_ITEMS = [
   { path: '/meeting',     label: '会议', icon: Users },
   { path: '/automation',  label: '自动化', icon: Zap },
 ];
+
+function StatusDotCompact({ status }: { status: string }) {
+  const cls = status === 'connected' ? 'bg-emerald-400' : status === 'connecting' || status === 'reconnecting' ? 'bg-amber-400' : status === 'failed' ? 'bg-red-400' : 'bg-white/20';
+  const title = status === 'connected' ? 'Connected' : status === 'connecting' ? 'Connecting' : status === 'reconnecting' ? 'Reconnecting' : status === 'failed' ? 'Failed' : 'Disconnected';
+  return <span className={`w-2 h-2 rounded-full ${cls} ${status === 'connected' ? 'animate-pulse' : ''}`} title={title} />;
+}
 
 function StatusDot({ status }: { status: string }) {
   if (status === 'connected') return (
@@ -301,92 +308,156 @@ export function DashboardLayout() {
   const { title, subtitle, setTitle, setSubtitle } = useBrand();
   const [editingBrand, setEditingBrand] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem('openclaw:sidebar:collapsed') === '1'
+  );
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else document.documentElement.requestFullscreen().catch(() => {});
+  };
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(v => {
+      const next = !v;
+      localStorage.setItem('openclaw:sidebar:collapsed', next ? '1' : '0');
+      return next;
+    });
+  };
 
   return (
-    <div className="h-screen flex relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at 20% 50%, #351c7a 0%, #17103c 55%, #112438 100%)' }}>
-      {/* Neon glow orbs */}
+    <div className="h-screen flex relative overflow-hidden" style={{ background: 'linear-gradient(140deg, #1c1040 0%, #111830 25%, #1a0d36 52%, #0f1828 76%, #160e3c 100%)' }}>
+      {/* Layered colorful blobs — different opacities for depth & refraction */}
       <div className="pointer-events-none">
-        <div className="orb w-[750px] h-[750px] -top-72 -left-52" style={{ background: 'rgba(168,85,247,0.50)' }} />
-        <div className="orb w-[620px] h-[620px] top-1/2 -right-44" style={{ background: 'rgba(0,200,255,0.28)' }} />
-        <div className="orb w-[520px] h-[520px] -bottom-56 left-1/4" style={{ background: 'rgba(59,130,246,0.32)' }} />
-        <div className="orb w-[380px] h-[380px] top-1/4 left-1/2" style={{ background: 'rgba(139,92,246,0.28)' }} />
-        <div className="orb w-[300px] h-[300px] top-0 right-1/3" style={{ background: 'rgba(0,255,170,0.12)' }} />
+        {/* Layer 1 — large base orbs */}
+        <div className="orb w-[900px] h-[900px] -top-96 -left-64"   style={{ background: 'rgba(150,  80, 230, 0.42)' }} />
+        <div className="orb w-[780px] h-[780px] top-1/2  -right-52" style={{ background: 'rgba( 30, 140, 255, 0.30)' }} />
+        {/* Layer 2 — mid-size blobs, different hues, shifted positions */}
+        <div className="orb w-[580px] h-[580px] -bottom-52 left-1/4"  style={{ background: 'rgba( 60, 200, 160, 0.26)' }} />
+        <div className="orb w-[480px] h-[480px] top-1/3   left-[55%]" style={{ background: 'rgba(230,  70, 160, 0.22)' }} />
+        {/* Layer 3 — small accent orbs, high-chroma */}
+        <div className="orb w-[300px] h-[300px] top-[8%]   right-[28%]" style={{ background: 'rgba(  0, 220, 200, 0.18)' }} />
+        <div className="orb w-[260px] h-[260px] bottom-[20%] right-[8%]" style={{ background: 'rgba(255, 160,  50, 0.14)' }} />
+        <div className="orb w-[220px] h-[220px] top-[60%]  left-[10%]"  style={{ background: 'rgba(180,  60, 255, 0.18)' }} />
+        {/* Layer 4 — tiny sparkle highlights */}
+        <div className="orb w-[140px] h-[140px] top-[15%]  left-[38%]" style={{ background: 'rgba(255, 240, 120, 0.12)' }} />
+        <div className="orb w-[120px] h-[120px] bottom-[35%] left-[62%]" style={{ background: 'rgba(120, 255, 200, 0.10)' }} />
       </div>
 
       {/* Sidebar */}
-      <aside className="relative z-10 w-56 backdrop-blur-2xl border-r border-white/20 flex flex-col shrink-0" style={{ background: 'rgba(255,255,255,0.10)' }}>
+      <aside
+        className={`relative z-10 shrink-0 backdrop-blur-2xl border-r border-white/15 flex flex-col transition-all duration-200 ${sidebarCollapsed ? 'w-14' : 'w-56'}`}
+        style={{
+          background: 'linear-gradient(180deg, rgba(18,9,52,0.82) 0%, rgba(13,6,38,0.78) 100%)',
+          boxShadow: '4px 0 32px rgba(60,20,140,0.22), inset -1px 0 0 rgba(255,255,255,0.08)',
+        }}
+      >
         {/* Brand */}
-        <div className="px-4 py-4 border-b border-white/10">
-          {editingBrand ? (
-            <div className="px-1">
+        <div className={`border-b border-white/10 flex items-center ${sidebarCollapsed ? 'justify-center py-4 px-0' : 'px-4 py-4'}`}>
+          {!sidebarCollapsed && editingBrand ? (
+            <div className="px-1 w-full">
               <BrandEditor
-                title={title}
-                subtitle={subtitle}
+                title={title} subtitle={subtitle}
                 onSave={(t, s) => { setTitle(t); setSubtitle(s); setEditingBrand(false); }}
                 onCancel={() => setEditingBrand(false)}
               />
             </div>
           ) : (
             <button
-              onClick={() => setEditingBrand(true)}
-              className="w-full flex items-center gap-2.5 text-left group rounded-lg px-1 py-0.5 hover:bg-white/10 transition-colors"
-              title="点击编辑名称"
+              onClick={sidebarCollapsed ? undefined : () => setEditingBrand(true)}
+              className={`flex items-center text-left rounded-lg transition-colors ${sidebarCollapsed ? 'cursor-default' : 'gap-2.5 w-full px-1 py-0.5 hover:bg-white/10'}`}
+              title={sidebarCollapsed ? title : '点击编辑名称'}
             >
               <div className="w-8 h-8 rounded-lg bg-indigo-600/80 backdrop-blur-sm flex items-center justify-center text-base shrink-0 shadow-lg shadow-indigo-900/50">
                 🦞
               </div>
-              <div className="min-w-0">
-                <p className="gradient-text font-semibold text-sm leading-tight truncate">{title}</p>
-                {subtitle && <p className="text-white/35 text-xs truncate tracking-wide">{subtitle}</p>}
-              </div>
+              {!sidebarCollapsed && (
+                <div className="min-w-0">
+                  <p className="gradient-text font-semibold text-sm leading-tight truncate">{title}</p>
+                  {subtitle && <p className="text-white/35 text-xs truncate tracking-wide">{subtitle}</p>}
+                </div>
+              )}
             </button>
           )}
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
+        <nav className={`flex-1 ${sidebarCollapsed ? 'px-2' : 'px-3'} py-4 space-y-0.5`}>
           {NAV_ITEMS.map(({ path, label, icon: Icon }) => {
             const active = location.pathname.startsWith(path);
             return (
               <Link
                 key={path}
                 to={path}
-                className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
-                  ${active
-                    ? 'btn-primary text-white shadow-lg shadow-white/20'
-                    : 'text-white/70 hover:text-white hover:bg-white/15 hover:shadow-[0_0_12px_rgba(255,255,255,0.12)]'}
-                `}
+                title={sidebarCollapsed ? label : undefined}
+                className={`flex items-center py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  sidebarCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
+                } ${active
+                  ? 'btn-primary text-white shadow-lg shadow-white/20'
+                  : 'text-white/70 hover:text-white hover:bg-white/15 hover:shadow-[0_0_12px_rgba(255,255,255,0.12)]'
+                }`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                {label}
+                {!sidebarCollapsed && label}
               </Link>
             );
           })}
         </nav>
 
         {/* Footer */}
-        <div className="px-3 pb-4 space-y-1 border-t border-white/10 pt-3">
-          <div className="px-3 py-1.5">
-            <StatusDot status={connectionStatus} />
-          </div>
+        <div className={`${sidebarCollapsed ? 'px-2' : 'px-3'} pb-3 space-y-1 border-t border-white/10 pt-3`}>
+          {sidebarCollapsed ? (
+            /* Icon-only footer */
+            <div className="flex flex-col items-center gap-1">
+              <StatusDotCompact status={connectionStatus} />
+              <button onClick={disconnect} title="Disconnect" className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/15 transition-colors">
+                <LogOut className="w-4 h-4" />
+              </button>
+              <button onClick={toggleFullscreen} title={isFullscreen ? '退出全屏' : '全屏显示'} className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-300 hover:bg-indigo-500/20 transition-colors">
+                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              </button>
+              <button onClick={() => setShowUpdate(true)} title="更新版本" className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-300 hover:bg-indigo-500/20 transition-colors">
+                <ArrowUpCircle className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            /* Full footer */
+            <>
+              <div className="px-3 py-1.5">
+                <StatusDot status={connectionStatus} />
+              </div>
+              <button onClick={disconnect} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/15 transition-colors">
+                <LogOut className="w-4 h-4" />
+                Disconnect
+              </button>
+              <div className="px-3 pt-1 flex items-center justify-between">
+                <span className="text-[10px] text-white/20 font-mono">v{APP_VERSION}</span>
+                <div className="flex items-center gap-1">
+                  <button onClick={toggleFullscreen} title={isFullscreen ? '退出全屏' : '全屏显示'} className="w-5 h-5 flex items-center justify-center rounded text-white/20 hover:text-indigo-300 hover:bg-indigo-500/20 transition-colors">
+                    {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                  </button>
+                  <button onClick={() => setShowUpdate(true)} title="更新版本" className="w-5 h-5 flex items-center justify-center rounded text-white/20 hover:text-indigo-300 hover:bg-indigo-500/20 transition-colors">
+                    <ArrowUpCircle className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+          {/* Collapse toggle */}
           <button
-            onClick={disconnect}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/15 transition-colors"
+            onClick={toggleSidebar}
+            title={sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
+            className={`w-full flex items-center py-1.5 rounded-lg text-white/25 hover:text-white/60 hover:bg-white/8 transition-colors text-xs ${sidebarCollapsed ? 'justify-center' : 'gap-2 px-3'}`}
           >
-            <LogOut className="w-4 h-4" />
-            Disconnect
+            {sidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <><ChevronLeft className="w-3.5 h-3.5" /><span>折叠</span></>}
           </button>
-          <div className="px-3 pt-1 flex items-center justify-between">
-            <span className="text-[10px] text-white/20 font-mono">v{APP_VERSION}</span>
-            <button
-              onClick={() => setShowUpdate(true)}
-              title="更新版本"
-              className="w-5 h-5 flex items-center justify-center rounded text-white/20 hover:text-indigo-300 hover:bg-indigo-500/20 transition-colors"
-            >
-              <ArrowUpCircle className="w-3.5 h-3.5" />
-            </button>
-          </div>
         </div>
       </aside>
 

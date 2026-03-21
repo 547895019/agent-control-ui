@@ -1,9 +1,65 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { client } from '../../api/gateway';
+
+// Configure marked once
+marked.use({ breaks: true, gfm: true } as any);
+
+/** Convert a local file path to a URL served by localfile-server (:19876/raw).
+ *  Token is embedded as a query param so <img src="..."> requests are authenticated. */
+function localFileUrl(path: string, token = ''): string {
+  const base = `http://${window.location.hostname}:19876`;
+  const tok = token ? `&token=${token}` : '';
+  return `${base}/raw?path=${encodeURIComponent(path)}${tok}`;
+}
+
+// Module-level token cache — fetched once on load, used by renderMarkdown & MarkdownBody
+let _lfToken = '';
+client.localToken().then(t => { _lfToken = t; });
+
+/** Returns true if the string looks like a local filesystem path (not an HTTP/data URL). */
+function isLocalPath(s: string): boolean {
+  return (s.startsWith('/') || s.startsWith('~')) &&
+    !s.startsWith('//');
+}
+
+function renderMarkdown(text: string): string {
+  // Pre-process: rewrite local file paths in markdown image syntax to /raw endpoint (with token)
+  const processed = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, src) => {
+    const resolvedSrc = isLocalPath(src) ? localFileUrl(src, _lfToken) : src;
+    return `![${alt}](${resolvedSrc})`;
+  });
+  const html = marked.parse(processed) as string;
+  const clean = DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'b', 'em', 'i', 'del', 's', 'code', 'pre',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'ul', 'ol', 'li', 'blockquote', 'a',
+      'table', 'thead', 'tbody', 'tr', 'th', 'td', 'hr',
+      'img',
+    ],
+    ALLOWED_ATTR: ['href', 'src', 'alt', 'width', 'height'],
+  });
+  return clean.replace(/<a href=/g, '<a target="_blank" rel="noopener noreferrer" href=');
+}
+
+function MarkdownBody({ text, dim }: { text: string; dim?: boolean }) {
+  const html = useMemo(() => renderMarkdown(text), [text]);
+  return (
+    <div
+      className={`md-body text-sm leading-relaxed transition-opacity ${dim ? 'opacity-40' : 'opacity-100'}`}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
 import {
   X, Send, Square, Loader2, AlertCircle,
   Bot, User, Wrench, ChevronDown, ChevronRight,
   MessageSquare, Plus, Hash, Paperclip, Brain,
+  Copy, Check, Search, Trash2,
+  Mic, MicOff, Volume2, VolumeX,
+  Maximize2, Minimize2,
 } from 'lucide-react';
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -19,23 +75,17 @@ interface SessionMeta {
 
 interface ChatAttachment {
   id: string;
-  dataUrl: string;   // full data URL for preview
+  dataUrl: string;    // preview (always available immediately)
   mimeType: string;
+  name: string;       // original filename
+  path?: string;      // set after upload to workspace
+  uploading?: boolean;
 }
 
 type ContentBlock =
   | { kind: 'text'; text: string }
   | { kind: 'thinking'; text: string }
-  | { kind: 'tool'; name: string; args: string }
-  | { kind: 'image'; dataUrl: string };
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-/** Strip data URL prefix, return { mimeType, content } */
-function dataUrlToBase64(dataUrl: string): { mimeType: string; content: string } | null {
-  const m = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
-  return m ? { mimeType: m[1], content: m[2] } : null;
-}
+  | { kind: 'tool'; name: string; args: string };
 
 function extractContent(content: any): ContentBlock[] {
   if (typeof content === 'string') return content ? [{ kind: 'text', text: content }] : [];
@@ -47,18 +97,17 @@ function extractContent(content: any): ContentBlock[] {
       const args = block.arguments ? JSON.stringify(block.arguments, null, 2) : '';
       return [{ kind: 'tool', name: block.name ?? 'tool', args }];
     }
-    if (block.type === 'image') {
-      // source.data may already be a full data URL or raw base64
-      const src = block.source ?? block;
-      const data: string = src.data ?? src.url ?? '';
-      const mime: string = src.media_type ?? src.mimeType ?? 'image/*';
-      const dataUrl = data.startsWith('data:') ? data : `data:${mime};base64,${data}`;
-      return [{ kind: 'image', dataUrl }];
-    }
     return [];
   });
 }
 
+
+/** Human-readable session name.
+ * Key format: "agent:<agentId>:<scope>" — show derived/title first, then scope.
+ * "web_<timestamp>" scopes are formatted as a short date-time. */
+function sessionLabel(s: { key: string }): string {
+  return s.key.split(':').pop() ?? s.key;
+}
 
 function formatDate(iso?: string) {
   if (!iso) return '';
@@ -71,12 +120,42 @@ function formatDate(iso?: string) {
   return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
 }
 
-function parseHistory(res: any): { role: 'user' | 'assistant'; content: any }[] {
-  // Official API returns { messages: [...] } where each item is { role, content, timestamp, ... }
+interface MessageUsage {
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
+  model?: string;
+}
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: any;
+  usage?: MessageUsage;
+}
+
+let _idCtr = 0;
+function makeId() { return `m${Date.now()}_${(_idCtr++).toString(36)}`; }
+
+
+// ── Deleted-message localStorage helpers ──────────────────────────────────────
+function loadDeletedIds(sessionKey: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(`openclaw:deleted:${sessionKey}`);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch { return new Set(); }
+}
+function saveDeletedIds(sessionKey: string, ids: Set<string>) {
+  try { localStorage.setItem(`openclaw:deleted:${sessionKey}`, JSON.stringify([...ids])); } catch {}
+}
+
+function parseHistory(res: any): ChatMessage[] {
   const raw: any[] = Array.isArray(res?.messages) ? res.messages
     : Array.isArray(res) ? res : [];
   return raw.filter((e: any) => e?.role === 'user' || e?.role === 'assistant')
-    .map((e: any) => ({ role: e.role as 'user' | 'assistant', content: e.content ?? '' }));
+    // Use stable index-based IDs so localStorage-persisted deleted IDs survive reopens
+    .map((e: any, i: number) => ({ id: `hist_${i}`, role: e.role as 'user' | 'assistant', content: e.content ?? '' }));
 }
 
 // ── slash commands ────────────────────────────────────────────────────────────
@@ -170,8 +249,22 @@ function getCompletions(filter: string): SlashCmd[] {
 
 function ToolBlock({ name, args }: { name: string; args: string }) {
   const [open, setOpen] = useState(false);
+  // Inline for short single-line args (≤80 chars), collapsible for longer
+  const inlinePreview = args.replace(/\s+/g, ' ').slice(0, 80);
+  const isShort = !args || args.length <= 80;
+
+  if (isShort) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs text-white/40 rounded-lg border border-white/12 bg-white/5 px-3 py-1.5 max-w-full">
+        <Wrench className="w-3 h-3 text-amber-500/70 shrink-0" />
+        <span className="font-mono text-white/55">{name}</span>
+        {args && <span className="text-white/25 font-mono truncate">{inlinePreview}</span>}
+      </div>
+    );
+  }
+
   return (
-    <div className="mt-1 rounded-lg border border-white/20 bg-white/8 text-xs overflow-hidden">
+    <div className="rounded-lg border border-white/20 bg-white/8 text-xs overflow-hidden">
       <button
         onClick={() => setOpen(v => !v)}
         className="w-full flex items-center gap-1.5 px-3 py-1.5 text-white/50 hover:bg-white/10 transition-colors text-left"
@@ -179,6 +272,7 @@ function ToolBlock({ name, args }: { name: string; args: string }) {
         {open ? <ChevronDown className="w-3 h-3 shrink-0" /> : <ChevronRight className="w-3 h-3 shrink-0" />}
         <Wrench className="w-3 h-3 shrink-0 text-amber-500" />
         <span className="font-mono">{name}</span>
+        {!open && <span className="text-white/25 font-mono truncate ml-1">{inlinePreview}…</span>}
       </button>
       {open && args && (
         <pre className="px-3 py-2 text-white/70 overflow-x-auto leading-relaxed border-t border-white/20 whitespace-pre-wrap font-mono">
@@ -213,49 +307,148 @@ function ThinkingBlock({ text, forceOpen }: { text: string; forceOpen?: boolean 
   );
 }
 
-function ChatBubble({ role, content, showThinking }: { role: 'user' | 'assistant'; content: any; showThinking: boolean }) {
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {});
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      title={copied ? '已复制' : '复制为 Markdown'}
+      className="opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded-md text-white/30 hover:text-white/70 hover:bg-white/10 transition-all shrink-0"
+    >
+      {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+    </button>
+  );
+}
+
+function SpeakButton({ text }: { text: string }) {
+  const [speaking, setSpeaking] = useState(false);
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+
+  const handleSpeak = () => {
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'zh-CN';
+    utter.onend = () => setSpeaking(false);
+    utter.onerror = () => setSpeaking(false);
+    window.speechSynthesis.speak(utter);
+    setSpeaking(true);
+  };
+
+  return (
+    <button
+      onClick={handleSpeak}
+      title={speaking ? '停止朗读' : '朗读消息'}
+      className={`w-6 h-6 flex items-center justify-center rounded-md transition-all shrink-0 ${
+        speaking
+          ? 'opacity-100 text-indigo-400 bg-indigo-500/15'
+          : 'opacity-0 group-hover:opacity-100 text-white/30 hover:text-white/70 hover:bg-white/10'
+      }`}
+    >
+      {speaking ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+    </button>
+  );
+}
+
+function UsageBadge({ usage }: { usage: MessageUsage }) {
+  const parts: React.ReactNode[] = [];
+  if (usage.inputTokens)      parts.push(<span key="in">↑{fmtTokens(usage.inputTokens)}</span>);
+  if (usage.outputTokens)     parts.push(<span key="out">↓{fmtTokens(usage.outputTokens)}</span>);
+  if (usage.cacheReadTokens)  parts.push(<span key="cr" className="text-cyan-400/50">R{fmtTokens(usage.cacheReadTokens)}</span>);
+  if (usage.cacheWriteTokens) parts.push(<span key="cw" className="text-violet-400/50">W{fmtTokens(usage.cacheWriteTokens)}</span>);
+  if (parts.length === 0) return null;
+  const modelShort = usage.model?.split('/').pop()?.replace(/^claude-/, '').split('-').slice(0, 2).join('-');
+  return (
+    <div className="flex items-center gap-2 text-[10px] text-white/25 pl-1 mt-0.5 font-mono">
+      {parts.map((p, i) => <React.Fragment key={i}>{p}</React.Fragment>)}
+      {modelShort && <span className="ml-1 text-white/20">{modelShort}</span>}
+    </div>
+  );
+}
+
+function ChatBubble({ role, content, showThinking, usage, isFirst = true, isLast = true, onDelete }: {
+  role: 'user' | 'assistant'; content: any; showThinking: boolean; usage?: MessageUsage;
+  isFirst?: boolean; isLast?: boolean; onDelete?: () => void;
+}) {
+  const [confirmDel, setConfirmDel] = useState(false);
   const blocks = extractContent(content);
   const isUser = role === 'user';
 
   const textBlocks    = blocks.filter(b => b.kind === 'text')    as { kind: 'text'; text: string }[];
   const thinkingBlocks = blocks.filter(b => b.kind === 'thinking') as { kind: 'thinking'; text: string }[];
   const toolBlocks    = blocks.filter(b => b.kind === 'tool')    as { kind: 'tool'; name: string; args: string }[];
-  const imageBlocks   = blocks.filter(b => b.kind === 'image')   as { kind: 'image'; dataUrl: string }[];
 
   const mainText = textBlocks.map(b => b.text).join('\n').trim();
   const displayText = mainText
     .replace(/^\[.*?\]\s*(\[Subagent .*?\]\s*)?(\[Subagent Task\]:?\s*)?/s, '')
     .trim() || mainText;
 
-  const hasContent = displayText || toolBlocks.length > 0 || imageBlocks.length > 0 || thinkingBlocks.length > 0;
+  const hasContent = displayText || toolBlocks.length > 0 || thinkingBlocks.length > 0;
   if (!hasContent) return null;
 
+  // Avatar placeholder — keeps alignment even when hidden
+  const avatar = (
+    <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 ${
+      isUser ? 'bg-indigo-500/30' : 'bg-white/10'
+    } ${isFirst ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      {isUser ? <User className="w-3.5 h-3.5 text-indigo-300" /> : <Bot className="w-3.5 h-3.5 text-white/50" />}
+    </div>
+  );
+
   return (
-    <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
-      <div className={`w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 ${
-        isUser ? 'bg-indigo-500/30' : 'bg-white/10'
-      }`}>
-        {isUser ? <User className="w-3.5 h-3.5 text-indigo-300" /> : <Bot className="w-3.5 h-3.5 text-white/50" />}
-      </div>
-      <div className={`max-w-[78%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-        {imageBlocks.map((b, i) => (
-          <img key={i} src={b.dataUrl} alt="attachment" className="max-w-xs max-h-64 rounded-xl object-cover border border-white/20" />
-        ))}
-        {/* Thinking blocks — shown when showThinking is on */}
+    <div className={`flex gap-3 group ${isUser ? 'flex-row-reverse' : ''}`}>
+      {avatar}
+      <div className={`max-w-[78%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-1 min-w-0`}>
         {thinkingBlocks.length > 0 && thinkingBlocks.map((b, i) => (
           <ThinkingBlock key={i} text={b.text} forceOpen={showThinking || undefined} />
         ))}
-        {/* Work output — dimmed when showThinking is on */}
         {displayText && (
-          <div className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap transition-opacity ${
-            isUser ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white/10 rounded-tl-sm'
-          } ${showThinking && thinkingBlocks.length > 0 ? 'text-white/35' : 'text-white/85'}`}>
-            {displayText}
+          <div className={`rounded-2xl px-3.5 py-2.5 ${
+            isUser
+              ? `bg-indigo-600 text-white ${isFirst ? 'rounded-tr-sm' : ''}`
+              : `bg-white/10 text-white/85 ${isFirst ? 'rounded-tl-sm' : ''}`
+          }`}>
+            {/* Both user and assistant messages use MarkdownBody so image paths render as <img> */}
+            <MarkdownBody text={displayText} dim={!isUser && showThinking && thinkingBlocks.length > 0} />
           </div>
         )}
         {toolBlocks.map((b, i) => (
           <ToolBlock key={i} name={b.name} args={b.args} />
         ))}
+        {/* Bottom row — usage / copy / delete (last bubble in group only) */}
+        {isLast && (
+          <div className={`flex items-center gap-1 ${isUser ? 'flex-row-reverse' : ''}`}>
+            {!isUser && usage && <UsageBadge usage={usage} />}
+            {!isUser && displayText && <CopyButton text={displayText} />}
+            {!isUser && displayText && <SpeakButton text={displayText} />}
+            {/* Delete button */}
+            {onDelete && (
+              confirmDel ? (
+                <div className="flex items-center gap-1 text-[10px]">
+                  <button onClick={() => { onDelete(); setConfirmDel(false); }}
+                    className="px-1.5 py-0.5 rounded text-red-400 hover:bg-red-500/20 transition-colors">确认删除</button>
+                  <button onClick={() => setConfirmDel(false)}
+                    className="px-1.5 py-0.5 rounded text-white/30 hover:bg-white/10 transition-colors">取消</button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmDel(true)} title="删除消息"
+                  className="opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded-md text-white/25 hover:text-red-400 hover:bg-red-500/15 transition-all shrink-0">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -272,7 +465,7 @@ export interface AgentChatProps {
   autoSendMessage?: string;
 }
 
-export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, autoSendMessage }: AgentChatProps) {
+export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMessage }: AgentChatProps) {
   // Session keys must use the gateway format: "agent:<agentId>:<scope>"
   // so the gateway can parse the agentId and route to the correct agent.
   const defaultSessionKey = `agent:${agentId}:main`;
@@ -285,7 +478,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
   const sessionKey = activeKey;
 
   // ── chat state ───────────────────────────────────────────────────────────────
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: any }[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [histLoading, setHistLoading] = useState(false);
   const [histError, setHistError] = useState('');
 
@@ -297,6 +490,27 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
   const [streamThinking, setStreamThinking] = useState('');
   const [showThinking, setShowThinking] = useState(false);
   const [sendError, setSendError] = useState('');
+  const [contextPct, setContextPct] = useState<number | null>(null);
+
+  // ── search ───────────────────────────────────────────────────────────────────
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [maximized, setMaximized] = useState(false);
+
+  // ── deleted messages (soft-delete, localStorage) ──────────────────────────
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+
+  // ── toast ────────────────────────────────────────────────────────────────────
+  const [toast, setToast] = useState<{ text: string; ok?: boolean } | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── voice: STT ───────────────────────────────────────────────────────────────
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  // ── voice: TTS auto-speak ────────────────────────────────────────────────────
+  const [autoTTS, setAutoTTS] = useState(false);
+  const lastSpokenIdRef = useRef('');
 
   // ── slash commands ──────────────────────────────────────────────────────────
   const [showCmds, setShowCmds] = useState(false);
@@ -314,10 +528,63 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
   const activeRunIdRef = useRef<string | null>(null);
   const preSendCountRef = useRef(0);
   const autoSentRef = useRef(false);
+  // ── input history ─────────────────────────────────────────────────────────
+  const inputHistoryRef = useRef<string[]>([]);
+  const historyIdxRef = useRef(-1);
+  const draftRef = useRef('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const cmdListRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const showToast = (text: string, ok = false) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ text, ok });
+    toastTimerRef.current = setTimeout(() => setToast(null), 5000);
+  };
+
+  const handleDeleteMessage = (id: string) => {
+    setDeletedIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      saveDeletedIds(sessionKey, next);
+      return next;
+    });
+  };
+
+  // ── STT: start / stop listening ───────────────────────────────────────────────
+  const inputBeforeMicRef = useRef('');
+  const handleToggleMic = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) { showToast('浏览器不支持语音输入'); return; }
+    const rec = new SR();
+    rec.lang = 'zh-CN';
+    rec.continuous = false;
+    rec.interimResults = true;
+    inputBeforeMicRef.current = input;
+    let finalTranscript = '';
+    rec.onresult = (e: any) => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
+      }
+      setInput(inputBeforeMicRef.current + (finalTranscript || interim));
+    };
+    rec.onend = () => {
+      setIsListening(false);
+      setInput(inputBeforeMicRef.current + finalTranscript);
+    };
+    rec.onerror = () => { setIsListening(false); showToast('语音识别出错，请重试'); };
+    rec.start();
+    recognitionRef.current = rec;
+    setIsListening(true);
+  };
 
   // ── load sessions ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -337,13 +604,15 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
 
   // ── load history when session changes ───────────────────────────────────────
   useEffect(() => {
-    // Clear sending state from previous session
     setSending(false);
     setRunId(null);
     setStreamText('');
     streamTextRef.current = '';
     activeRunIdRef.current = null;
     setSendError('');
+    setShowSearch(false);
+    setSearchQuery('');
+    setDeletedIds(loadDeletedIds(sessionKey));
 
     setHistLoading(true);
     setHistError('');
@@ -389,8 +658,22 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
           setStreamThinking(nextThinking);
         }
       } else if (state === 'final') {
-        // Prefer the full content array from the final message (preserves thinking blocks)
         const content = message?.content ?? streamTextRef.current ?? '';
+        // Extract usage data from payload
+        const rawUsage = payload.usage ?? payload.tokenUsage ?? null;
+        const usage: MessageUsage | undefined = rawUsage ? {
+          inputTokens:      rawUsage.inputTokens      ?? rawUsage.input_tokens,
+          outputTokens:     rawUsage.outputTokens     ?? rawUsage.output_tokens,
+          cacheReadTokens:  rawUsage.cacheReadTokens  ?? rawUsage.cache_read_input_tokens,
+          cacheWriteTokens: rawUsage.cacheWriteTokens ?? rawUsage.cache_creation_input_tokens,
+          model:            rawUsage.model ?? payload.model,
+        } : undefined;
+        // Context usage percentage
+        const ctxTokens = rawUsage?.contextTokens ?? rawUsage?.context_tokens;
+        const ctxWindow  = rawUsage?.contextWindow  ?? rawUsage?.context_window;
+        if (ctxTokens != null && ctxWindow != null && ctxWindow > 0) {
+          setContextPct(Math.round(ctxTokens / ctxWindow * 100));
+        }
         streamTextRef.current = '';
         streamThinkingRef.current = '';
         activeRunIdRef.current = null;
@@ -398,7 +681,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
         setStreamThinking('');
         setRunId(null);
         setSending(false);
-        setMessages(prev => [...prev, { role: 'assistant', content }]);
+        setMessages(prev => [...prev, { id: makeId(), role: 'assistant', content, usage }]);
         // Refresh sessions list to update last-message preview
         client.sessionsList({ agentId, limit: 50, includeLastMessage: true, includeDerivedTitles: true })
           .then(res => setSessions((res?.sessions ?? []).sort((a: SessionMeta, b: SessionMeta) =>
@@ -407,7 +690,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
       } else if (state === 'aborted' || state === 'error') {
         const savedContent = message?.content || streamTextRef.current || '';
         if (savedContent) {
-          setMessages(prev => [...prev, { role: 'assistant', content: savedContent }]);
+          setMessages(prev => [...prev, { id: makeId(), role: 'assistant', content: savedContent }]);
         }
         streamTextRef.current = '';
         streamThinkingRef.current = '';
@@ -447,7 +730,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
     if (!autoSendMessage || autoSentRef.current || histLoading || sending) return;
     autoSentRef.current = true;
     preSendCountRef.current = messages.length;
-    setMessages(prev => [...prev, { role: 'user', content: autoSendMessage }]);
+    setMessages(prev => [...prev, { id: makeId(), role: 'user', content: autoSendMessage }]);
     setSending(true);
     setSendError('');
     streamTextRef.current = '';
@@ -472,6 +755,22 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamText]);
+
+  // ── auto-TTS: speak new assistant messages ─────────────────────────────────
+  useEffect(() => {
+    if (!autoTTS || !('speechSynthesis' in window)) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== 'assistant' || last.id === lastSpokenIdRef.current) return;
+    lastSpokenIdRef.current = last.id;
+    const raw = last.content;
+    const text = (typeof raw === 'string' ? raw
+      : Array.isArray(raw) ? raw.filter((b: any) => b.type === 'text').map((b: any) => b.text ?? '').join('') : '').trim();
+    if (!text) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'zh-CN';
+    window.speechSynthesis.speak(utter);
+  }, [messages, autoTTS]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── new session ───────────────────────────────────────────────────────────────
   const sendStartup = (key: string, cmd: '/new' | '/reset') => {
@@ -532,10 +831,12 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
       case 'stop':  handleAbort(); return null;
       case 'focus': setFocusMode(v => !v); return null;
       case 'compact': {
+        showToast('正在压缩上下文…');
         try {
           await client.sessionsCompact(sessionKey);
-          return 'Context compacted successfully.';
-        } catch (err: any) { return `Compaction failed: ${err.message}`; }
+          showToast('上下文压缩完成 ✓', true);
+        } catch (err: any) { showToast(`压缩失败: ${(err as any).message}`); }
+        return null;
       }
       case 'help': {
         const lines = ['**Available Commands**'];
@@ -713,9 +1014,17 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
     const cmdDef = ALL_CMDS.find(c => c.cmd === cmdStr.toLowerCase());
 
     if (!cmdDef || !cmdDef.executeLocal) {
+      // Record in history
+      const hist = inputHistoryRef.current;
+      if (hist.length === 0 || hist[hist.length - 1] !== trimmed) {
+        hist.push(trimmed);
+        if (hist.length > 50) hist.shift();
+      }
+      historyIdxRef.current = -1;
+      draftRef.current = '';
       // Send to agent as a regular message
       preSendCountRef.current = messages.length;
-      setMessages(prev => [...prev, { role: 'user', content: trimmed }]);
+      setMessages(prev => [...prev, { id: makeId(), role: 'user', content: trimmed }]);
       setSending(true);
       setSendError('');
       streamTextRef.current = '';
@@ -732,7 +1041,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
 
     executeLocalCmd(cmdName, args).then(result => {
       if (result !== null) {
-        setMessages(prev => [...prev, { role: 'assistant', content: result }]);
+        setMessages(prev => [...prev, { id: makeId(), role: 'assistant', content: result }]);
       }
     });
     setTimeout(() => inputRef.current?.focus(), 50);
@@ -792,16 +1101,59 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
   };
 
   // ── attachments ──────────────────────────────────────────────────────────────
+
+  /** Compress any image to JPEG via Canvas (max 1920px, quality 0.85). Returns a JPEG data URL. */
+  function compressImage(dataUrl: string): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1920;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width >= height) { height = Math.round(height * MAX / width); width = MAX; }
+          else { width = Math.round(width * MAX / height); height = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => resolve(dataUrl); // fallback: use original
+      img.src = dataUrl;
+    });
+  }
+
   const addFilesAsAttachments = (files: File[]) => {
     for (const file of files) {
-      if (!file.type.startsWith('image/')) continue;
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') continue;
+      const attId = `att_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      // Always save as .jpg after compression (except PDFs)
+      // Strip only characters invalid in filenames (path separators, control chars, etc.)
+      // Chinese and other Unicode characters are preserved
+      const stripInvalid = (s: string) => s.replace(/[/\\:*?"<>|\x00-\x1f]/g, '_').trim() || 'file';
+      const baseName = stripInvalid(file.name.replace(/\.[^.]+$/, '')) || 'image';
+      const safeName = file.type === 'application/pdf'
+        ? stripInvalid(file.name)
+        : `${baseName}.jpg`;
       const reader = new FileReader();
-      reader.onload = () => {
-        setAttachments(prev => [...prev, {
-          id: `att_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-          dataUrl: reader.result as string,
-          mimeType: file.type,
-        }]);
+      reader.onload = async () => {
+        const rawDataUrl = reader.result as string;
+        // Show original as preview immediately
+        setAttachments(prev => [...prev, { id: attId, dataUrl: rawDataUrl, mimeType: file.type, name: safeName, uploading: true }]);
+        // Compress images via Canvas before uploading
+        const uploadDataUrl = file.type.startsWith('image/')
+          ? await compressImage(rawDataUrl)
+          : rawDataUrl;
+        // Upload to {workspace}/uploads/ (workspace from agent config)
+        const uploadDir = workspace ? `${workspace}/uploads` : '~/.openclaw/uploads';
+        const destPath = `${uploadDir}/${Date.now()}_${safeName}`;
+        try {
+          await client.writeFile(destPath, uploadDataUrl);
+          setAttachments(prev => prev.map(a => a.id === attId ? { ...a, path: destPath, uploading: false } : a));
+        } catch (e) {
+          console.error('[attach] upload failed', e);
+          setAttachments(prev => prev.map(a => a.id === attId ? { ...a, uploading: false } : a));
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -835,24 +1187,37 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
   // ── send ──────────────────────────────────────────────────────────────────────
   const handleSend = async () => {
     const text = input.trim();
-    if ((!text && attachments.length === 0) || sending) return;
+    if ((!text && attachments.length === 0) || sending || attachments.some(a => a.uploading)) return;
     // Execute slash command — pass full input so args are preserved
     if (text.startsWith('/') && showCmds && filteredCmds.length > 0) {
       execCmd(text);
       return;
     }
 
-    // Build content blocks for local display (text + images)
+    // Build path references for uploaded attachments
     const pendingAttachments = [...attachments];
-    const userContent: any = pendingAttachments.length > 0
-      ? [
-          ...(text ? [{ type: 'text', text }] : []),
-          ...pendingAttachments.map(a => ({ type: 'image', source: { type: 'base64', media_type: a.mimeType, data: a.dataUrl } })),
-        ]
-      : text;
+    const pathRefs = pendingAttachments
+      .filter(a => a.path)
+      .map(a => `![${a.name}](${a.path})`)
+      .join('\n');
+    // When no text, use filenames as first line so message never starts with '!'
+    // (Gateway interprets '!' prefix as a bash command)
+    const textForSend = text || pendingAttachments.filter(a => a.path).map(a => a.name).join('、');
+    const fullText = [textForSend, pathRefs].filter(Boolean).join('\n');
+    if (!fullText.trim()) return;
 
+    // Record in input history (deduplicated)
+    if (text) {
+      const hist = inputHistoryRef.current;
+      if (hist.length === 0 || hist[hist.length - 1] !== text) {
+        hist.push(text);
+        if (hist.length > 50) hist.shift();
+      }
+      historyIdxRef.current = -1;
+      draftRef.current = '';
+    }
     preSendCountRef.current = messages.length;
-    setMessages(prev => [...prev, { role: 'user', content: userContent }]);
+    setMessages(prev => [...prev, { id: makeId(), role: 'user', content: fullText }]);
     setInput('');
     setAttachments([]);
     setShowCmds(false);
@@ -861,16 +1226,8 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
     streamTextRef.current = '';
     setStreamText('');
 
-    // Convert attachments to API format (base64 content only, no data URL prefix)
-    const apiAttachments = pendingAttachments.length > 0
-      ? pendingAttachments.map(a => {
-          const parsed = dataUrlToBase64(a.dataUrl);
-          return parsed ? { type: 'image' as const, mimeType: parsed.mimeType, content: parsed.content } : null;
-        }).filter((a): a is NonNullable<typeof a> => a !== null)
-      : undefined;
-
     try {
-      const res = await client.chatSend(sessionKey, text, undefined, apiAttachments);
+      const res = await client.chatSend(sessionKey, fullText);
       activeRunIdRef.current = res.runId;
       setRunId(res.runId);
       console.log('[AgentChat] chatSend ok, runId:', res.runId, 'sessionKey:', sessionKey);
@@ -888,6 +1245,39 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
 
   // ── keyboard in textarea ──────────────────────────────────────────────────────
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // ── Input history navigation ─────────────────────────────────────────────
+    if (!showCmds) {
+      if (e.key === 'ArrowUp') {
+        const atStart = inputRef.current?.selectionStart === 0;
+        const singleLine = !input.includes('\n');
+        if (atStart && singleLine) {
+          const hist = inputHistoryRef.current;
+          if (hist.length === 0) return;
+          e.preventDefault();
+          if (historyIdxRef.current === -1) {
+            draftRef.current = input;
+            historyIdxRef.current = hist.length - 1;
+          } else if (historyIdxRef.current > 0) {
+            historyIdxRef.current--;
+          }
+          setInput(hist[historyIdxRef.current]);
+          return;
+        }
+      }
+      if (e.key === 'ArrowDown' && historyIdxRef.current !== -1) {
+        e.preventDefault();
+        const hist = inputHistoryRef.current;
+        if (historyIdxRef.current < hist.length - 1) {
+          historyIdxRef.current++;
+          setInput(hist[historyIdxRef.current]);
+        } else {
+          historyIdxRef.current = -1;
+          setInput(draftRef.current);
+        }
+        return;
+      }
+    }
+
     if (showCmds) {
       // ── Args mode (argOptions list) ────────────────────────────────────────
       if (cmdMode === 'args' && filteredArgs.length > 0) {
@@ -937,13 +1327,37 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
     }
   };
 
+  // ── filtered + grouped messages ───────────────────────────────────────────────
+  const visibleMessages = useMemo(() => {
+    let msgs = messages.filter(m => !deletedIds.has(m.id));
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      msgs = msgs.filter(m => {
+        const text = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+        return text.toLowerCase().includes(q);
+      });
+    }
+    return msgs;
+  }, [messages, deletedIds, searchQuery]);
+
+  interface MessageGroup { role: 'user' | 'assistant'; messages: ChatMessage[]; }
+  const messageGroups = useMemo((): MessageGroup[] => {
+    const groups: MessageGroup[] = [];
+    for (const msg of visibleMessages) {
+      const last = groups[groups.length - 1];
+      if (last && last.role === msg.role) { last.messages.push(msg); }
+      else { groups.push({ role: msg.role, messages: [msg] }); }
+    }
+    return groups;
+  }, [visibleMessages]);
+
   const activeSession = sessions.find(s => s.key === sessionKey);
-  const sessionTitle = activeSession?.derivedTitle ?? activeSession?.title ?? sessionKey;
+  const sessionTitle = sessionLabel(activeSession ?? { key: sessionKey });
 
   // ── render ────────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="glass-heavy rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
+    <div className={`fixed inset-0 z-50 ${maximized ? '' : 'bg-black/50 backdrop-blur-sm flex items-center justify-center p-4'}`}>
+      <div className={`relative glass-heavy flex flex-col overflow-hidden ${maximized ? 'w-full h-full rounded-none' : 'rounded-2xl w-full max-w-4xl h-[85vh]'}`}>
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/10 shrink-0">
@@ -955,6 +1369,13 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
             <span className="text-white/40 text-xs ml-2 truncate hidden sm:inline">{sessionTitle}</span>
           </div>
           <button
+            onClick={() => setMaximized(v => !v)}
+            title={maximized ? '还原窗口' : '最大化窗口'}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors shrink-0"
+          >
+            {maximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+          <button
             onClick={() => setShowThinking(v => !v)}
             title={showThinking ? '当前：思考模式 — 点击切换到工作输出' : '当前：工作输出 — 点击切换到思考过程'}
             className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors shrink-0 ${
@@ -963,10 +1384,57 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
           >
             <Brain className="w-4 h-4" />
           </button>
+          <button
+            onClick={() => setAutoTTS(v => {
+              if (v) window.speechSynthesis?.cancel();
+              return !v;
+            })}
+            title={autoTTS ? '关闭自动朗读' : '开启自动朗读'}
+            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors shrink-0 ${
+              autoTTS ? 'text-indigo-300 bg-indigo-500/20' : 'text-white/40 hover:text-white/70 hover:bg-white/10'
+            }`}
+          >
+            <Volume2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => { setShowSearch(v => !v); if (showSearch) setSearchQuery(''); }}
+            title="搜索消息"
+            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors shrink-0 ${
+              showSearch ? 'text-indigo-300 bg-indigo-500/20' : 'text-white/40 hover:text-white/70 hover:bg-white/10'
+            }`}
+          >
+            <Search className="w-4 h-4" />
+          </button>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Search bar */}
+        {showSearch && (
+          <div className="px-4 py-2 border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-2 bg-white/8 rounded-lg px-3 py-1.5">
+              <Search className="w-3.5 h-3.5 text-white/30 shrink-0" />
+              <input
+                autoFocus
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="搜索消息…"
+                className="flex-1 bg-transparent text-sm text-white placeholder-white/30 focus:outline-none"
+                onKeyDown={e => { if (e.key === 'Escape') { setShowSearch(false); setSearchQuery(''); } }}
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="text-white/30 hover:text-white/60 transition-colors">
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+            {searchQuery && (
+              <p className="text-[10px] text-white/30 mt-1 px-1">{visibleMessages.length} 条结果</p>
+            )}
+          </div>
+        )}
 
         {/* Body: sidebar + chat */}
         <div className="flex flex-1 min-h-0">
@@ -985,7 +1453,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                 <p className="text-xs text-white/40 text-center py-6 px-3">暂无会话</p>
               ) : (
                 sessions.map(s => {
-                  const title = s.derivedTitle ?? s.title ?? s.key.slice(0, 12) + '…';
+                  const title = sessionLabel(s);
                   const date = formatDate(s.updatedAt ?? s.createdAt);
                   const isActive = s.key === sessionKey;
                   return (
@@ -1038,10 +1506,26 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                   <p className="text-sm text-white/40">向 {agentName} 发送消息开始对话</p>
                   <p className="text-xs text-white/30 mt-1">输入 / 查看快捷命令</p>
                 </div>
+              ) : visibleMessages.length === 0 && searchQuery ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Search className="w-8 h-8 text-white/20 mb-3" />
+                  <p className="text-sm text-white/40">无匹配结果</p>
+                </div>
               ) : (
-                messages.map((msg, i) => (
-                  <ChatBubble key={i} role={msg.role} content={msg.content} showThinking={showThinking} />
-                ))
+                messageGroups.map((group, gi) =>
+                  group.messages.map((msg, mi) => (
+                    <ChatBubble
+                      key={msg.id}
+                      role={msg.role}
+                      content={msg.content}
+                      showThinking={showThinking}
+                      usage={msg.usage}
+                      isFirst={mi === 0}
+                      isLast={mi === group.messages.length - 1}
+                      onDelete={() => handleDeleteMessage(msg.id)}
+                    />
+                  ))
+                )
               )}
 
               {/* Streaming bubble */}
@@ -1064,8 +1548,8 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                     )}
                     {/* Text stream */}
                     {streamText && (
-                      <div className={`bg-white/10 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap transition-opacity ${showThinking && streamThinking ? 'text-white/35' : 'text-white/85'}`}>
-                        {streamText}
+                      <div className="bg-white/10 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-white/85">
+                        <MarkdownBody text={streamText} dim={showThinking && !!streamThinking} />
                         {!streamThinking && <span className="inline-block w-0.5 h-3.5 bg-white/50 ml-0.5 align-middle animate-pulse" />}
                       </div>
                     )}
@@ -1091,6 +1575,24 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
 
               <div ref={bottomRef} />
             </div>
+
+            {/* Context usage warning */}
+            {contextPct !== null && contextPct >= 85 && (
+              <div className="px-5 py-1.5 shrink-0 border-t border-white/8">
+                <div className="flex items-center gap-2">
+                  <span className={`text-[11px] font-mono shrink-0 ${contextPct >= 95 ? 'text-red-400' : 'text-amber-400'}`}>
+                    上下文 {contextPct}%
+                  </span>
+                  <div className="flex-1 h-1 rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${contextPct >= 95 ? 'bg-red-400' : 'bg-amber-400'}`}
+                      style={{ width: `${Math.min(contextPct, 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[11px] text-white/30 shrink-0">建议 /compact</span>
+                </div>
+              </div>
+            )}
 
             {/* Error bar */}
             {sendError && (
@@ -1121,8 +1623,16 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                       <img
                         src={att.dataUrl}
                         alt="attachment"
-                        className="w-16 h-16 object-cover rounded-lg border border-white/20"
+                        className={`w-16 h-16 object-cover rounded-lg border border-white/20 ${att.uploading ? 'opacity-50' : ''}`}
                       />
+                      {att.uploading && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Loader2 className="w-4 h-4 animate-spin text-white" />
+                        </div>
+                      )}
+                      {att.path && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[9px] text-green-400 text-center rounded-b-lg px-1 truncate">✓</div>
+                      )}
                       <button
                         onClick={() => setAttachments(prev => prev.filter(a => a.id !== att.id))}
                         className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px] leading-none"
@@ -1229,6 +1739,19 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                 >
                   <Paperclip className="w-4 h-4" />
                 </button>
+                <button
+                  type="button"
+                  onClick={handleToggleMic}
+                  disabled={sending}
+                  title={isListening ? '停止录音' : '语音输入'}
+                  className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors shrink-0 disabled:opacity-40 ${
+                    isListening
+                      ? 'text-red-400 bg-red-500/15 animate-pulse'
+                      : 'text-white/40 hover:text-indigo-300 hover:bg-white/10'
+                  }`}
+                >
+                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
                 <textarea
                   ref={inputRef}
                   value={input}
@@ -1252,7 +1775,7 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
                 ) : (
                   <button
                     onClick={handleSend}
-                    disabled={!input.trim() && attachments.length === 0}
+                    disabled={(!input.trim() && attachments.length === 0) || attachments.some(a => a.uploading)}
                     className="w-8 h-8 flex items-center justify-center rounded-lg text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 transition-colors shrink-0"
                     title="发送"
                   >
@@ -1264,6 +1787,17 @@ export function AgentChat({ agentId, agentName, workspace: _workspace, onClose, 
             </div>
           </div>
         </div>
+
+        {/* Toast overlay */}
+        {toast && (
+          <div className={`absolute bottom-20 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-xl shadow-xl text-xs font-medium z-20 whitespace-nowrap pointer-events-none transition-all ${
+            toast.ok
+              ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
+              : 'bg-white/10 border border-white/15 text-white/70'
+          }`}>
+            {toast.text}
+          </div>
+        )}
       </div>
     </div>
   );

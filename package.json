@@ -1,6 +1,6 @@
 {
   "name": "agent-control-ui",
-  "version": "2026.3.20",
+  "version": "2026.3.21",
   "description": "OpenClaw Agent Control UI — web control panel for OpenClaw gateway",
   "repository": {
     "type": "git",
@@ -28,7 +28,9 @@
     "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/postcss": "^4.2.1",
     "clsx": "^2.1.1",
+    "dompurify": "^3.3.3",
     "lucide-react": "^0.577.0",
+    "marked": "^17.0.5",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.1",
@@ -37,6 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@types/dompurify": "^3.0.5",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

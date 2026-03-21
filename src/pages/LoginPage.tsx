@@ -22,13 +22,19 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at 20% 50%, #351c7a 0%, #17103c 55%, #112438 100%)' }}>
-      {/* Neon glow orbs */}
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: 'linear-gradient(140deg, #1c1040 0%, #111830 25%, #1a0d36 52%, #0f1828 76%, #160e3c 100%)' }}>
+      {/* Layered colorful blobs — different opacities for depth & refraction */}
       <div className="pointer-events-none">
-        <div className="orb w-[750px] h-[750px] -top-72 -right-52" style={{ background: 'rgba(168,85,247,0.50)' }} />
-        <div className="orb w-[600px] h-[600px] bottom-0 -left-40" style={{ background: 'rgba(59,130,246,0.32)' }} />
-        <div className="orb w-[400px] h-[400px] top-1/3 right-1/4" style={{ background: 'rgba(0,200,255,0.25)' }} />
-        <div className="orb w-[280px] h-[280px] bottom-1/4 left-1/3" style={{ background: 'rgba(0,255,170,0.12)' }} />
+        {/* Layer 1 — large base */}
+        <div className="orb w-[820px] h-[820px] -top-80 -right-56"  style={{ background: 'rgba(150,  80, 230, 0.40)' }} />
+        <div className="orb w-[700px] h-[700px] bottom-0 -left-44"  style={{ background: 'rgba( 30, 140, 255, 0.28)' }} />
+        {/* Layer 2 — mid cross-colors */}
+        <div className="orb w-[460px] h-[460px] top-1/3  right-1/4" style={{ background: 'rgba(230,  70, 160, 0.22)' }} />
+        <div className="orb w-[380px] h-[380px] bottom-1/4 left-1/3" style={{ background: 'rgba( 60, 200, 160, 0.20)' }} />
+        {/* Layer 3 — small accents */}
+        <div className="orb w-[240px] h-[240px] top-[12%] left-[40%]"   style={{ background: 'rgba(255, 160,  50, 0.14)' }} />
+        <div className="orb w-[180px] h-[180px] bottom-[18%] right-[20%]" style={{ background: 'rgba(120, 255, 200, 0.12)' }} />
+        <div className="orb w-[160px] h-[160px] top-[65%] left-[15%]"    style={{ background: 'rgba(180,  60, 255, 0.16)' }} />
       </div>
 
       <div className="relative w-full max-w-sm">
