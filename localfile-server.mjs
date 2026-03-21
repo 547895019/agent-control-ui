@@ -4,7 +4,7 @@ import { join, dirname, resolve } from 'path';
 import { homedir } from 'os';
 import { randomBytes } from 'crypto';
 
-const PORT = 19876;
+const PORT = Number(process.env.LOCALFILE_PORT) || 19876;
 const HOME = homedir();
 
 // Random token generated at startup

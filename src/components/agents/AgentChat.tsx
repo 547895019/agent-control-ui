@@ -6,10 +6,11 @@ import { client } from '../../api/gateway';
 // Configure marked once
 marked.use({ breaks: true, gfm: true } as any);
 
-/** Convert a local file path to a URL served by localfile-server (:19876/raw).
+/** Convert a local file path to a URL served by localfile-server (/raw).
+ *  Port is injected by Vite: 19877 in dev, 19876 in production.
  *  Token is embedded as a query param so <img src="..."> requests are authenticated. */
 function localFileUrl(path: string, token = ''): string {
-  const base = `http://${window.location.hostname}:19876`;
+  const base = `http://${window.location.hostname}:${__LOCALFILE_PORT__}`;
   const tok = token ? `&token=${token}` : '';
   return `${base}/raw?path=${encodeURIComponent(path)}${tok}`;
 }

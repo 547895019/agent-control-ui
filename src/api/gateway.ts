@@ -353,10 +353,10 @@ export class GatewayClient {
     return this.rpc('config.patch', { raw: JSON.stringify(raw), baseHash });
   }
 
-  // Local file server (localfile-server.mjs) runs on port 19876 in dev mode.
+  // Local file server port: 19877 in dev (injected by Vite), 19876 in production.
   // Use same hostname as current page so WSL2 / remote access works correctly.
   private get localFileBase() {
-    return `http://${window.location.hostname}:19876`;
+    return `http://${window.location.hostname}:${__LOCALFILE_PORT__}`;
   }
 
   // Token fetched once from /token (no-auth bootstrap endpoint, only reachable from localhost)
