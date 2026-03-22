@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { client } from '../../api/gateway';
+import { ModelSelect } from '../shared/ModelSelect';
 
 // Configure marked once
 marked.use({ breaks: true, gfm: true } as any);
@@ -49,7 +50,7 @@ function MarkdownBody({ text, dim }: { text: string; dim?: boolean }) {
   const html = useMemo(() => renderMarkdown(text), [text]);
   return (
     <div
-      className={`md-body text-sm leading-relaxed transition-opacity ${dim ? 'opacity-40' : 'opacity-100'}`}
+      className={`md-body text-sm leading-relaxed transition-opacity break-words ${dim ? 'opacity-40' : 'opacity-100'}`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -58,9 +59,9 @@ import {
   X, Send, Square, Loader2, AlertCircle,
   Bot, User, Wrench, ChevronDown, ChevronRight,
   MessageSquare, Plus, Hash, Paperclip, Brain,
-  Copy, Check, Search, Trash2,
+  Copy, Check, Search, Trash2, Pencil,
   Mic, MicOff, Volume2, VolumeX,
-  Maximize2, Minimize2,
+  Maximize2, Minimize2, Download,
 } from 'lucide-react';
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ interface SessionMeta {
   createdAt?: string;
   updatedAt?: string;
   messageCount?: number;
+  model?: string;
 }
 
 interface ChatAttachment {
@@ -157,6 +159,130 @@ function parseHistory(res: any): ChatMessage[] {
   return raw.filter((e: any) => e?.role === 'user' || e?.role === 'assistant')
     // Use stable index-based IDs so localStorage-persisted deleted IDs survive reopens
     .map((e: any, i: number) => ({ id: `hist_${i}`, role: e.role as 'user' | 'assistant', content: e.content ?? '' }));
+}
+
+const MD_IMG_RE = /!\[([^\]]*)\]\(([^)]+)\)/g;
+
+async function exportConversation(
+  agentName: string,
+  sessionKey: string,
+  messages: ChatMessage[]
+) {
+  const { default: JSZip } = await import('jszip');
+  const zip = new JSZip();
+  const assetsFolder = zip.folder('assets')!;
+  const assetMap = new Map<string, string>(); // localPath -> filename in assets/
+  const fileDataUrls = new Map<string, string>(); // filename -> data URL for HTML embedding
+
+  // 1. Collect all local asset paths from messages
+  for (const msg of messages) {
+    const text = extractContent(msg.content).filter(b => b.kind === 'text').map(b => b.text).join('\n\n');
+    for (const match of text.matchAll(new RegExp(MD_IMG_RE.source, 'g'))) {
+      const src = match[2];
+      if (isLocalPath(src) && !assetMap.has(src)) {
+        const basename = src.split('/').pop() || `file_${assetMap.size}`;
+        const uniqueName = assetMap.size === 0 ? basename : `${assetMap.size}_${basename}`;
+        assetMap.set(src, uniqueName);
+      }
+    }
+  }
+
+  // 2. Download all assets in parallel; build data URLs for self-contained HTML
+  await Promise.all([...assetMap.entries()].map(async ([localPath, assetName]) => {
+    try {
+      const url = localFileUrl(localPath, _lfToken);
+      const res = await fetch(url);
+      if (res.ok) {
+        const buf = await res.arrayBuffer();
+        assetsFolder.file(assetName, buf);
+        const mime = res.headers.get('content-type') || 'application/octet-stream';
+        const bytes = new Uint8Array(buf);
+        const chunks: string[] = [];
+        for (let i = 0; i < bytes.length; i += 8192) {
+          chunks.push(String.fromCharCode(...(bytes.subarray(i, i + 8192) as unknown as number[])));
+        }
+        fileDataUrls.set(assetName, `data:${mime};base64,${btoa(chunks.join(''))}`);
+      }
+    } catch {}
+  }));
+
+  // 3. Build conversation.md and index.html (local paths → ./assets/filename)
+  const mdLines: string[] = [`# ${agentName} — ${sessionKey}\n`];
+  const htmlParts: string[] = [];
+  for (const msg of messages) {
+    const roleLabel = msg.role === 'user' ? 'User' : 'Assistant';
+    let text = extractContent(msg.content).filter(b => b.kind === 'text').map(b => b.text).join('\n\n');
+    if (!text.trim()) continue;
+    text = text.replace(new RegExp(MD_IMG_RE.source, 'g'), (_m: string, alt: string, src: string) => {
+      if (isLocalPath(src) && assetMap.has(src)) {
+        return `![${alt}](./assets/${assetMap.get(src)})`;
+      }
+      return `![${alt}](${src})`;
+    });
+    mdLines.push(`### **${roleLabel}**\n\n${text}\n`);
+    let bodyHtml = DOMPurify.sanitize(marked.parse(text) as string, {
+      ALLOWED_TAGS: ['p','br','strong','b','em','i','del','s','code','pre',
+        'h1','h2','h3','h4','h5','h6','ul','ol','li','blockquote','a',
+        'table','thead','tbody','tr','th','td','hr','img'],
+      ALLOWED_ATTR: ['href','src','alt','width','height'],
+    });
+    // Replace ./assets/filename with inline data URLs so HTML is self-contained
+    bodyHtml = bodyHtml.replace(/src="\.\/assets\/([^"]+)"/g, (_m, filename) => {
+      const dataUrl = fileDataUrls.get(filename);
+      return dataUrl ? `src="${dataUrl}"` : `src="./assets/${filename}"`;
+    });
+    htmlParts.push(
+      `<div class="msg ${msg.role}"><div class="role">${roleLabel}</div><div class="body">${bodyHtml}</div></div>`
+    );
+  }
+  zip.file('conversation.md', mdLines.join('\n'));
+
+  const title = `${agentName} — ${sessionKey}`;
+  const htmlContent = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#f9fafb;color:#111827;line-height:1.65}
+.container{max-width:880px;margin:0 auto;padding:2rem 1rem}
+h1{font-size:1.1rem;color:#374151;padding-bottom:1rem;border-bottom:1px solid #e5e7eb;margin-bottom:1.5rem;font-weight:600}
+.msg{margin-bottom:1.25rem;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.role{padding:.4rem 1rem;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.body{padding:1rem 1.25rem;background:#fff}.body>*+*{margin-top:.75rem}
+.user .role{background:#eff6ff;color:#1d4ed8}.assistant .role{background:#f0fdf4;color:#15803d}
+img{max-width:100%;border-radius:6px;display:block;margin:.25rem 0}
+pre{background:#1e1e2e;color:#cdd6f4;padding:1rem;border-radius:6px;overflow-x:auto;font-size:.85rem;line-height:1.5}
+code{background:#f3f4f6;padding:.15em .4em;border-radius:4px;font-size:.85em;font-family:ui-monospace,'Cascadia Code',monospace}
+pre code{background:none;padding:0;font-size:inherit}
+blockquote{border-left:4px solid #d1d5db;padding:.5rem 1rem;color:#6b7280;background:#f9fafb;border-radius:0 4px 4px 0}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin:.5rem 0}
+th,td{border:1px solid #e5e7eb;padding:.45rem .75rem;text-align:left}th{background:#f3f4f6;font-weight:600}
+a{color:#2563eb}hr{border:none;border-top:1px solid #e5e7eb;margin:.5rem 0}
+ul,ol{padding-left:1.5rem}h2,h3,h4{font-weight:600}
+p{margin:0}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>${title}</h1>
+${htmlParts.join('\n')}
+</div>
+</body>
+</html>`;
+  zip.file('index.html', htmlContent);
+
+  // 4. Trigger download
+  const date = new Date().toISOString().slice(0, 10);
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${agentName}_${date}.zip`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ── slash commands ────────────────────────────────────────────────────────────
@@ -407,14 +533,14 @@ function ChatBubble({ role, content, showThinking, usage, isFirst = true, isLast
   );
 
   return (
-    <div className={`flex gap-3 group ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex gap-3 group w-full min-w-0 ${isUser ? 'flex-row-reverse' : ''}`}>
       {avatar}
       <div className={`max-w-[78%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-1 min-w-0`}>
         {thinkingBlocks.length > 0 && thinkingBlocks.map((b, i) => (
           <ThinkingBlock key={i} text={b.text} forceOpen={showThinking || undefined} />
         ))}
         {displayText && (
-          <div className={`rounded-2xl px-3.5 py-2.5 ${
+          <div className={`rounded-2xl px-3.5 py-2.5 overflow-hidden w-full ${
             isUser
               ? `bg-indigo-600 text-white ${isFirst ? 'rounded-tr-sm' : ''}`
               : `bg-white/10 text-white/85 ${isFirst ? 'rounded-tl-sm' : ''}`
@@ -474,7 +600,13 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
   // ── session list ────────────────────────────────────────────────────────────
   const [sessions, setSessions] = useState<SessionMeta[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [editingSessionKey, setEditingSessionKey] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [inputExpanded, setInputExpanded] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [inputOverflows, setInputOverflows] = useState(false);
   const [activeKey, setActiveKey] = useState<string>(defaultSessionKey);
+  const [sessionModel, setSessionModel] = useState('');
 
   const sessionKey = activeKey;
 
@@ -594,7 +726,10 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
       .then(res => {
         const list: SessionMeta[] = (res?.sessions ?? []).sort((a: SessionMeta, b: SessionMeta) =>
           (b.updatedAt ?? '') > (a.updatedAt ?? '') ? 1 : -1
-        );
+        ).map((s: SessionMeta) => {
+          const saved = localStorage.getItem(`openclaw:session-title:${s.key}`);
+          return saved ? { ...s, title: saved } : s;
+        });
         setSessions(list);
         // Default to most recent session, fall back to agent-scoped default key
         setActiveKey(list.length > 0 ? list[0].key : defaultSessionKey);
@@ -773,6 +908,20 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     window.speechSynthesis.speak(utter);
   }, [messages, autoTTS]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── textarea auto-grow (max 6 lines, expandable) ──────────────────────────────
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 22;
+    const maxH = lineHeight * 6;
+    const expandedMaxH = Math.floor(window.innerHeight * 0.5);
+    const overflows = el.scrollHeight > maxH;
+    setInputOverflows(overflows);
+    if (!overflows) setInputExpanded(false);
+    el.style.height = Math.min(el.scrollHeight, inputExpanded ? expandedMaxH : maxH) + 'px';
+  }, [input, inputExpanded]);
+
   // ── new session ───────────────────────────────────────────────────────────────
   const sendStartup = (key: string, cmd: '/new' | '/reset') => {
     preSendCountRef.current = 0;
@@ -800,6 +949,43 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     } else {
       setTimeout(() => inputRef.current?.focus(), 50);
     }
+  };
+
+  // ── sync session model when active session changes ────────────────────────────
+  useEffect(() => {
+    const s = sessions.find(s => s.key === activeKey);
+    setSessionModel(s?.model ?? '');
+  }, [activeKey, sessions]);
+
+  const handleModelChange = async (model: string) => {
+    const prev = sessionModel;
+    setSessionModel(model);
+    try {
+      await client.sessionsPatch(sessionKey, { model: model || null });
+    } catch {
+      setSessionModel(prev);
+    }
+  };
+
+  // ── session rename / delete ───────────────────────────────────────────────────
+  const handleSessionRename = (key: string, newTitle: string) => {
+    setEditingSessionKey(null);
+    if (!newTitle.trim()) return;
+    try { localStorage.setItem(`openclaw:session-title:${key}`, newTitle.trim()); } catch {}
+    setSessions(prev => prev.map(s => s.key === key ? { ...s, title: newTitle.trim() } : s));
+  };
+
+  const handleSessionDelete = async (key: string) => {
+    if (!window.confirm('确认删除该会话？此操作不可恢复。')) return;
+    try { localStorage.removeItem(`openclaw:session-title:${key}`); } catch {}
+    try {
+      await client.sessionsDelete(key);
+    } catch {}
+    setSessions(prev => {
+      const next = prev.filter(s => s.key !== key);
+      if (key === activeKey && next.length > 0) setActiveKey(next[0].key);
+      return next;
+    });
   };
 
   // ── clear/reload ──────────────────────────────────────────────────────────────
@@ -1222,6 +1408,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     setInput('');
     setAttachments([]);
     setShowCmds(false);
+    setInputExpanded(false);
     setSending(true);
     setSendError('');
     streamTextRef.current = '';
@@ -1322,10 +1509,6 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
         if (e.key === 'Escape') { e.preventDefault(); setShowCmds(false); return; }
       }
     }
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
   };
 
   // ── filtered + grouped messages ───────────────────────────────────────────────
@@ -1398,6 +1581,13 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
             <Volume2 className="w-4 h-4" />
           </button>
           <button
+            onClick={() => exportConversation(agentName, activeKey, messages)}
+            title="导出会话（Markdown + 资源）"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors shrink-0"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+          <button
             onClick={() => { setShowSearch(v => !v); if (showSearch) setSearchQuery(''); }}
             title="搜索消息"
             className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors shrink-0 ${
@@ -1441,11 +1631,18 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
         <div className="flex flex-1 min-h-0">
 
           {/* Session sidebar — hidden in focus mode */}
-          <div className={`w-48 shrink-0 border-r border-white/10 flex flex-col transition-all ${focusMode ? 'hidden' : ''}`}>
-            <div className="px-3 py-2 border-b border-white/8">
-              <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider">会话列表</span>
+          <div className={`shrink-0 border-r border-white/10 flex flex-col transition-all duration-200 ${focusMode ? 'hidden' : ''} ${sidebarCollapsed ? 'w-8' : 'w-48'}`}>
+            <div className="px-3 py-2 border-b border-white/8 flex items-center gap-1 min-w-0">
+              {!sidebarCollapsed && <span className="text-[10px] font-medium text-white/40 uppercase tracking-wider flex-1 truncate">会话列表</span>}
+              <button
+                onClick={() => setSidebarCollapsed(v => !v)}
+                className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-white/30 hover:text-white/60 hover:bg-white/10 transition-colors"
+                title={sidebarCollapsed ? '展开会话列表' : '折叠会话列表'}
+              >
+                <ChevronDown className={`w-3 h-3 transition-transform ${sidebarCollapsed ? '-rotate-90' : 'rotate-90'}`} />
+              </button>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className={`flex-1 overflow-y-auto ${sidebarCollapsed ? 'hidden' : ''}`}>
               {sessionsLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-4 h-4 animate-spin text-white/40" />
@@ -1454,35 +1651,91 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
                 <p className="text-xs text-white/40 text-center py-6 px-3">暂无会话</p>
               ) : (
                 sessions.map(s => {
-                  const title = sessionLabel(s);
+                  const title = (s as any).title ?? sessionLabel(s);
                   const date = formatDate(s.updatedAt ?? s.createdAt);
                   const isActive = s.key === sessionKey;
+                  const isEditing = editingSessionKey === s.key;
                   return (
-                    <button
+                    <div
                       key={s.key}
-                      onClick={() => setActiveKey(s.key)}
-                      className={`w-full text-left px-3 py-2.5 border-b border-white/8 transition-colors ${
+                      className={`group relative border-b border-white/8 ${
                         isActive
                           ? 'bg-indigo-500/15 border-l-2 border-l-indigo-400'
-                          : 'hover:bg-white/8 border-l-2 border-l-transparent'
+                          : 'border-l-2 border-l-transparent hover:bg-white/8'
                       }`}
                     >
-                      <p className={`text-xs font-medium truncate ${isActive ? 'text-indigo-300' : 'text-white/80'}`}>
-                        {title}
-                      </p>
-                      {date && <p className="text-[10px] text-white/40 mt-0.5">{date}</p>}
-                    </button>
+                      {isEditing ? (
+                        <div className="flex items-center gap-1 px-2 py-2">
+                          <input
+                            autoFocus
+                            value={editingTitle}
+                            onChange={e => setEditingTitle(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') handleSessionRename(s.key, editingTitle);
+                              if (e.key === 'Escape') setEditingSessionKey(null);
+                            }}
+                            onBlur={() => handleSessionRename(s.key, editingTitle)}
+                            className="flex-1 min-w-0 bg-white/10 text-white text-xs px-2 py-1 rounded focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                          />
+                          <button
+                            onMouseDown={e => e.preventDefault()}
+                            onClick={() => handleSessionRename(s.key, editingTitle)}
+                            className="shrink-0 text-indigo-300 hover:text-white"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setActiveKey(s.key)}
+                          className="w-full text-left px-3 py-2.5 pr-14"
+                        >
+                          <p className={`text-xs font-medium truncate ${isActive ? 'text-indigo-300' : 'text-white/80'}`}>
+                            {title}
+                          </p>
+                          {date && <p className="text-[10px] text-white/40 mt-0.5">{date}</p>}
+                        </button>
+                      )}
+                      {!isEditing && (
+                        <div className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5">
+                          <button
+                            onClick={e => { e.stopPropagation(); setEditingTitle(title); setEditingSessionKey(s.key); }}
+                            className="w-5 h-5 flex items-center justify-center text-white/40 hover:text-white/80 rounded transition-colors"
+                            title="重命名"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); handleSessionDelete(s.key); }}
+                            className="w-5 h-5 flex items-center justify-center text-white/40 hover:text-red-400 rounded transition-colors"
+                            title="删除会话"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   );
                 })
               )}
             </div>
-            <div className="border-t border-white/10 p-2">
+            <div className="border-t border-white/10 p-2 space-y-1.5">
+              {!sidebarCollapsed && (
+                <ModelSelect
+                  value={sessionModel}
+                  onChange={handleModelChange}
+                  placeholder="默认模型"
+                  disabled={sending}
+                  upward
+                />
+              )}
               <button
                 onClick={() => handleNewSession(true)}
-                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-white/40 hover:text-indigo-300 hover:bg-indigo-500/15 rounded-lg transition-colors"
+                className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs text-white/40 hover:text-indigo-300 hover:bg-indigo-500/15 rounded-lg transition-colors ${sidebarCollapsed ? 'justify-center' : ''}`}
+                title="新建会话"
               >
-                <Plus className="w-3.5 h-3.5" />
-                新建会话
+                <Plus className="w-3.5 h-3.5 shrink-0" />
+                {!sidebarCollapsed && '新建会话'}
               </button>
             </div>
           </div>
@@ -1491,7 +1744,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
           <div className="flex-1 flex flex-col min-w-0">
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-4">
               {histLoading ? (
                 <div className="flex items-center justify-center py-16">
                   <Loader2 className="w-5 h-5 animate-spin text-white/40" />
@@ -1531,11 +1784,11 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
 
               {/* Streaming bubble */}
               {(streamText || streamThinking) && (
-                <div className="flex gap-3">
+                <div className="flex gap-3 w-full min-w-0">
                   <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 bg-white/10">
                     <Bot className="w-3.5 h-3.5 text-white/50" />
                   </div>
-                  <div className="max-w-[78%] flex flex-col gap-1">
+                  <div className="max-w-[78%] flex flex-col gap-1 min-w-0">
                     {/* Thinking stream */}
                     {streamThinking && (
                       <div className={`rounded-lg border border-indigo-500/25 bg-indigo-500/8 px-3.5 py-2.5 text-[11px] font-mono text-indigo-200/70 leading-relaxed whitespace-pre-wrap transition-opacity ${showThinking ? 'opacity-100' : 'opacity-40'}`}>
@@ -1727,10 +1980,20 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
                 )}
 
               <div
-                className="flex items-end gap-2 border border-white/20 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-white/40 focus-within:border-white/40 transition-all"
+                className="relative flex items-end gap-2 border border-white/20 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-white/40 focus-within:border-white/40 transition-all"
                 onDragOver={e => e.preventDefault()}
                 onDrop={handleDrop}
               >
+                {(inputOverflows || inputExpanded) && (
+                  <button
+                    type="button"
+                    onClick={() => setInputExpanded(v => !v)}
+                    className="absolute right-2 top-2 w-5 h-5 flex items-center justify-center text-white/30 hover:text-white/70 transition-colors z-10"
+                    title={inputExpanded ? '收起' : '展开'}
+                  >
+                    {inputExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -1760,10 +2023,10 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
                   onKeyDown={handleKeyDown}
                   onPaste={handlePaste}
                   disabled={sending}
-                  placeholder="输入消息… (Enter 发送 · / 查看命令 · 可粘贴图片)"
+                  placeholder="输入消息… (/ 查看命令 · 可粘贴图片)"
                   rows={1}
                   className="flex-1 resize-none text-sm text-white placeholder-white/40 focus:outline-none leading-relaxed bg-transparent disabled:opacity-60"
-                  style={{ maxHeight: '8rem', overflowY: 'auto' }}
+                  style={{ overflowY: 'auto' }}
                 />
                 {sending ? (
                   <button

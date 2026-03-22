@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppStore } from '../stores/useAppStore';
 import { client } from '../api/gateway';
 import { AgentChat } from '../components/agents/AgentChat';
+import { fillTemplate } from '../utils/template';
+import meetingHostPromptTemplate from '../templates/meeting-host-prompt.md?raw';
 import {
   Users, Plus, Loader2, CheckCircle2, ChevronDown, ChevronRight,
-  Trash2,
+  Trash2, RotateCcw,
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -21,6 +23,7 @@ interface MeetingRecord {
   result: string;
   sessionKey: string;  // unique per meeting, never reused
   channel?: { channelId: string; target: string };  // optional channel delivery
+  prompt?: string;  // custom prompt set at creation time (may be user-edited)
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -38,24 +41,10 @@ function buildHostPrompt(
     .join('\n');
 
   const channelSection = channel
-    ? `\n## 发送频道\n会议结束后，请通过 ${CHANNEL_LABELS[channel.channelId] ?? channel.channelId} 频道将最终结论发送给 ${channel.target}。\n`
+    ? `## 发送频道\n会议结束后，请通过 ${CHANNEL_LABELS[channel.channelId] ?? channel.channelId} 频道将最终结论发送给 ${channel.target}。`
     : '';
 
-  return `你正在主持一次多 Agent 协同会议。
-
-## 会议主题
-${topic}
-
-## 参会代理
-请分别向以下 Agent 发送任务，收集他们的专业意见：
-${list}
-
-## 任务流程
-1. 向每位参会 Agent 发送询问，请他们从各自专业角度提供：核心观点与分析、具体可行建议、潜在风险或注意事项
-2. 收集所有回复
-3. 综合各方意见，提炼共识与分歧，整合最优方案，给出明确结论和行动建议
-${channelSection}
-请直接开始主持并输出最终结论。`;
+  return fillTemplate(meetingHostPromptTemplate, { topic, list, channelSection }).trimEnd();
 }
 
 // ── Channel helpers ────────────────────────────────────────────────────────────
@@ -223,6 +212,8 @@ function MeetingSetupForm({ onStart }: { onStart: (record: MeetingRecord) => voi
   const [hostId, setHostId] = useState('');
   const [participantIds, setParticipantIds] = useState<string[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [editedPrompt, setEditedPrompt] = useState('');
+  const [promptDirty, setPromptDirty] = useState(false);
 
   // Channel state
   const [channelId, setChannelId] = useState('');
@@ -277,9 +268,17 @@ function MeetingSetupForm({ onStart }: { onStart: (record: MeetingRecord) => voi
     ? buildHostPrompt(topic.trim(), participantIds.map(id => ({ id, name: agents[id]?.name || id })), previewChannel)
     : '填写主题、发起人和参会人后预览…';
 
+  // Keep editedPrompt in sync with auto-generated prompt when user hasn't manually edited
+  useEffect(() => {
+    if (!promptDirty) {
+      setEditedPrompt(previewPrompt);
+    }
+  }, [previewPrompt, promptDirty]);
+
   const handleStart = () => {
     if (!canStart) return;
     const id = `mtg_${Date.now()}`;
+    const finalPrompt = promptDirty ? editedPrompt : previewPrompt;
     const record: MeetingRecord = {
       id,
       title: topic.slice(0, 30),
@@ -291,6 +290,7 @@ function MeetingSetupForm({ onStart }: { onStart: (record: MeetingRecord) => voi
       createdAt: new Date().toISOString(),
       result: '',
       sessionKey: `agent:${hostId}:mtg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      prompt: finalPrompt,
       ...(channelId && channelTarget.trim() ? { channel: { channelId, target: channelTarget.trim() } } : {}),
     };
     upsertMeeting(record);
@@ -409,17 +409,33 @@ function MeetingSetupForm({ onStart }: { onStart: (record: MeetingRecord) => voi
           </div>
 
           <div className="rounded-xl border border-white/10 overflow-hidden">
-            <button
-              onClick={() => setShowPreview(v => !v)}
-              className="w-full flex items-center gap-2 px-3.5 py-2.5 text-xs text-white/40 hover:text-white/60 hover:bg-white/5 transition-colors"
-            >
-              {showPreview ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-              发送给发起人的提示词预览
-            </button>
+            <div className="w-full flex items-center gap-2 px-3.5 py-2.5 text-xs">
+              <button
+                onClick={() => setShowPreview(v => !v)}
+                className="flex items-center gap-2 text-white/40 hover:text-white/60 transition-colors flex-1 text-left"
+              >
+                {showPreview ? <ChevronDown className="w-3.5 h-3.5 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
+                发送给发起人的提示词{promptDirty ? <span className="text-amber-400/70">（已编辑）</span> : <span className="text-white/25">预览</span>}
+              </button>
+              {promptDirty && (
+                <button
+                  onClick={() => { setEditedPrompt(previewPrompt); setPromptDirty(false); }}
+                  className="flex items-center gap-1 text-white/30 hover:text-white/60 transition-colors shrink-0"
+                  title="重置为自动生成的提示词"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  重置
+                </button>
+              )}
+            </div>
             {showPreview && (
-              <pre className="px-3.5 py-3 text-[11px] text-white/50 font-mono whitespace-pre-wrap border-t border-white/10 leading-relaxed bg-white/3">
-                {previewPrompt}
-              </pre>
+              <textarea
+                value={editedPrompt}
+                onChange={e => { setEditedPrompt(e.target.value); setPromptDirty(true); }}
+                rows={10}
+                className="w-full px-3.5 py-3 text-[11px] text-white/70 font-mono border-t border-white/10 leading-relaxed bg-white/3 resize-y focus:outline-none focus:bg-white/5 transition-colors"
+                placeholder="填写主题、发起人和参会人后预览…"
+              />
             )}
           </div>
         </div>
@@ -595,7 +611,9 @@ function MeetingRunner({
       id,
       name: agents[id]?.name || id,
     }));
-    client.chatSend(sessionKey, buildHostPrompt(initialMeeting.topic, participants, initialMeeting.channel)).catch(() => {
+    const prompt = initialMeeting.prompt
+      || buildHostPrompt(initialMeeting.topic, participants, initialMeeting.channel);
+    client.chatSend(sessionKey, prompt).catch(() => {
       setDone(true);
       const updated = { ...meetingRef.current, status: 'error' as const };
       meetingRef.current = updated;

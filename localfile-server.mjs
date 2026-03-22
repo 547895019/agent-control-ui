@@ -72,12 +72,16 @@ const server = createServer((req, res) => {
     return;
   }
 
-  // ── /raw: serve binary files for <img> tags ────────────────────────────────
-  // No CORS headers here — blocks cross-origin JS reads while <img> still works.
+  // ── /raw: serve binary files for <img> tags and same-origin fetch ────────────
+  // CORS allowed for localhost origins so that fetch() can read assets for export.
   // Token checked via query param so URLs embedded in HTML/CSS still work.
   if (req.method === 'GET' && url.pathname === '/raw') {
     const reqToken = url.searchParams.get('token') ?? '';
     if (reqToken !== TOKEN) { res.writeHead(401); res.end(); return; }
+    if (isLocalhostOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+    }
     try {
       const rawPath = resolvePath(url.searchParams.get('path') ?? '');
       const ext = rawPath.slice(rawPath.lastIndexOf('.')).toLowerCase();

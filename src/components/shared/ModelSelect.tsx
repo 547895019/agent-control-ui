@@ -42,9 +42,10 @@ interface ModelSelectProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  upward?: boolean;
 }
 
-export function ModelSelect({ value, onChange, placeholder = 'provider/model', disabled, className }: ModelSelectProps) {
+export function ModelSelect({ value, onChange, placeholder = 'provider/model', disabled, className, upward }: ModelSelectProps) {
   const [models, setModels] = useState<ModelEntry[]>(cachedModels ?? []);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -134,7 +135,7 @@ export function ModelSelect({ value, onChange, placeholder = 'provider/model', d
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 left-0 right-0 mt-1.5 glass-heavy rounded-2xl shadow-2xl shadow-black/60 overflow-hidden ring-1 ring-white/8">
+        <div className={`absolute z-50 left-0 min-w-[260px] w-full glass-heavy rounded-2xl shadow-2xl shadow-black/60 overflow-hidden ring-1 ring-white/8 ${upward ? 'bottom-full mb-1.5' : 'mt-1.5'}`}>
           {/* Search */}
           <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10">
             <Search className="w-3.5 h-3.5 text-white/30 shrink-0" />

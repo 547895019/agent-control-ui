@@ -244,7 +244,7 @@ export function AgentsPage() {
                   className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs text-white/60 bg-white/8 hover:bg-white/15 rounded-lg transition-colors border border-white/8"
                 >
                   <FolderOpen className="w-3 h-3" />
-                  文件
+                  记忆
                 </button>
                 <button
                   onClick={() => setSkillsAgent({ id, config })}

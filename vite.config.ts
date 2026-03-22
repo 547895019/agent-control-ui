@@ -15,6 +15,9 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
     __LOCALFILE_PORT__: JSON.stringify(localfilePort),
   },
+  optimizeDeps: {
+    include: ['jszip'],
+  },
   server: {
     proxy: {
       '/api': {

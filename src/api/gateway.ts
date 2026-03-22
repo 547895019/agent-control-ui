@@ -460,6 +460,10 @@ export class GatewayClient {
     return this.rpc('sessions.patch', { key, ...patch });
   }
 
+  sessionsDelete(key: string): Promise<any> {
+    return this.rpc('sessions.delete', { key });
+  }
+
   modelsList(): Promise<any> {
     return this.rpc('models.list', {});
   }
@@ -470,6 +474,10 @@ export class GatewayClient {
 
   agentFilesSet(agentId: string, name: string, content: string): Promise<any> {
     return this.rpc('agents.files.set', { agentId, name, content });
+  }
+
+  agentFilesList(agentId: string, dir: string): Promise<any> {
+    return this.rpc('agents.files.list', { agentId, dir });
   }
 
   sessionsList(params: { agentId?: string; limit?: number; search?: string; includeDerivedTitles?: boolean; includeLastMessage?: boolean }): Promise<any> {

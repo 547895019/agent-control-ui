@@ -1,3 +1,14 @@
+// Guide content imports (from MD files)
+import identityGuide from '../../templates/guides/IDENTITY.md?raw';
+import agentsGuide from '../../templates/guides/AGENTS.md?raw';
+import soulGuide from '../../templates/guides/SOUL.md?raw';
+import memoryGuide from '../../templates/guides/MEMORY.md?raw';
+import userGuide from '../../templates/guides/USER.md?raw';
+import bootstrapGuide from '../../templates/guides/BOOTSTRAP.md?raw';
+import heartbeatGuide from '../../templates/guides/HEARTBEAT.md?raw';
+import toolsGuide from '../../templates/guides/TOOLS.md?raw';
+
+// Template content imports (existing)
 import identityTemplate from '../../templates/file-templates/IDENTITY.md?raw';
 import agentsTemplate from '../../templates/file-templates/AGENTS.md?raw';
 import soulTemplate from '../../templates/file-templates/SOUL.md?raw';
@@ -12,379 +23,66 @@ export interface FileGuide {
   subtitle: string;
   purpose: string;
   updateFrequency: string;
-  sections: {
-    heading: string;
-    content: string;
-  }[];
+  sections: { heading: string; content: string }[];
   template: string;
   tips: string[];
 }
 
+function parseGuideMarkdown(raw: string, template: string): FileGuide {
+  // Extract frontmatter
+  const fmMatch = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  const fmRaw = fmMatch?.[1] ?? '';
+  const body = (fmMatch?.[2] ?? raw).trim();
+
+  const fm: Record<string, string> = {};
+  for (const line of fmRaw.split('\n')) {
+    const idx = line.indexOf(':');
+    if (idx > 0) fm[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+  }
+
+  // Split body by ## headings
+  const parts = body.split(/^## /m).filter(Boolean);
+  let purpose = '';
+  const sections: { heading: string; content: string }[] = [];
+  const tips: string[] = [];
+
+  for (const part of parts) {
+    const nl = part.indexOf('\n');
+    const heading = (nl === -1 ? part : part.slice(0, nl)).trim();
+    const content = (nl === -1 ? '' : part.slice(nl + 1)).trim();
+
+    if (heading === '用途') {
+      purpose = content;
+    } else if (heading === '使用建议') {
+      for (const line of content.split('\n')) {
+        const m = line.match(/^-\s+(.+)/);
+        if (m) tips.push(m[1].trim());
+      }
+    } else {
+      sections.push({ heading, content });
+    }
+  }
+
+  return {
+    title: fm.title ?? '',
+    subtitle: fm.subtitle ?? '',
+    purpose,
+    updateFrequency: fm.updateFrequency ?? '',
+    sections,
+    template,
+    tips,
+  };
+}
+
 export const FILE_GUIDES: Record<string, FileGuide> = {
-  'IDENTITY.md': {
-    title: 'IDENTITY.md',
-    subtitle: 'Agent 身份档案',
-    purpose: '定义 Agent 的核心身份信息：名字、角色、所属团队、使用模型、职责描述。这是系统加载 Agent 时最先读取的文件，相当于 Agent 的"户口本"。',
-    updateFrequency: '创建时填写，角色/模型变更时更新',
-    sections: [
-      {
-        heading: '基本信息',
-        content: `记录 Agent 的标识信息：
-
-- **ID**：全局唯一标识符，建议用 \`team-role\` 格式，如 \`software-team-frontend\`
-- **名称**：可读名称，如 \`前端开发工程师\`
-- **Emoji**：Agent 的专属图标，用于在列表和消息中快速识别
-- **角色类型**：如 \`frontend\`、\`backend\`、\`architect\`、\`qa\`
-- **所属团队**：如 \`software-team\`
-- **模型**：该 Agent 使用的 AI 模型，如 \`claude-opus-4-6\`、\`kimi-coding/k2p5\``,
-      },
-      {
-        heading: '职责描述',
-        content: `用简洁的中文列出该 Agent 负责的核心工作项。每条职责对应一个具体的输出物或工作领域。
-
-例如架构师：
-- 系统架构设计
-- 技术选型与评审
-- 接口规范制定
-
-例如前端工程师：
-- 前端开发与 UI 实现
-- 与设计稿还原
-- 性能优化`,
-      },
-      {
-        heading: '工作区路径',
-        content: '在文件末尾注明工作区的相对路径，方便其他 Agent 引用和跨工作区协作时定位。',
-      },
-    ],
-    template: identityTemplate,
-    tips: [
-      'ID 一旦确定不建议修改，其他 Agent 可能通过 ID 引用该 Agent',
-      '模型选型：复杂推理用 claude-opus-4-6，代码生成可用 kimi-coding/k2p5',
-      'Emoji 要唯一，便于在多 Agent 并行工作时快速分辨',
-    ],
-  },
-
-  'AGENTS.md': {
-    title: 'AGENTS.md',
-    subtitle: '工作区说明与行为规范',
-    purpose: '描述该工作区的用途和 Agent 的默认行为准则。每次会话启动时 Agent 都会读取本文件，以了解自己在团队中的位置和工作方式。',
-    updateFrequency: '工作流程或团队协作方式变更时更新',
-    sections: [
-      {
-        heading: '角色定位',
-        content: `开头一句话说明该 Agent 是谁，承担什么职责。
-
-格式：
-> 你是团队中的 **[角色名]**。职责：[一句话概括]
-
-这句话是 Agent 的"工作职能说明书"，应简明扼要，避免冗余。`,
-      },
-      {
-        heading: '默认行为',
-        content: `列出该 Agent 的默认工作习惯和约定，例如：
-
-- 会话开始时先读 IDENTITY.md，了解自身角色
-- 产出物写在本工作区，不随意修改其他角色的工作区
-- 需要交接时产出清晰的 Markdown 文档
-- 遇到超出本职范围的问题，明确标注并交给对应 Agent 处理`,
-      },
-      {
-        heading: '工作流',
-        content: `描述该角色的标准工作流程，通常包含 5 个步骤：
-
-1. 接收上游交付物
-2. 理解需求和上下文
-3. 执行本职工作
-4. 输出交付物
-5. 向下游交接
-
-具体步骤可根据角色特点调整。`,
-      },
-      {
-        heading: '知识库链接',
-        content: '列出该 Agent 经常引用的文档、模板和规范，便于快速导航。',
-      },
-    ],
-    template: agentsTemplate,
-    tips: [
-      '行为规范越具体越好，避免写"做好工作"这样的空话',
-      '工作流中的每一步都应对应一个可验证的产出物',
-      '如果团队有跨 Agent 协作规范，在这里引用链接',
-    ],
-  },
-
-  'SOUL.md': {
-    title: 'SOUL.md',
-    subtitle: 'Agent 行为哲学与个性准则',
-    purpose: '定义 Agent 的价值观、行事风格和边界意识。SOUL.md 不是配置文件，而是 Agent 的"性格底色"——它决定 Agent 在面对模糊情况时如何做判断。',
-    updateFrequency: '通常不需要频繁修改，只在调整 Agent 整体风格时更新',
-    sections: [
-      {
-        heading: '核心准则',
-        content: `定义 Agent 最重要的行为原则，建议 3-6 条，每条配一句解释：
-
-例如：
-1. **真正有用，而不是表演有用** — 直接解决问题，不说废话
-2. **有自己的判断** — 当用户方向有误时，要说出来
-3. **先自己想，再开口问** — 能自己搞定的不要反复打扰用户
-4. **谨慎对外，大胆对内** — 外部操作要确认，内部逻辑要果断`,
-      },
-      {
-        heading: '边界意识',
-        content: `明确哪些事情需要提前确认，哪些事情绝对不做：
-
-- 发送消息到外部渠道前必须确认
-- 私人信息不留存，不传递
-- 不在群组对话中主动发言（除非明确授权）
-- 遇到模糊指令，宁可多问一句也不乱猜`,
-      },
-      {
-        heading: '风格与气质',
-        content: `描述 Agent 的说话风格：是正式还是随意，是简洁还是详尽，是严肃还是带点幽默感。
-
-这部分直接影响用户的对话体验，可以写得有个性一些。`,
-      },
-      {
-        heading: '持续性说明',
-        content: `解释文件即记忆这一机制：
-
-- 每次会话从零开始
-- 通过读取文件（MEMORY.md、USER.md 等）恢复上下文
-- 重要信息要及时写回文件，否则下次会话会"失忆"`,
-      },
-    ],
-    template: soulTemplate,
-    tips: [
-      'SOUL.md 应反映真实的设计意图，不要写"本 Agent 将竭尽全力为您服务"这种空话',
-      '如果团队中有多个 Agent，可以给每个 Agent 设计不同的风格，增加辨识度',
-      '边界意识部分要具体，含糊的边界在实际使用中会反复引发问题',
-    ],
-  },
-
-  'MEMORY.md': {
-    title: 'MEMORY.md',
-    subtitle: 'Agent 长期记忆',
-    purpose: '存储 Agent 跨会话需要记住的信息：重要决策、踩过的坑、关键上下文。由于每次会话都会重置，MEMORY.md 是 Agent 唯一的"长期记忆介质"。',
-    updateFrequency: '每次会话结束后，将有价值的信息写入；定期整理归档',
-    sections: [
-      {
-        heading: '长期记忆',
-        content: `存放不会很快过时的核心知识：
-
-- **关键决策**：做了什么决定，为什么这么决定（避免重复讨论）
-- **经验教训**：踩过的坑，不能再犯的错误
-- **重要约定**：和用户或其他 Agent 达成的共识
-- **技术规范**：已确定的接口、命名、架构约定`,
-      },
-      {
-        heading: '短期记忆',
-        content: `存放当前任务周期内的临时上下文：
-
-- 当前进行中的任务
-- 等待确认的决策项
-- 临时约定（本次迭代有效）
-- 会话间的状态传递
-
-短期记忆在任务完成后应及时清理或归档。`,
-      },
-      {
-        heading: '更新规则',
-        content: `为保证记忆的质量：
-
-- 只记值得记的，不要把聊天记录全粘进来
-- 重要事件要加时间戳
-- 定期（每周或每个里程碑）将短期记忆中的重要内容提升为长期记忆
-- 过期信息及时删除，避免记忆"污染"`,
-      },
-    ],
-    template: memoryTemplate,
-    tips: [
-      '宁少勿滥——只记真正有价值的信息，不要把每次对话都存进来',
-      '每条记忆最好能回答"为什么记这个"，没有价值的记忆是噪声',
-      '短期记忆是任务内的便签，不要和长期记忆混在一起',
-    ],
-  },
-
-  'USER.md': {
-    title: 'USER.md',
-    subtitle: '关于你的协作者',
-    purpose: '记录与该 Agent 协作的人的背景信息：姓名、偏好、时区、工作重心等。Agent 通过这个文件了解"我在帮谁，他们关心什么"，从而提供更贴合实际的帮助。',
-    updateFrequency: '在对话中自然了解到新信息时随时更新',
-    sections: [
-      {
-        heading: '基本信息',
-        content: `记录用户的基础信息：
-
-- **姓名**：用户的名字或称呼
-- **如何称呼**：用中文还是英文，用全名还是昵称
-- **时区**：用于理解"现在""今天"等时间表达
-- **语言偏好**：中文优先还是英文优先`,
-      },
-      {
-        heading: '上下文与偏好',
-        content: `记录用户的工作背景和习惯偏好：
-
-- 当前专注的项目或任务
-- 沟通风格（喜欢详细解释还是简洁结论）
-- 技术背景（避免解释用户已知道的基础知识）
-- 特别在意的事情（比如代码风格、文档格式）`,
-      },
-      {
-        heading: '注意事项',
-        content: `记录容易引发误解或需要特别注意的点：
-
-- 不喜欢什么（哪些表达方式会让用户不耐烦）
-- 特殊约定（比如"不要自动提交 PR"）
-- 敏感信息边界`,
-      },
-    ],
-    template: userTemplate,
-    tips: [
-      '不要把 USER.md 写成调查问卷，而是在自然对话中积累',
-      '时区信息非常重要，影响时间相关的所有理解',
-      '用户的技术背景决定了解释的深度，避免过度解释或想当然',
-    ],
-  },
-
-  'BOOTSTRAP.md': {
-    title: 'BOOTSTRAP.md',
-    subtitle: 'Agent 初始化脚本',
-    purpose: '新 Agent 第一次启动时的引导脚本。它告诉 Agent 如何建立自我认知、如何与用户建立初始关系。一旦初始化完成，这个文件就可以删除。',
-    updateFrequency: '仅在 Agent 初始化阶段使用，初始化完成后删除',
-    sections: [
-      {
-        heading: '初始化对话',
-        content: `引导 Agent 与用户进行自我介绍和相互了解，需要确定的内容：
-
-1. **名字**：用户希望叫这个 Agent 什么
-2. **性格**：正式/随意、严肃/幽默等
-3. **专属 Emoji**：Agent 的视觉标识
-4. **用户信息**：对方的名字、时区、偏好
-
-这个过程应该是自然对话，而不是填表格。`,
-      },
-      {
-        heading: '初始化后的操作',
-        content: `初始化对话结束后，Agent 需要：
-
-1. 更新 IDENTITY.md（名字、性格描述）
-2. 更新 USER.md（用户信息）
-3. 阅读并与用户讨论 SOUL.md
-4. 根据需要配置消息渠道（微信、Telegram 等）
-5. 完成后删除本文件`,
-      },
-      {
-        heading: '渠道配置',
-        content: `如需配置外部消息渠道，引导用户完成：
-
-- **仅网页端**：无需额外配置
-- **WhatsApp**：需要扫码绑定个人账号
-- **Telegram**：通过 BotFather 创建 Bot 并配置 Token`,
-      },
-    ],
-    template: bootstrapTemplate,
-    tips: [
-      'BOOTSTRAP.md 完成使命后应该被删除，留着是一种"遗留问题"',
-      '初始化对话越自然越好，生硬的问卷式对话会让用户感到疏离',
-      '不要在 BOOTSTRAP.md 里放任何私密信息，它可能被共享给其他 Agent',
-    ],
-  },
-
-  'HEARTBEAT.md': {
-    title: 'HEARTBEAT.md',
-    subtitle: '实时状态看板',
-    purpose: '实时记录 Agent 当前的工作状态：在做什么、遇到了什么阻塞、最近有哪些动作。它是团队协调的核心依据，让其他 Agent 和人类成员随时知道"这个 Agent 现在怎么样了"。',
-    updateFrequency: '每次开始新任务、完成任务、遇到阻塞时立即更新',
-    sections: [
-      {
-        heading: '状态',
-        content: `用一行话说明当前状态：
-
-- **Idle**：空闲，等待任务
-- **In Progress**：正在执行任务
-- **Blocked**：被阻塞，无法推进
-- **Waiting**：等待外部输入或确认
-- **Done**：任务完成，等待下一步指令
-
-当前任务字段要具体，避免写"处理中"这种无意义的描述。`,
-      },
-      {
-        heading: '最近活动',
-        content: `按时间倒序记录最近的工作动作：
-
-格式：\`[时间] 完成/开始/发现 某件事\`
-
-例如：
-- \`2024-01-15 14:30\` 完成了接口文档初稿
-- \`2024-01-15 14:00\` 开始分析需求文档
-- \`2024-01-15 13:45\` 收到产品经理交付物
-
-只记有意义的节点，不要记每一个微小操作。`,
-      },
-      {
-        heading: '阻塞项',
-        content: `列出当前所有阻塞因素：
-
-- 每条阻塞要写清楚：**谁**需要提供什么，或者**什么条件**满足后才能继续
-- 标注阻塞发生的时间
-- 如果已经解除，及时删除
-
-例如：
-- 等待 PM 确认需求范围（2024-01-15 提出）
-- 需要后端 API 文档才能开始联调`,
-      },
-    ],
-    template: heartbeatTemplate,
-    tips: [
-      '阻塞项是 HEARTBEAT.md 中最重要的部分，有阻塞必须立即写入',
-      '状态不更新比没有 HEARTBEAT.md 更糟糕——过时的状态会误导团队',
-      '最近活动只记关键节点，3-5 条足够，不需要操作日志级别的细节',
-    ],
-  },
-
-  'TOOLS.md': {
-    title: 'TOOLS.md',
-    subtitle: '本地工具与环境配置',
-    purpose: '记录该 Agent 工作环境中特有的配置信息：SSH 主机、摄像头别名、设备昵称、语音合成偏好等。这些信息是"这台机器上独有的"，不适合放在共享的技能配置中。',
-    updateFrequency: '环境配置发生变化时更新',
-    sections: [
-      {
-        heading: '什么应该放在这里',
-        content: `只放这台机器 / 这个环境独有的配置：
-
-- **SSH 主机别名**：内网服务器的地址和别名
-- **设备昵称**：摄像头、音箱、智能家居设备的名称和位置
-- **TTS 偏好**：语音合成的声音风格、默认扬声器
-- **API Key 备注**：哪些服务用了哪个账号（不要放 key 本身！）
-- **本地路径别名**：经常用到的目录的快捷别名`,
-      },
-      {
-        heading: '什么不应该放在这里',
-        content: `以下内容不属于 TOOLS.md：
-
-- ❌ 明文 API Key 或密码（安全风险）
-- ❌ 通用的工作规范（放 AGENTS.md）
-- ❌ 任务记录（放 MEMORY.md 或 HEARTBEAT.md）
-- ❌ 人员信息（放 USER.md）`,
-      },
-      {
-        heading: '为什么单独存放',
-        content: `技能配置（Skills）是共享的、跨设备的；而 TOOLS.md 是本地的、私有的。
-
-把两者分开的好处：
-- 可以更新公共技能而不影响本地配置
-- 分享技能时不会泄露本地基础设施信息
-- 迁移到新机器时只需更新 TOOLS.md`,
-      },
-    ],
-    template: toolsTemplate,
-    tips: [
-      '绝对不要在 TOOLS.md 中存放明文密码或 API Key',
-      '在配置发生变化时（比如换了服务器 IP）及时更新，避免命令执行失败',
-      '如果团队中有多台机器，每台机器的 TOOLS.md 内容会有所不同，这是正常的',
-    ],
-  },
+  'IDENTITY.md':  parseGuideMarkdown(identityGuide,  identityTemplate),
+  'AGENTS.md':    parseGuideMarkdown(agentsGuide,    agentsTemplate),
+  'SOUL.md':      parseGuideMarkdown(soulGuide,      soulTemplate),
+  'MEMORY.md':    parseGuideMarkdown(memoryGuide,    memoryTemplate),
+  'USER.md':      parseGuideMarkdown(userGuide,      userTemplate),
+  'BOOTSTRAP.md': parseGuideMarkdown(bootstrapGuide, bootstrapTemplate),
+  'HEARTBEAT.md': parseGuideMarkdown(heartbeatGuide, heartbeatTemplate),
+  'TOOLS.md':     parseGuideMarkdown(toolsGuide,     toolsTemplate),
 };
 
 export const ALL_FILE_NAMES = Object.keys(FILE_GUIDES);
