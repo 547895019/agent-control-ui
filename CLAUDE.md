@@ -56,6 +56,22 @@ if (ws.startsWith('~') && homeDir) ws = homeDir + ws.slice(1);
 实际文件名为 `YYYY-MM-DD.md` 或 `YYYY-MM-DD-suffix.md`（有后缀变体），不能硬编码纯日期名。
 侧边栏应通过 `listDir` 获取真实文件名，再按日期前缀（`startsWith(YYYY-MM-DD)`）筛选今日/昨日。
 
+## 发布流程
+
+使用项目根目录的 `release.sh` 脚本一键发布，**不要手动构建打包**：
+
+```bash
+./release.sh
+```
+
+脚本自动完成：
+1. 按当天日期生成版本号（格式 `YYYY.M.D`），若 tag 已存在则追加 `-1`、`-2`...
+2. 更新 `package.json` 版本号
+3. `npm run build` 构建
+4. 打包 tgz（含 `bin/`、`dist/`、`server.mjs` 等，`package/` 目录结构）
+5. git commit + push
+6. 创建 GitHub Release 并上传 tgz
+
 ## 记忆规则
 
 发现以下情况时，**无需用户提醒，主动更新本文件的"已知约束"章节**：
