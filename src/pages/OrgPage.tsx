@@ -74,6 +74,10 @@ const teamKnowledgeDir = (dir: string, teamId: string) => `${dir}/${teamId}/know
 
 const DEFAULT_DIR = '~/.openclaw/workspaces';
 
+// Session storage keys for persisting modal state across refresh
+const SS_SETUP_KEY = 'openclaw_org_setup_state';
+const SS_GENERATING_KEY = 'openclaw_org_generating_state';
+
 function loadOrgsIndex(): OrgsIndex {
   const stored = localStorage.getItem(ORGS_INDEX_KEY);
   if (stored) {
@@ -532,20 +536,32 @@ interface OrgGeneratingModalProps {
   agentName: string;
   sessionKey: string;
   prompt: string;
+  restored?: boolean;
   onClose: () => void;
   onGenerated: () => void;
 }
 
-function OrgGeneratingModal({ agentId: _agentId, agentName, sessionKey, prompt, onClose, onGenerated }: OrgGeneratingModalProps) {
+function OrgGeneratingModal({ agentId: _agentId, agentName, sessionKey, prompt, restored, onClose, onGenerated }: OrgGeneratingModalProps) {
   const [output, setOutput] = useState('');
   const [status, setStatus] = useState<'sending' | 'running' | 'done' | 'error'>('sending');
   const [errorMsg, setErrorMsg] = useState('');
   const outputRef = useRef('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const doneRef = useRef(false);
+
+  const markDone = (content: string) => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    outputRef.current = content;
+    setOutput(content);
+    setStatus('done');
+    onGenerated();
+  };
 
   useEffect(() => {
     // Subscribe to streaming events
     const unsub = client.onEvent((event: any) => {
+      if (doneRef.current) return; // already done, ignore replayed events
       if (event.event !== 'chat') return;
       const payload = event.payload ?? event.data ?? event;
       if (payload.sessionKey !== sessionKey) return;
@@ -562,23 +578,49 @@ function OrgGeneratingModal({ agentId: _agentId, agentName, sessionKey, prompt, 
         setStatus('running');
       } else if (state === 'final') {
         const content = outputRef.current || (typeof message?.content === 'string' ? message.content : '');
-        outputRef.current = content;
-        setOutput(content);
-        setStatus('done');
-        onGenerated();
+        markDone(content);
       } else if (state === 'error' || state === 'aborted') {
         setStatus('error');
         setErrorMsg(state === 'error' ? '生成过程中出现错误' : '生成已中止');
       }
     });
 
-    // Send the prompt
-    client.chatSend(sessionKey, prompt)
-      .then(() => setStatus('running'))
-      .catch(err => {
-        setStatus('error');
-        setErrorMsg(err.message || 'Failed to send');
-      });
+    if (restored) {
+      const fetchHistory = () => {
+        client.chatHistory(sessionKey, 50)
+          .then((res: any) => {
+            const messages: any[] = res?.messages ?? (Array.isArray(res) ? res : []);
+            const last = [...messages].reverse().find((m: any) => m.role === 'assistant');
+            if (last) {
+              const content = typeof last.content === 'string'
+                ? last.content
+                : Array.isArray(last.content) ? last.content.map((c: any) => c.text ?? '').join('') : '';
+              if (content) markDone(content);
+            }
+          })
+          .catch(() => { });
+      };
+
+      if (client.getConnectionState() === 'connected') {
+        fetchHistory();
+      } else {
+        const unsubConn = client.onConnectionState((state: any) => {
+          if (state === 'connected') {
+            unsubConn();
+            fetchHistory();
+          }
+        });
+        return () => { unsub(); unsubConn(); };
+      }
+    } else {
+      // Fresh start: send the prompt
+      client.chatSend(sessionKey, prompt)
+        .then(() => setStatus('running'))
+        .catch(err => {
+          setStatus('error');
+          setErrorMsg(err.message || 'Failed to send');
+        });
+    }
 
     return unsub;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -609,7 +651,7 @@ function OrgGeneratingModal({ agentId: _agentId, agentName, sessionKey, prompt, 
           <h3 className={`font-semibold text-sm ${status === 'done' ? 'text-emerald-400' : status === 'error' ? 'text-red-300' : 'text-white'}`}>
             {statusLabel}
           </h3>
-          {status !== 'sending' && status !== 'running' && (
+          {status === 'error' && (
             <button onClick={onClose} className="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10 shrink-0">
               <X className="w-4 h-4" />
             </button>
@@ -1168,8 +1210,12 @@ export function OrgPage() {
   const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
   const [addOrgModal, setAddOrgModal] = useState<{ mode: 'add' } | { mode: 'edit'; org: OrgEntry } | null>(null);
   const [deleteOrgModal, setDeleteOrgModal] = useState<OrgEntry | null>(null);
-  const [setupState, setSetupState] = useState<{ entry: OrgEntry } | null>(null);
-  const [generatingState, setGeneratingState] = useState<{ agentId: string; config: any; sessionKey: string; prompt: string } | null>(null);
+  const [setupState, setSetupState] = useState<{ entry: OrgEntry } | null>(() => {
+    try { const s = sessionStorage.getItem(SS_SETUP_KEY); return s ? JSON.parse(s) : null; } catch { return null; }
+  });
+  const [generatingState, setGeneratingState] = useState<{ agentId: string; config: any; sessionKey: string; prompt: string; restored?: boolean } | null>(() => {
+    try { const s = sessionStorage.getItem(SS_GENERATING_KEY); return s ? { ...JSON.parse(s), restored: true } : null; } catch { return null; }
+  });
   const [mergeState, setMergeState] = useState<{ agents: any[] } | null>(null);
 
   const activeOrg = orgsIndex.orgs.find(o => o.id === orgsIndex.activeOrgId) ?? null;
@@ -1188,6 +1234,17 @@ export function OrgPage() {
   const [sessionsAgent, setSessionsAgent] = useState<{ id: string; config: any } | null>(null);
   const [chatAgent, setChatAgent] = useState<{ id: string; config: any } | null>(null);
   const [knowledgeModal, setKnowledgeModal] = useState<{ title: string; dirPath: string } | null>(null);
+
+  // Persist setup/generating state to sessionStorage
+  useEffect(() => {
+    if (setupState) sessionStorage.setItem(SS_SETUP_KEY, JSON.stringify(setupState));
+    else sessionStorage.removeItem(SS_SETUP_KEY);
+  }, [setupState]);
+
+  useEffect(() => {
+    if (generatingState) sessionStorage.setItem(SS_GENERATING_KEY, JSON.stringify(generatingState));
+    else sessionStorage.removeItem(SS_GENERATING_KEY);
+  }, [generatingState]);
 
   // Close org dropdown on outside click
   useEffect(() => {
@@ -1210,6 +1267,12 @@ export function OrgPage() {
 
     setOrg(null);
     setSelectedTeamId(null);
+
+    // Skip file read while generation is in progress — file doesn't exist yet
+    if (generatingState) {
+      setOrg({ company: { name: activeOrg.name }, teams: [] });
+      return;
+    }
 
     (async () => {
       // Try server file first
@@ -1246,7 +1309,7 @@ export function OrgPage() {
       // Default empty org
       setOrg({ company: { name: activeOrg.name }, teams: [] });
     })();
-  }, [activeOrg?.id]);
+  }, [activeOrg?.id, !!generatingState]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveOrg = async (newOrg: OrgConfig) => {
     if (!activeOrg) return;
@@ -1964,6 +2027,7 @@ export function OrgPage() {
           agentName={generatingState.config?.name || generatingState.agentId}
           sessionKey={generatingState.sessionKey}
           prompt={generatingState.prompt}
+          restored={generatingState.restored}
           onGenerated={() => {
             if (activeOrg) {
               // Refresh organization.json → update UI

@@ -61,6 +61,32 @@ if (ws.startsWith('~') && homeDir) ws = homeDir + ws.slice(1);
 实际文件名为 `YYYY-MM-DD.md` 或 `YYYY-MM-DD-suffix.md`（有后缀变体），不能硬编码纯日期名。
 侧边栏应通过 `listDir` 获取真实文件名，再按日期前缀（`startsWith(YYYY-MM-DD)`）筛选今日/昨日。
 
+## 自动提交
+
+修改完成并通过测试后，**自动提交到 GitHub 仓库**，无需等待用户确认。
+
+**提交流程：**
+
+1. 修改代码并验证通过（`npm run build` 成功）
+2. 自动执行提交：
+
+```bash
+git add <修改的文件>
+git commit -m "<简洁描述>
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+git push origin main
+```
+
+**提交信息规范：**
+- 简短描述修改内容（如：`fix: OrgPage 刷新时保持生成状态`）
+- 包含 `Co-Authored-By` 标记
+
+**例外情况（不自动提交）：**
+- 用户明确说"不要提交"或"稍后一起提交"
+- 发布版本（走 `release.sh` 流程）
+- 修改涉及敏感配置或密钥文件
+
 ## 发布流程
 
 使用项目根目录的 `release.sh` 脚本发布，**不要手动构建打包**。
