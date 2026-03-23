@@ -52,6 +52,11 @@ if (ws.startsWith('~') && homeDir) ws = homeDir + ws.slice(1);
 - 传入 `~` 路径时，`dir` 参数可能不被服务器展开（`path` 参数会展开）
 - 必须传绝对路径才能保证正确返回文件列表
 
+### 生产环境 localfile-server 端口（重要）
+- 生产端口：**19876**，开发端口：**19877**（避免与生产冲突）
+- `vite.config.ts` 中 `LOCALFILE_PORT` fallback 必须是 `'19876'`，否则构建产物会硬编码开发端口导致生产环境所有本地文件请求失败
+- `server.mjs` 必须在启动时 spawn `localfile-server.mjs`（生产环境不会自动启动）
+
 ### memory 文件命名格式
 实际文件名为 `YYYY-MM-DD.md` 或 `YYYY-MM-DD-suffix.md`（有后缀变体），不能硬编码纯日期名。
 侧边栏应通过 `listDir` 获取真实文件名，再按日期前缀（`startsWith(YYYY-MM-DD)`）筛选今日/昨日。
