@@ -53,6 +53,14 @@ function serveStatic(req, res) {
 }
 
 
+// Start localfile-server as a child process (production companion)
+const localFileSrv = spawn(process.execPath, [join(__dirname, 'localfile-server.mjs')], {
+  stdio: 'inherit',
+  env: { ...process.env, LOCALFILE_PORT: '19876' },
+});
+localFileSrv.on('error', (e) => console.error('[localfile-server] failed to start:', e.message));
+process.on('exit', () => { try { localFileSrv.kill(); } catch {} });
+
 createServer((req, res) => {
   const url    = req.url.split('?')[0];
   const method = req.method;
