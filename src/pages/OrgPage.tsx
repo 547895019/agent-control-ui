@@ -1586,15 +1586,13 @@ export function OrgPage() {
                         >
                           <Pencil className="w-3 h-3" />
                         </button>
-                        {orgsIndex.orgs.length > 1 && (
-                          <button
-                            onClick={e => { e.stopPropagation(); setDeleteOrgModal(o); setOrgDropdownOpen(false); }}
-                            className="w-6 h-6 flex items-center justify-center rounded text-white/30 hover:text-red-500 hover:bg-red-500/20 shrink-0"
-                            title="删除"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        )}
+                        <button
+                          onClick={e => { e.stopPropagation(); setDeleteOrgModal(o); setOrgDropdownOpen(false); }}
+                          className="w-6 h-6 flex items-center justify-center rounded text-white/30 hover:text-red-500 hover:bg-red-500/20 shrink-0"
+                          title="删除"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
                       </div>
                     ))}
                   </div>
