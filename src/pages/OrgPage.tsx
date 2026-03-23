@@ -199,7 +199,7 @@ function AddOrgModal({ initial, onSave, onClose }: AddOrgModalProps) {
             <X className="w-4 h-4" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} onKeyDown={(e) => { if (e.key === 'Enter' && e.target instanceof HTMLInputElement) e.preventDefault(); }} className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-white/70 mb-1.5">组织名称 *</label>
