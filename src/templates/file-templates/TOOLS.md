@@ -1,24 +1,47 @@
-# TOOLS.md - 本地配置
+---
+title: "TOOLS.md Template"
+summary: "Workspace template for TOOLS.md"
+read_when:
+  - Bootstrapping a workspace manually
+---
 
-_这里放的是本环境特有的配置，不共享，不同步。_
+# TOOLS.md - Local Notes
 
-## SSH 主机
-| 别名 | 地址 | 用户 | 备注 |
-|------|------|------|------|
-| home-server | 192.168.1.100 | admin | 家庭 NAS |
+Skills define _how_ tools work. This file is for _your_ specifics — the stuff that's unique to your setup.
 
-## 设备
-| 名称 | 位置 | 类型 |
-|------|------|------|
-| living-room-cam | 客厅 | 摄像头 |
-| kitchen-speaker | 厨房 | 音箱 |
+## What Goes Here
 
-## TTS 偏好
-- 声音: 默认
-- 默认扬声器: 客厅音箱
+Things like:
 
-## 其他本地配置
-<!-- 其他环境特有的内容 -->
+- Camera names and locations
+- SSH hosts and aliases
+- Preferred voices for TTS
+- Speaker/room names
+- Device nicknames
+- Anything environment-specific
+
+## Examples
+
+```markdown
+### Cameras
+
+- living-room → Main area, 180° wide angle
+- front-door → Entrance, motion-triggered
+
+### SSH
+
+- home-server → 192.168.1.100, user: admin
+
+### TTS
+
+- Preferred voice: "Nova" (warm, slightly British)
+- Default speaker: Kitchen HomePod
+```
+
+## Why Separate?
+
+Skills are shared. Your setup is yours. Keeping them apart means you can update skills without losing your notes, and share skills without leaking your infrastructure.
 
 ---
-_API Key 和密码不要放在这里。_
+
+Add whatever helps you do your job. This is your cheat sheet.

@@ -1,14 +1,12 @@
-# HEARTBEAT - [Agent 名称]
+---
+title: "HEARTBEAT.md Template"
+summary: "Workspace template for HEARTBEAT.md"
+read_when:
+  - Bootstrapping a workspace manually
+---
 
-## 状态
-- **状态**: Idle / In Progress / Blocked / Waiting / Done
-- **当前任务**: [具体任务描述]
-- **更新时间**: [YYYY-MM-DD HH:mm]
+# HEARTBEAT.md
 
-## 最近活动
-- [时间] [完成/开始/发现] [具体内容]
-- [时间] [完成/开始/发现] [具体内容]
+# Keep this file empty (or with only comments) to skip heartbeat API calls.
 
-## 阻塞项
-- [阻塞描述] （[提出时间]）
-<!-- 如无阻塞，写"无" -->
+# Add tasks below when you want the agent to check something periodically.

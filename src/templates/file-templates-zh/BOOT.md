@@ -1,11 +1,11 @@
 ---
 title: "BOOT.md 模板"
-summary: "启动任务配置"
+summary: "BOOT.md 的工作区模板"
 read_when:
-  - 添加 BOOT.md 启动清单时
+  - 添加 BOOT.md 清单
 ---
 
 # BOOT.md
 
-在此添加简短明确的指令，告诉 OpenClaw 在启动时要做什么（需启用 `hooks.internal.enabled`）。
-如果任务需要发送消息，使用消息工具后回复 NO_REPLY。
+添加简短、明确的说明，告诉 OpenClaw 启动时应该做什么（启用 `hooks.internal.enabled`）。
+如果任务发送消息，使用 message 工具然后回复 NO_REPLY。

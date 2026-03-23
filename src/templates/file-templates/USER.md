@@ -1,21 +1,23 @@
-# USER.md - 关于你的协作者
+---
+summary: "User profile record"
+read_when:
+  - Bootstrapping a workspace manually
+---
 
-_在协作中慢慢了解，持续更新。_
+# USER.md - About Your Human
 
-## 基本信息
-- **姓名**:
-- **称呼**:
-- **时区**: Asia/Shanghai
-- **语言偏好**: 中文
+_Learn about the person you're helping. Update this as you go._
 
-## 当前关注
-<!-- 他们现在在做什么，最关心什么 -->
+- **Name:**
+- **What to call them:**
+- **Pronouns:** _(optional)_
+- **Timezone:**
+- **Notes:**
 
-## 沟通偏好
-<!-- 喜欢简洁结论还是详细分析？技术细节要说多深？ -->
+## Context
 
-## 特别注意
-<!-- 不要做什么，容易踩到的雷区 -->
+_(What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.)_
 
 ---
-_记录是为了更好地帮助，不是建立档案。尊重隐私，适可而止。_
+
+The more you know, the better you can help. But remember — you're learning about a person, not building a dossier. Respect the difference.
