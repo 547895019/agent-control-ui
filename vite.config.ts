@@ -4,8 +4,9 @@ import { readFileSync } from 'node:fs'
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
-// Dev uses port 19877 so it doesn't collide with a running production localfile-server (19876)
-const localfilePort = process.env.LOCALFILE_PORT || '19877';
+// Dev uses port 19877 so it doesn't collide with a running production localfile-server (19876).
+// LOCALFILE_PORT env var is set explicitly in the dev script; production build falls back to 19876.
+const localfilePort = process.env.LOCALFILE_PORT || '19876';
 
 // https://vitejs.dev/config/
 export default defineConfig({
