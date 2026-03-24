@@ -61,7 +61,7 @@ import {
   MessageSquare, Plus, Hash, Paperclip, Brain,
   Copy, Check, Search, Trash2, Pencil,
   Mic, MicOff, Volume2, VolumeX,
-  Maximize2, Minimize2, Download,
+  Maximize2, Minimize2, Download, FileDown,
 } from 'lucide-react';
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -503,9 +503,9 @@ function UsageBadge({ usage }: { usage: MessageUsage }) {
   );
 }
 
-function ChatBubble({ role, content, showThinking, usage, isFirst = true, isLast = true, onDelete }: {
+function ChatBubble({ role, content, showThinking, usage, agentName, isFirst = true, isLast = true, onDelete }: {
   role: 'user' | 'assistant'; content: any; showThinking: boolean; usage?: MessageUsage;
-  isFirst?: boolean; isLast?: boolean; onDelete?: () => void;
+  agentName: string; isFirst?: boolean; isLast?: boolean; onDelete?: () => void;
 }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const blocks = extractContent(content);
@@ -558,6 +558,7 @@ function ChatBubble({ role, content, showThinking, usage, isFirst = true, isLast
             {!isUser && usage && <UsageBadge usage={usage} />}
             {!isUser && displayText && <CopyButton text={displayText} />}
             {!isUser && displayText && <SpeakButton text={displayText} />}
+            {!isUser && displayText && <PdfButton text={displayText} agentName={agentName} />}
             {/* Delete button */}
             {onDelete && (
               confirmDel ? (
@@ -578,6 +579,79 @@ function ChatBubble({ role, content, showThinking, usage, isFirst = true, isLast
         )}
       </div>
     </div>
+  );
+}
+
+function PdfButton({ text, agentName }: { text: string; agentName: string }) {
+  const [generating, setGenerating] = useState(false);
+
+  const generatePdf = async () => {
+    if (generating) return;
+
+    setGenerating(true);
+
+    try {
+      // Dynamically import jsPDF
+      const jsPDF = (await import('jspdf')).default;
+
+      // Create a new PDF instance
+      const pdf = new jsPDF();
+
+      // Add metadata
+      const date = new Date().toLocaleString('zh-CN');
+      const title = agentName || 'Chat Message';
+
+      // Add title
+      pdf.setFontSize(16);
+      pdf.text(title, 20, 20);
+
+      // Add date
+      pdf.setFontSize(10);
+      pdf.text(`Generated on: ${date}`, 20, 30);
+
+      // Add content
+      pdf.setFontSize(12);
+      const lines = pdf.splitTextToSize(text, 170); // 170mm width for text
+
+      // Start drawing text from Y position 40
+      let yPosition = 40;
+
+      // Draw text lines
+      for (let i = 0; i < lines.length; i++) {
+        // If we reach the bottom of the page, add a new page
+        if (yPosition > 270) { // approximately 270mm from top
+          pdf.addPage();
+          yPosition = 20; // Reset Y position on new page
+        }
+
+        pdf.text(lines[i], 20, yPosition);
+        yPosition += 10; // Move down for next line
+      }
+
+      // Save the PDF
+      const cleanAgentName = (agentName || 'chat').replace(/[<>:"/\\|?*]/g, '_');
+      const fileName = `${cleanAgentName}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={generatePdf}
+      title={generating ? '生成中...' : '导出为 PDF'}
+      className={`w-6 h-6 flex items-center justify-center rounded-md transition-all shrink-0 ${
+        generating
+          ? 'opacity-100 text-orange-400 bg-orange-500/15'
+          : 'opacity-0 group-hover:opacity-100 text-white/30 hover:text-white/70 hover:bg-white/10'
+      }`}
+      disabled={generating}
+    >
+      {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
+    </button>
   );
 }
 
@@ -1774,6 +1848,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
                       content={msg.content}
                       showThinking={showThinking}
                       usage={msg.usage}
+                      agentName={agentName}
                       isFirst={mi === 0}
                       isLast={mi === group.messages.length - 1}
                       onDelete={() => handleDeleteMessage(msg.id)}
