@@ -57,6 +57,7 @@ export class GatewayClient {
 
   private pending: Map<string, { resolve: (val: any) => void, reject: (err: any) => void }> = new Map();
   private msgIdCounter = 0;
+  private connectingPromise: Promise<void> | null = null;
 
   private async initDeviceKeys(): Promise<DeviceKeys> {
     if (this.deviceKeys) return this.deviceKeys;
@@ -318,27 +319,51 @@ export class GatewayClient {
     this.connectionStateHandlers.forEach(h => h(state));
   }
 
-  private rpc<T>(method: string, params: any = {}, timeoutMs = 10000): Promise<T> {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      return Promise.reject(new Error("WebSocket not connected"));
+  private async waitForConnection(timeoutMs = 10000): Promise<void> {
+    if (this.ws?.readyState === WebSocket.OPEN) return;
+
+    // Wait a bit for connect to be called (token to be set)
+    const start = Date.now();
+    while (!this.token && Date.now() - start < timeoutMs) {
+      await new Promise(r => setTimeout(r, 50));
     }
 
-    const id = `req_${++this.msgIdCounter}_${Date.now()}`;
-    return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
-      this.ws?.send(JSON.stringify({
-        type: 'req',
-        id,
-        method,
-        params
-      }));
+    if (this.ws?.readyState === WebSocket.OPEN) return;
 
-      setTimeout(() => {
-        if (this.pending.has(id)) {
-          this.pending.delete(id);
-          reject(new Error("RPC Timeout"));
-        }
-      }, timeoutMs);
+    if (this.token && this.shouldReconnect) {
+      try {
+        await this.connect(this.token);
+        return;
+      } catch {
+        // Fall through to error
+      }
+    }
+    throw new Error("WebSocket not connected");
+  }
+
+  private rpc<T>(method: string, params: any = {}, timeoutMs = 10000): Promise<T> {
+    return this.waitForConnection(timeoutMs).then(() => {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        return Promise.reject(new Error("WebSocket not connected"));
+      }
+
+      const id = `req_${++this.msgIdCounter}_${Date.now()}`;
+      return new Promise((resolve, reject) => {
+        this.pending.set(id, { resolve, reject });
+        this.ws?.send(JSON.stringify({
+          type: 'req',
+          id,
+          method,
+          params
+        }));
+
+        setTimeout(() => {
+          if (this.pending.has(id)) {
+            this.pending.delete(id);
+            reject(new Error("RPC Timeout"));
+          }
+        }, timeoutMs);
+      });
     });
   }
 
