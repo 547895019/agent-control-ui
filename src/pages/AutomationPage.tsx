@@ -5,7 +5,8 @@ import { ModelSelect } from '../components/shared/ModelSelect';
 import {
   Terminal, Webhook, Puzzle, Plus, Trash2, Pencil, X,
   Loader2, AlertCircle, Save, RefreshCw, ChevronDown, ChevronRight,
-  HelpCircle, BookOpen,
+  HelpCircle, BookOpen, Search, Package, Download, ExternalLink,
+  Check, Store,
 } from 'lucide-react';
 
 // ─── shared helpers ───────────────────────────────────────────────────────────
@@ -48,7 +49,94 @@ async function loadConfig() {
   return client.configGet();
 }
 
-// ─── HELP PANEL ───────────────────────────────────────────────────────────────
+// ─── ClawHub API helpers ──────────────────────────────────────────────────────
+
+async function searchClawHubPackages(query: string, family?: ClawHubPackageFamily): Promise<ClawHubSearchResponse> {
+  const params = new URLSearchParams();
+  params.set('q', query);
+  if (family) params.set('family', family);
+  params.set('limit', '20');
+  const res = await fetch(`${CLAWHUB_BASE_URL}/api/v1/packages/search?${params}`);
+  if (!res.ok) throw new Error(`ClawHub search failed: ${res.status}`);
+  return res.json();
+}
+
+async function fetchClawHubPackageDetail(name: string): Promise<ClawHubPackageDetail> {
+  const res = await fetch(`${CLAWHUB_BASE_URL}/api/v1/packages/${encodeURIComponent(name)}`);
+  if (!res.ok) throw new Error(`ClawHub fetch failed: ${res.status}`);
+  return res.json();
+}
+
+// ─── npm plugin types ─────────────────────────────────────────────────────────
+
+interface NpmPackage {
+  name: string;
+  version: string;
+  description?: string;
+  keywords?: string[];
+  author?: { name?: string; email?: string } | string;
+  date?: string;
+  links?: { npm?: string; homepage?: string; repository?: string };
+  publisher?: { username?: string; email?: string };
+}
+
+interface NpmSearchResponse {
+  objects: { package: NpmPackage; score?: { final?: number }; searchScore?: number }[];
+  total: number;
+  time?: string;
+}
+
+interface InstalledPluginInfo {
+  id: string;
+  name: string;
+  version?: string;
+  description?: string;
+  path: string;
+}
+
+// ─── ClawHub plugin types ─────────────────────────────────────────────────────
+
+type ClawHubPackageFamily = 'skill' | 'code-plugin' | 'bundle-plugin';
+type ClawHubPackageChannel = 'official' | 'community' | 'private';
+
+interface ClawHubPackageListItem {
+  name: string;
+  displayName: string;
+  family: ClawHubPackageFamily;
+  channel: ClawHubPackageChannel;
+  summary?: string;
+  latestVersion?: string;
+  capabilityTags?: string[];
+}
+
+interface ClawHubSearchResponse {
+  results: { score: number; package: ClawHubPackageListItem }[];
+}
+
+interface ClawHubPackageDetail {
+  package?: {
+    name: string;
+    family: ClawHubPackageFamily;
+    channel: ClawHubPackageChannel;
+    description?: string;
+    latestVersion?: string;
+    verification?: { tier?: string };
+    compatibility?: {
+      pluginApiRange?: string;
+      minGatewayVersion?: string;
+    };
+  };
+}
+
+const CLAWHUB_BASE_URL = 'https://clawhub.ai';
+
+// ─── npmjs API helpers ────────────────────────────────────────────────────────
+
+async function searchNpmPackages(query: string): Promise<NpmSearchResponse> {
+  const res = await fetch(`https://registry.npmjs.org/-/v1/search?text=${encodeURIComponent(query)}&size=20`);
+  if (!res.ok) throw new Error(`npm search failed: ${res.status}`);
+  return res.json();
+}
 
 type HelpTabId = 'commands' | 'hooks' | 'plugins';
 
@@ -896,6 +984,16 @@ function PluginsTab() {
   const [entries, setEntries] = useState<PluginEntry[]>([]);
   const [newPluginId, setNewPluginId] = useState('');
 
+  // Plugin marketplace state
+  const [showMarketplace, setShowMarketplace] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [pluginSource, setPluginSource] = useState<'clawhub' | 'npmjs' | 'all'>('all');
+  const [clawhubResults, setClawhubResults] = useState<ClawHubSearchResponse['results']>([]);
+  const [npmResults, setNpmResults] = useState<NpmSearchResponse['objects']>([]);
+  const [searching, setSearching] = useState(false);
+  const [installing, setInstalling] = useState<string | null>(null);
+  const [installs, setInstalls] = useState<Record<string, any>>({});
+
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
@@ -907,6 +1005,7 @@ function PluginsTab() {
       setLoadPaths(Array.isArray(p.load?.paths) ? p.load.paths.join('\n') : '');
       setMemorySlot(p.slots?.memory ?? '');
       setContextEngineSlot(p.slots?.contextEngine ?? '');
+      setInstalls(p.installs ?? {});
       const rawEntries = p.entries ?? {};
       setEntries(Object.entries(rawEntries).map(([id, cfg]: [string, any]) => ({
         id,
@@ -973,9 +1072,378 @@ function PluginsTab() {
     setNewPluginId('');
   };
 
+  // Marketplace functions
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearching(true); setError('');
+    setClawhubResults([]);
+    setNpmResults([]);
+    
+    try {
+      const promises: Promise<any>[] = [];
+      
+      if (pluginSource === 'all' || pluginSource === 'clawhub') {
+        promises.push(
+          searchClawHubPackages(searchQuery, 'code-plugin')
+            .then(res => setClawhubResults(res.results || []))
+            .catch(e => console.error('ClawHub search failed:', e))
+        );
+      }
+      
+      if (pluginSource === 'all' || pluginSource === 'npmjs') {
+        promises.push(
+          searchNpmPackages(searchQuery)
+            .then(res => setNpmResults(res.objects || []))
+            .catch(e => console.error('npm search failed:', e))
+        );
+      }
+      
+      await Promise.all(promises);
+    } catch (e: any) {
+      setError(e.message || '搜索失败');
+    } finally { 
+      setSearching(false); 
+    }
+  };
+
+  const handleInstallClawHub = async (pkg: ClawHubPackageListItem) => {
+    setInstalling(pkg.name); setError('');
+    try {
+      // Get package detail to find the plugin ID
+      const detail = await fetchClawHubPackageDetail(pkg.name);
+      // Create install record
+      const installRecord = {
+        source: 'clawhub',
+        clawhubUrl: CLAWHUB_BASE_URL,
+        clawhubPackage: pkg.name,
+        clawhubFamily: pkg.family,
+        clawhubChannel: pkg.channel,
+        version: pkg.latestVersion,
+        installedAt: new Date().toISOString(),
+      };
+      // Update config with new install record
+      const res = await loadConfig();
+      const currentInstalls = res?.config?.plugins?.installs ?? {};
+      // Use package name as install key
+      const installKey = pkg.name.replace(/[@/]/g, '-');
+      await client.configPatchRaw({
+        plugins: {
+          installs: {
+            ...currentInstalls,
+            [installKey]: installRecord,
+          },
+        },
+      }, res.hash);
+      // Add to entries if not exists
+      const pluginId = pkg.name; // Use package name as plugin ID
+      if (!entries.find(e => e.id === pluginId)) {
+        setEntries(prev => [...prev, { id: pluginId, enabled: true }]);
+      }
+      setInstalls(prev => ({ ...prev, [installKey]: installRecord }));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e: any) { setError(e.message || '安装失败'); }
+    finally { setInstalling(null); }
+  };
+
+  const handleInstallNpm = async (pkg: NpmPackage) => {
+    setInstalling(pkg.name); setError('');
+    try {
+      // Create install record for npm package
+      const installRecord = {
+        source: 'npm',
+        spec: pkg.name,
+        version: pkg.version,
+        installedAt: new Date().toISOString(),
+      };
+      // Update config with new install record
+      const res = await loadConfig();
+      const currentInstalls = res?.config?.plugins?.installs ?? {};
+      // Use package name as install key
+      const installKey = pkg.name.replace(/[@/]/g, '-');
+      await client.configPatchRaw({
+        plugins: {
+          installs: {
+            ...currentInstalls,
+            [installKey]: installRecord,
+          },
+        },
+      }, res.hash);
+      // Add to entries if not exists
+      const pluginId = pkg.name; // Use package name as plugin ID
+      if (!entries.find(e => e.id === pluginId)) {
+        setEntries(prev => [...prev, { id: pluginId, enabled: true }]);
+      }
+      setInstalls(prev => ({ ...prev, [installKey]: installRecord }));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e: any) { setError(e.message || '安装失败'); }
+    finally { setInstalling(null); }
+  };
+
+  const handleUninstall = async (installKey: string) => {
+    if (!confirm(`确认卸载插件 ${installKey}？`)) return;
+    setSaving(true); setError('');
+    try {
+      const res = await loadConfig();
+      // Use null to delete the key (JSON Merge Patch semantics)
+      await client.configPatchRaw({
+        plugins: {
+          installs: {
+            [installKey]: null,
+          },
+        },
+      }, res.hash);
+      // Update local state
+      setInstalls(prev => {
+        const next = { ...prev };
+        delete next[installKey];
+        return next;
+      });
+    } catch (e: any) {
+      setError(e.message || '卸载失败');
+      console.error('Uninstall error:', e);
+    }
+    finally { setSaving(false); }
+  };
+
+  const isClawHubInstalled = (pkgName: string) => {
+    const installKey = pkgName.replace(/[@/]/g, '-');
+    return !!installs[installKey];
+  };
+
+  const isNpmInstalled = (pkgName: string) => {
+    const installKey = pkgName.replace(/[@/]/g, '-');
+    return !!installs[installKey];
+  };
+
+  // Filter out skills from search results
+  const pluginResults = clawhubResults.filter(r => r.package.family !== 'skill');
+
   return (
     <div className="space-y-4">
       {error && <ErrorBanner msg={error} onDismiss={() => setError('')} />}
+
+      {/* Plugin Marketplace Toggle */}
+      <div className="glass rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-white/8 bg-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Store className="w-4 h-4 text-indigo-400" />
+            <h3 className="text-sm font-semibold text-white/80">插件市场</h3>
+          </div>
+          <button
+            onClick={() => setShowMarketplace(v => !v)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-indigo-300 border border-indigo-500/30 bg-indigo-500/15 hover:bg-indigo-500/20 rounded-lg transition-colors"
+          >
+            {showMarketplace ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+            {showMarketplace ? '收起' : '打开市场'}
+          </button>
+        </div>
+
+        {showMarketplace && (
+          <div className="p-4 space-y-4">
+            {/* Search bar with source selector */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <input
+                  className={`${inputCls} pl-9`}
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                  placeholder="搜索插件..."
+                />
+              </div>
+              <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1">
+                <button
+                  onClick={() => setPluginSource('all')}
+                  className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                    pluginSource === 'all' 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'text-white/60 hover:text-white/80'
+                  }`}
+                >
+                  全部
+                </button>
+                <button
+                  onClick={() => setPluginSource('clawhub')}
+                  className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                    pluginSource === 'clawhub' 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'text-white/60 hover:text-white/80'
+                  }`}
+                >
+                  ClawHub
+                </button>
+                <button
+                  onClick={() => setPluginSource('npmjs')}
+                  className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                    pluginSource === 'npmjs' 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'text-white/60 hover:text-white/80'
+                  }`}
+                >
+                  npmjs
+                </button>
+              </div>
+              <button
+                onClick={handleSearch}
+                disabled={searching || !searchQuery.trim()}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg disabled:opacity-50"
+              >
+                {searching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                搜索
+              </button>
+            </div>
+
+            {/* ClawHub Search results */}
+            {pluginResults.length > 0 && (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                <p className="text-xs text-white/50">ClawHub 搜索结果 ({pluginResults.length})</p>
+                {pluginResults.map(({ package: pkg, score }) => (
+                  <div key={pkg.name} className="flex items-start gap-3 p-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-white">{pkg.displayName || pkg.name}</span>
+                        <span className="text-xs font-mono text-white/50">{pkg.name}</span>
+                        {pkg.latestVersion && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60">v{pkg.latestVersion}</span>
+                        )}
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${pkg.channel === 'official' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                          {pkg.channel}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
+                          {pkg.family === 'bundle-plugin' ? 'bundle' : 'plugin'}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300">ClawHub</span>
+                      </div>
+                      {pkg.summary && <p className="text-xs text-white/50 mt-1">{pkg.summary}</p>}
+                      {pkg.capabilityTags && pkg.capabilityTags.length > 0 && (
+                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                          {pkg.capabilityTags.map(tag => (
+                            <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/50">{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const installKey = pkg.name.replace(/[@/]/g, '-');
+                        isClawHubInstalled(pkg.name) ? handleUninstall(installKey) : handleInstallClawHub(pkg);
+                      }}
+                      disabled={installing === pkg.name || saving}
+                      className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg shrink-0 transition-colors ${
+                        isClawHubInstalled(pkg.name)
+                          ? 'text-red-300 border border-red-500/30 bg-red-500/15 hover:bg-red-500/20'
+                          : 'text-white bg-indigo-600 hover:bg-indigo-500'
+                      } disabled:opacity-50`}
+                    >
+                      {installing === pkg.name ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (
+                        isClawHubInstalled(pkg.name) ? <><Trash2 className="w-3.5 h-3.5" /> 卸载</> : <><Download className="w-3.5 h-3.5" /> 安装</>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* npmjs Search results */}
+            {npmResults.length > 0 && (
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                <p className="text-xs text-white/50">npmjs 搜索结果 ({npmResults.length})</p>
+                {npmResults.map(({ package: pkg }) => (
+                  <div key={pkg.name} className="flex items-start gap-3 p-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-white">{pkg.name}</span>
+                        {pkg.version && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60">v{pkg.version}</span>
+                        )}
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300">npmjs</span>
+                      </div>
+                      {pkg.description && <p className="text-xs text-white/50 mt-1">{pkg.description}</p>}
+                      {pkg.keywords && pkg.keywords.length > 0 && (
+                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                          {pkg.keywords.slice(0, 5).map(tag => (
+                            <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/50">{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const installKey = pkg.name.replace(/[@/]/g, '-');
+                        isNpmInstalled(pkg.name) ? handleUninstall(installKey) : handleInstallNpm(pkg);
+                      }}
+                      disabled={installing === pkg.name || saving}
+                      className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg shrink-0 transition-colors ${
+                        isNpmInstalled(pkg.name)
+                          ? 'text-red-300 border border-red-500/30 bg-red-500/15 hover:bg-red-500/20'
+                          : 'text-white bg-indigo-600 hover:bg-indigo-500'
+                      } disabled:opacity-50`}
+                    >
+                      {installing === pkg.name ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (
+                        isNpmInstalled(pkg.name) ? <><Trash2 className="w-3.5 h-3.5" /> 卸载</> : <><Download className="w-3.5 h-3.5" /> 安装</>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {clawhubResults.length === 0 && npmResults.length === 0 && searchQuery && !searching && (
+              <div className="text-center py-8 text-white/40">
+                <Package className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">未找到插件</p>
+                <p className="text-xs mt-1">试试其他关键词</p>
+              </div>
+            )}
+
+            {/* Installed plugins */}
+            {Object.keys(installs).length > 0 && (
+              <>
+                <div className="border-t border-white/10 pt-3">
+                  <p className="text-xs text-white/50 mb-2">已安装插件</p>
+                  <div className="space-y-1">
+                    {Object.entries(installs).map(([key, record]: [string, any]) => (
+                      <div key={key} className="flex items-center gap-3 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-mono text-white/80">{key}</span>
+                            {record.version && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60">v{record.version}</span>
+                            )}
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                              record.source === 'npm' 
+                                ? 'bg-orange-500/20 text-orange-300' 
+                                : 'bg-indigo-500/20 text-indigo-300'
+                            }`}>
+                              {record.source}
+                            </span>
+                          </div>
+                          {record.clawhubPackage && (
+                            <p className="text-[11px] text-white/40">{record.clawhubPackage}</p>
+                          )}
+                          {record.spec && record.source === 'npm' && (
+                            <p className="text-[11px] text-white/40">{record.spec}</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleUninstall(key)}
+                          disabled={saving}
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-red-300 border border-red-500/30 bg-red-500/15 hover:bg-red-500/20 rounded disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3 h-3" /> 卸载
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-white/40" /></div>
