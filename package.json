@@ -16,6 +16,7 @@
     "public/",
     "README.md"
   ],
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "LOCALFILE_PORT=19877 node localfile-server.mjs & vite",
