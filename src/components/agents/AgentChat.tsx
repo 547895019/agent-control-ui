@@ -595,13 +595,89 @@ function PdfButton({ text, agentName }: { text: string; agentName: string }) {
       const { default: jsPDF } = await import('jspdf');
       const html2canvas = (await import('html2canvas')).default;
 
+      // Process the text to convert Markdown tables to proper HTML tables
+      // This will ensure tables are rendered properly in the PDF
+      let processedText = text;
+
+      // Convert markdown tables to HTML tables
+      // Find lines that look like markdown tables (contain | and --- separators)
+      const lines = processedText.split('\n');
+      let i = 0;
+      const htmlLines = [];
+
+      while (i < lines.length) {
+        const line = lines[i];
+
+        // Check if current line starts a markdown table
+        if (line.trim().startsWith('|') && lines[i + 1] && lines[i + 1].trim().includes('|---')) {
+          // Start collecting table lines
+          const tableRows = [];
+
+          // Add header row
+          const headerRow = line.trim()
+            .replace(/^\||\|$/g, '') // Remove leading/trailing pipes
+            .split('|')
+            .map(cell => cell.trim());
+
+          // Add separator row (ignore for HTML)
+          const separatorLine = lines[++i]; // Advance to separator line
+
+          // Add data rows
+          i++; // Move to first data row
+          while (i < lines.length && lines[i].trim().startsWith('|')) {
+            const dataRow = lines[i].trim()
+              .replace(/^\||\|$/g, '') // Remove leading/trailing pipes
+              .split('|')
+              .map(cell => cell.trim());
+            tableRows.push(dataRow);
+            i++;
+          }
+
+          // Generate HTML table
+          let htmlTable = '<table style="border-collapse: collapse; width: 100%; margin: 10px 0; border: 1px solid #ddd;">';
+
+          // Add header
+          htmlTable += '<thead><tr>';
+          headerRow.forEach(header => {
+            htmlTable += `<th style="border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2; text-align: left;">${DOMPurify.sanitize(header)}</th>`;
+          });
+          htmlTable += '</tr></thead>';
+
+          // Add body
+          htmlTable += '<tbody>';
+          tableRows.forEach(row => {
+            htmlTable += '<tr>';
+            row.forEach(cell => {
+              htmlTable += `<td style="border: 1px solid #ddd; padding: 8px;">${DOMPurify.sanitize(cell)}</td>`;
+            });
+            htmlTable += '</tr>';
+          });
+          htmlTable += '</tbody></table>';
+
+          htmlLines.push(htmlTable);
+        } else {
+          // Regular line, convert markdown elements and add to HTML
+          let convertedLine = line;
+
+          // Convert markdown bold (**text**) to HTML
+          convertedLine = convertedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          // Convert markdown italic (*text*) to HTML
+          convertedLine = convertedLine.replace(/\*(.*?)\*/g, '<em>$1</em>');
+          // Convert markdown inline code (`code`) to HTML
+          convertedLine = convertedLine.replace(/`(.*?)`/g, '<code style="background-color: #eee; padding: 2px 4px; border-radius: 3px;">$1</code>');
+
+          htmlLines.push(DOMPurify.sanitize(convertedLine));
+          i++;
+        }
+      }
+
       // Create a temporary element with the content styled for print
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = `
-        <div style="font-family: 'Microsoft YaHei', SimHei, sans-serif; padding: 20px;">
+        <div style="font-family: 'Microsoft YaHei', SimHei, sans-serif; padding: 20px; max-width: 100%;">
           <h2 style="font-size: 18px; margin-bottom: 10px;">${DOMPurify.sanitize(agentName || 'Chat Message')}</h2>
           <p style="font-size: 12px; color: #666; margin-bottom: 20px;">生成时间: ${new Date().toLocaleString('zh-CN')}</p>
-          <div style="font-size: 12px; line-height: 1.6;">${DOMPurify.sanitize(text).replace(/\n/g, '<br>')}</div>
+          <div style="font-size: 12px; line-height: 1.6; white-space: pre-wrap;">${htmlLines.join('<br>')}</div>
         </div>
       `;
       tempDiv.style.position = 'absolute';
@@ -609,6 +685,7 @@ function PdfButton({ text, agentName }: { text: string; agentName: string }) {
       tempDiv.style.width = '210mm'; // A4 width
       tempDiv.style.backgroundColor = 'white';
       tempDiv.style.fontFamily = "'Microsoft YaHei', SimHei, sans-serif";
+      tempDiv.style.fontSize = '12px';
       document.body.appendChild(tempDiv);
 
       // Wait for any potential DOM updates before capturing
@@ -618,7 +695,9 @@ function PdfButton({ text, agentName }: { text: string; agentName: string }) {
         scale: 2, // Better quality
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: 0
       });
 
       document.body.removeChild(tempDiv);
