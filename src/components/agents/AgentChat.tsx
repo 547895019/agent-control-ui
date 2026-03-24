@@ -591,49 +591,69 @@ function PdfButton({ text, agentName }: { text: string; agentName: string }) {
     setGenerating(true);
 
     try {
-      // Dynamically import jsPDF
-      const jsPDF = (await import('jspdf')).default;
+      // Use html2canvas + jsPDF for Chinese character support
+      const { default: jsPDF } = await import('jspdf');
+      const html2canvas = (await import('html2canvas')).default;
 
-      // Create a new PDF instance
-      const pdf = new jsPDF();
+      // Create a temporary element with the content styled for print
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = `
+        <div style="font-family: 'Microsoft YaHei', SimHei, sans-serif; padding: 20px;">
+          <h2 style="font-size: 18px; margin-bottom: 10px;">${DOMPurify.sanitize(agentName || 'Chat Message')}</h2>
+          <p style="font-size: 12px; color: #666; margin-bottom: 20px;">生成时间: ${new Date().toLocaleString('zh-CN')}</p>
+          <div style="font-size: 12px; line-height: 1.6;">${DOMPurify.sanitize(text).replace(/\n/g, '<br>')}</div>
+        </div>
+      `;
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = '210mm'; // A4 width
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.fontFamily = "'Microsoft YaHei', SimHei, sans-serif";
+      document.body.appendChild(tempDiv);
 
-      // Add metadata
-      const date = new Date().toLocaleString('zh-CN');
-      const title = agentName || 'Chat Message';
+      // Wait for any potential DOM updates before capturing
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Add title
-      pdf.setFontSize(16);
-      pdf.text(title, 20, 20);
+      const canvas = await html2canvas(tempDiv, {
+        scale: 2, // Better quality
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
 
-      // Add date
-      pdf.setFontSize(10);
-      pdf.text(`Generated on: ${date}`, 20, 30);
+      document.body.removeChild(tempDiv);
 
-      // Add content
-      pdf.setFontSize(12);
-      const lines = pdf.splitTextToSize(text, 170); // 170mm width for text
+      const imgData = canvas.toDataURL('image/png', 0.9);
+      const pdf = new jsPDF('p', 'mm', 'a4');
 
-      // Start drawing text from Y position 40
-      let yPosition = 40;
+      // Calculate dimensions to fit the content
+      const imgWidth = 210 - 20; // A4 width minus margins
+      const pageHeight = 297; // A4 height
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      // Draw text lines
-      for (let i = 0; i < lines.length; i++) {
-        // If we reach the bottom of the page, add a new page
-        if (yPosition > 270) { // approximately 270mm from top
-          pdf.addPage();
-          yPosition = 20; // Reset Y position on new page
-        }
+      let heightLeft = imgHeight;
+      let position = 10; // Top margin
 
-        pdf.text(lines[i], 20, yPosition);
-        yPosition += 10; // Move down for next line
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight - position;
+
+      // Add additional pages if needed
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, Math.abs(position), imgWidth, imgHeight);
+        heightLeft -= pageHeight;
       }
 
-      // Save the PDF
       const cleanAgentName = (agentName || 'chat').replace(/[<>:"/\\|?*]/g, '_');
       const fileName = `${cleanAgentName}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.pdf`;
       pdf.save(fileName);
     } catch (error) {
       console.error('Failed to generate PDF:', error);
+
+      // Show an error message to the user
+      alert('PDF生成失败，请重试');
     } finally {
       setGenerating(false);
     }
