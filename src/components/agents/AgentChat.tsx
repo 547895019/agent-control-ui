@@ -706,23 +706,43 @@ function PdfButton({ text, agentName }: { text: string; agentName: string }) {
       const pdf = new jsPDF('p', 'mm', 'a4');
 
       // Calculate dimensions to fit the content
-      const imgWidth = 210 - 20; // A4 width minus margins
-      const pageHeight = 297; // A4 height
+      const imgWidth = 210 - 20; // A4 width minus margins (170mm)
+      const pageHeight = 297 - 20; // A4 height minus margins (277mm)
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      let heightLeft = imgHeight;
-      let position = 10; // Top margin
+      // Calculate how many pages we need
+      const totalPages = Math.ceil(imgHeight / pageHeight);
 
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight - position;
+      // Loop through and add content page by page with proper cropping
+      for (let pageNo = 0; pageNo < totalPages; pageNo++) {
+        if (pageNo !== 0) {
+          pdf.addPage();
+        }
 
-      // Add additional pages if needed
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 10, Math.abs(position), imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+        // Calculate which portion of the source image to use for this page
+        // Convert from PDF mm to canvas pixels
+        const sourceY = pageNo * pageHeight * (canvas.height / imgHeight);
+        const sourceHeight = Math.min(pageHeight * (canvas.height / imgHeight), canvas.height - sourceY);
+
+        // Create a temporary canvas to crop the image for this page
+        const croppedCanvas = document.createElement('canvas');
+        const croppedCtx = croppedCanvas.getContext('2d');
+
+        croppedCanvas.width = canvas.width;
+        croppedCanvas.height = sourceHeight;
+
+        if (croppedCtx) {
+          croppedCtx.drawImage(
+            canvas,
+            0, sourceY, canvas.width, sourceHeight,
+            0, 0, canvas.width, sourceHeight
+          );
+        }
+
+        const croppedImgData = croppedCanvas.toDataURL('image/png', 0.9);
+        const displayHeight = (sourceHeight * imgWidth) / canvas.width;
+
+        pdf.addImage(croppedImgData, 'PNG', 10, 10, imgWidth, displayHeight);
       }
 
       const cleanAgentName = (agentName || 'chat').replace(/[<>:"/\\|?*]/g, '_');
