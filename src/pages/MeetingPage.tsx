@@ -455,13 +455,13 @@ function MeetingRunner({
   const [done, setDone] = useState(initialMeeting.status !== 'running');
   const streamTextRef = useRef(initialMeeting.result);
   const meetingRef = useRef(initialMeeting);
-  const doneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // runId returned by chatSend — only the final event matching this runId marks the meeting done
+  const runIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (initialMeeting.status !== 'running') return;
 
     const markDone = (status: 'done' | 'error') => {
-      if (doneTimerRef.current) { clearTimeout(doneTimerRef.current); doneTimerRef.current = null; }
       setDone(true);
       const updated = { ...meetingRef.current, result: streamTextRef.current, status };
       meetingRef.current = updated;
@@ -474,31 +474,33 @@ function MeetingRunner({
       const payload = event.payload ?? event.data ?? event;
       if (payload.sessionKey !== sessionKey) return;
 
-      const { state, message } = payload;
+      const { state, message, runId } = payload;
       const raw = message?.content ?? message?.text ?? '';
       const text = typeof raw === 'string' ? raw
         : Array.isArray(raw) ? raw.map((c: any) => c.text ?? '').join('') : '';
 
       if (state === 'delta') {
-        // Cancel any pending done timer — agent is still working
-        if (doneTimerRef.current) { clearTimeout(doneTimerRef.current); doneTimerRef.current = null; }
         if (!streamTextRef.current || text.length >= streamTextRef.current.length) {
           streamTextRef.current = text;
           setStreamText(text);
         }
       } else if (state === 'final') {
-        // Debounce: wait 3s before marking done in case more deltas follow (tool → summary gap)
         if (text.length >= streamTextRef.current.length) {
           streamTextRef.current = text;
           setStreamText(text);
         }
-        if (doneTimerRef.current) clearTimeout(doneTimerRef.current);
-        doneTimerRef.current = setTimeout(() => markDone('done'), 3000);
+        // Only mark done when the final event's runId matches the one from chatSend.
+        // Intermediate tool-call finals have a different runId and are ignored.
+        // Fallback: if runId tracking isn't available on either side, mark done anyway.
+        const ourRunId = runIdRef.current;
+        if (!ourRunId || !runId || runId === ourRunId) {
+          markDone('done');
+        }
       } else if (state === 'aborted' || state === 'error') {
         markDone('error');
       }
     });
-    return () => { unsub(); if (doneTimerRef.current) clearTimeout(doneTimerRef.current); };
+    return unsub;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -509,7 +511,9 @@ function MeetingRunner({
     }));
     const prompt = initialMeeting.prompt
       || buildHostPrompt(initialMeeting.topic, participants);
-    client.chatSend(sessionKey, prompt).catch(() => {
+    client.chatSend(sessionKey, prompt).then(res => {
+      runIdRef.current = res?.runId ?? null;
+    }).catch(() => {
       setDone(true);
       const updated = { ...meetingRef.current, status: 'error' as const };
       meetingRef.current = updated;
