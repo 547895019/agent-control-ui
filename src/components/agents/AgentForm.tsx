@@ -55,10 +55,17 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
     (agent?.config?.tools?.profile as ToolProfile) ?? 'full'
   );
 
+  const [workspaceDirty, setWorkspaceDirty] = useState(isEditing);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k: string, v: any) => {
+    if (k === 'id' && !workspaceDirty) {
+      setForm(f => ({ ...f, id: v, workspace: v.trim() ? `~/.openclaw/workspaces/${v.trim()}` : '' }));
+    } else {
+      setForm(f => ({ ...f, [k]: v }));
+    }
+  };
 
   const addFallback = () => setModelFallbacks(f => [...f, '']);
   const removeFallback = (i: number) => setModelFallbacks(f => f.filter((_, idx) => idx !== i));
@@ -143,8 +150,8 @@ export function AgentForm({ agent, onSuccess, onCancel }: AgentFormProps) {
             <input
               className={inputCls}
               value={form.workspace}
-              onChange={e => set('workspace', e.target.value)}
-              placeholder="~/.openclaw/workspace-custom"
+              onChange={e => { setWorkspaceDirty(true); set('workspace', e.target.value); }}
+              placeholder="~/.openclaw/workspaces/my-agent"
             />
           </Field>
 
