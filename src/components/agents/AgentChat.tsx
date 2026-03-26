@@ -50,15 +50,21 @@ function MarkdownBody({ text, dim }: { text: string; dim?: boolean }) {
   const html = useMemo(() => renderMarkdown(text), [text]);
   const ref = useRef<HTMLDivElement>(null);
 
+  // No dependency array — re-runs after every render to re-inject buttons
+  // if React's dangerouslySetInnerHTML wiped the DOM on re-render.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const pres = el.querySelectorAll<HTMLPreElement>('pre');
+    // Fast path: all pres already wrapped
+    if (pres.length > 0 && Array.from(pres).every(p => (p.parentElement as HTMLElement)?.dataset.preWrap)) return;
+
+    const iconCopy = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+    const iconCheck = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+
     pres.forEach(pre => {
-      // Skip if already wrapped
       if ((pre.parentElement as HTMLElement)?.dataset.preWrap) return;
 
-      // Wrap pre in a relative container so the button isn't clipped by pre's overflow-x:auto
       const wrapper = document.createElement('div');
       wrapper.dataset.preWrap = '1';
       wrapper.style.cssText = 'position:relative;margin:0.6em 0;';
@@ -66,8 +72,6 @@ function MarkdownBody({ text, dim }: { text: string; dim?: boolean }) {
       pre.parentNode!.insertBefore(wrapper, pre);
       wrapper.appendChild(pre);
 
-      const iconCopy = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
-      const iconCheck = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
       const btn = document.createElement('button');
       btn.className = 'md-copy-btn';
       btn.title = '复制代码';
@@ -83,7 +87,7 @@ function MarkdownBody({ text, dim }: { text: string; dim?: boolean }) {
       };
       wrapper.appendChild(btn);
     });
-  }, [html]);
+  });
 
   return (
     <div
