@@ -61,7 +61,7 @@ import {
   MessageSquare, Plus, Hash, Paperclip, Brain,
   Copy, Check, Search, Trash2, Pencil,
   Mic, MicOff, Volume2, VolumeX,
-  Maximize2, Minimize2, Download, FileDown,
+  Maximize2, Minimize2, Download, FileDown, RefreshCw,
 } from 'lucide-react';
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -822,6 +822,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [maximized, setMaximized] = useState(false);
+  const [showNewMessages, setShowNewMessages] = useState(false);
 
   // ── deleted messages (soft-delete, localStorage) ──────────────────────────
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
@@ -859,6 +860,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
   const historyIdxRef = useRef(-1);
   const draftRef = useRef('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const cmdListRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -1135,10 +1137,34 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     buttons[cmdIdx]?.scrollIntoView({ block: 'nearest' });
   }, [cmdIdx]);
 
+  // ── scroll helpers ────────────────────────────────────────────────────────────
+  const isNearBottom = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 300;
+  };
+  const scrollToBottom = () => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setShowNewMessages(false);
+  };
+  const handleRefresh = () => {
+    setHistLoading(true);
+    setHistError('');
+    client.chatHistory(sessionKey, 200)
+      .then(res => setMessages(parseHistory(res)))
+      .catch(err => setHistError(err.message || 'Failed to load history'))
+      .finally(() => setHistLoading(false));
+  };
+
   // ── auto-scroll ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, streamText]);
+    if (isNearBottom()) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      setShowNewMessages(false);
+    } else {
+      setShowNewMessages(true);
+    }
+  }, [messages, streamText]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── auto-TTS: speak new assistant messages ─────────────────────────────────
   useEffect(() => {
@@ -1836,6 +1862,14 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
             <Download className="w-4 h-4" />
           </button>
           <button
+            onClick={handleRefresh}
+            disabled={histLoading || sending}
+            title="刷新聊天记录"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors shrink-0 disabled:opacity-30"
+          >
+            <RefreshCw className={`w-4 h-4 ${histLoading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
             onClick={() => { setShowSearch(v => !v); if (showSearch) setSearchQuery(''); }}
             title="搜索消息"
             className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors shrink-0 ${
@@ -1989,10 +2023,14 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
           </div>
 
           {/* Chat panel */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 relative">
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-4">
+            <div
+              ref={scrollContainerRef}
+              onScroll={() => { if (isNearBottom()) setShowNewMessages(false); }}
+              className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-4"
+            >
               {histLoading ? (
                 <div className="flex items-center justify-center py-16">
                   <Loader2 className="w-5 h-5 animate-spin text-white/40" />
@@ -2078,6 +2116,19 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
 
               <div ref={bottomRef} />
             </div>
+
+            {/* New messages floating button */}
+            {showNewMessages && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+                <button
+                  onClick={scrollToBottom}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/90 hover:bg-indigo-500 text-white text-xs font-medium shadow-lg backdrop-blur-sm transition-all animate-bounce-once"
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                  新消息
+                </button>
+              </div>
+            )}
 
             {/* Context usage warning */}
             {contextPct !== null && contextPct >= 85 && (
