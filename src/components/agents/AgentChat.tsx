@@ -1184,6 +1184,35 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     buttons[cmdIdx]?.scrollIntoView({ block: 'nearest' });
   }, [cmdIdx]);
 
+  // ── drag-to-scroll ────────────────────────────────────────────────────────────
+  const dragRef = useRef<{ startY: number; startScrollTop: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleScrollMouseDown = (e: React.MouseEvent) => {
+    // Only left button, ignore clicks on interactive elements
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button,a,input,textarea,select,[contenteditable]')) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    dragRef.current = { startY: e.clientY, startScrollTop: el.scrollTop };
+    setIsDragging(true);
+    e.preventDefault();
+  };
+
+  const handleScrollMouseMove = (e: React.MouseEvent) => {
+    if (!dragRef.current) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const dy = dragRef.current.startY - e.clientY;
+    el.scrollTop = dragRef.current.startScrollTop + dy;
+  };
+
+  const handleScrollMouseUp = () => {
+    dragRef.current = null;
+    setIsDragging(false);
+  };
+
   // ── scroll helpers ────────────────────────────────────────────────────────────
   const isNearBottom = () => {
     const el = scrollContainerRef.current;
@@ -2077,7 +2106,11 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
             <div
               ref={scrollContainerRef}
               onScroll={() => { if (isNearBottom()) setShowNewMessages(false); }}
-              className="h-full overflow-y-auto overflow-x-hidden px-5 py-4 space-y-4"
+              onMouseDown={handleScrollMouseDown}
+              onMouseMove={handleScrollMouseMove}
+              onMouseUp={handleScrollMouseUp}
+              onMouseLeave={handleScrollMouseUp}
+              className={`h-full overflow-y-auto overflow-x-hidden px-5 py-4 space-y-4 ${isDragging ? 'cursor-grabbing select-none' : 'cursor-default'}`}
             >
               {histLoading ? (
                 <div className="flex items-center justify-center py-16">
