@@ -64,12 +64,6 @@ function MarkdownBody({ text, dim }: { text: string; dim?: boolean }) {
       const iconCheck = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
       btn.innerHTML = iconCopy;
 
-      // Show/hide on pre hover via JS (avoids overflow-x:auto clipping CSS hover selectors)
-      const show = () => btn.classList.add('visible');
-      const hide = () => btn.classList.remove('visible');
-      pre.addEventListener('mouseenter', show);
-      pre.addEventListener('mouseleave', hide);
-
       btn.onclick = async () => {
         const code = pre.querySelector('code')?.innerText ?? pre.innerText;
         try {

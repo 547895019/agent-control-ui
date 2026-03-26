@@ -410,13 +410,7 @@ select option {
   color: rgba(255,255,255,0.50);
   cursor: pointer;
   z-index: 10;
-  opacity: 0;
-  transition: opacity 0.15s, color 0.15s, background 0.15s;
-  pointer-events: none;
-}
-.md-copy-btn.visible {
-  opacity: 1;
-  pointer-events: auto;
+  transition: color 0.15s, background 0.15s;
 }
 .md-copy-btn:hover {
   background: rgba(60,60,80,0.95);
