@@ -16,6 +16,22 @@ interface AppState {
 // Module-level to avoid duplicate subscriptions across reconnects
 let chatEventUnsub: (() => void) | null = null;
 
+// Debounce timers: delay marking idle after `final` in case more deltas follow (tool → response gap)
+const idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function markIdle(agentId: string, setFn: (fn: (s: any) => any) => void) {
+  const t = idleTimers.get(agentId);
+  if (t) clearTimeout(t);
+  idleTimers.delete(agentId);
+  setFn(s => { const n = new Set(s.workingAgents); n.delete(agentId); return { workingAgents: n }; });
+}
+
+function scheduleIdle(agentId: string, setFn: (fn: (s: any) => any) => void, delayMs: number) {
+  const old = idleTimers.get(agentId);
+  if (old) clearTimeout(old);
+  idleTimers.set(agentId, setTimeout(() => markIdle(agentId, setFn), delayMs));
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   token: sessionStorage.getItem('gateway_token'),
   connectionStatus: 'disconnected',
@@ -52,13 +68,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!agentId) return;
       const { state } = payload;
       if (state === 'delta') {
+        // Cancel any pending idle debounce — agent is still working
+        const t = idleTimers.get(agentId);
+        if (t) { clearTimeout(t); idleTimers.delete(agentId); }
         set(s => ({ workingAgents: new Set([...s.workingAgents, agentId]) }));
-      } else if (state === 'final' || state === 'aborted' || state === 'error') {
-        set(s => {
-          const next = new Set(s.workingAgents);
-          next.delete(agentId);
-          return { workingAgents: next };
-        });
+      } else if (state === 'final') {
+        // Debounce: wait 2s before marking idle in case more deltas follow (tool → response gap)
+        scheduleIdle(agentId, set, 2000);
+      } else if (state === 'aborted' || state === 'error') {
+        // Mark idle immediately on abort/error
+        markIdle(agentId, set);
       }
     });
 
