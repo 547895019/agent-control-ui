@@ -22,7 +22,6 @@ interface MeetingRecord {
   createdAt: string;
   result: string;
   sessionKey: string;  // unique per meeting, never reused
-  channel?: { channelId: string; target: string };  // optional channel delivery
   prompt?: string;  // custom prompt set at creation time (may be user-edited)
 }
 
@@ -34,41 +33,13 @@ const MAX_RECORDS = 50;
 function buildHostPrompt(
   topic: string,
   participants: Array<{ id: string; name: string }>,
-  channel?: { channelId: string; target: string },
 ): string {
   const list = participants
     .map(p => `- Agent ID: \`${p.id}\`（${p.name}）`)
     .join('\n');
 
-  const channelSection = channel
-    ? `## 发送频道\n会议结束后，请通过 ${CHANNEL_LABELS[channel.channelId] ?? channel.channelId} 频道将最终结论发送给 ${channel.target}。`
-    : '';
-
-  return fillTemplate(meetingHostPromptTemplate, { topic, list, channelSection }).trimEnd();
+  return fillTemplate(meetingHostPromptTemplate, { topic, list, channelSection: '' }).trimEnd();
 }
-
-// ── Channel helpers ────────────────────────────────────────────────────────────
-
-const CHANNEL_ICONS: Record<string, string> = {
-  whatsapp: '📱', telegram: '✈️', discord: '🎮', slack: '💼', signal: '🔒',
-  googlechat: '💬', imessage: '🍎', nostr: '⚡', email: '📧', sms: '📲',
-};
-
-const CHANNEL_LABELS: Record<string, string> = {
-  whatsapp: 'WhatsApp', telegram: 'Telegram', discord: 'Discord',
-  slack: 'Slack', signal: 'Signal', googlechat: 'Google Chat',
-  imessage: 'iMessage', nostr: 'Nostr', email: 'Email', sms: 'SMS',
-};
-
-const CHANNEL_TARGET_PLACEHOLDER: Record<string, string> = {
-  telegram: '@username 或频道 ID',
-  whatsapp: '手机号（含国际区号）',
-  discord: '频道 ID',
-  slack: '#频道名称',
-  email: '邮件地址',
-  signal: '手机号（含国际区号）',
-  sms: '手机号',
-};
 
 // ── localStorage helpers ───────────────────────────────────────────────────────
 
@@ -215,31 +186,6 @@ function MeetingSetupForm({ onStart }: { onStart: (record: MeetingRecord) => voi
   const [editedPrompt, setEditedPrompt] = useState('');
   const [promptDirty, setPromptDirty] = useState(false);
 
-  // Channel state
-  const [channelId, setChannelId] = useState('');
-  const [channelTarget, setChannelTarget] = useState('');
-  const [availableChannels, setAvailableChannels] = useState<Array<{ id: string }>>([]);
-  const [channelsLoading, setChannelsLoading] = useState(true);
-
-  useEffect(() => {
-    setChannelsLoading(true);
-    client.channelsStatus({ timeoutMs: 8000 })
-      .then((snap: any) => {
-        const channels = snap?.channels ?? {};
-        const accounts = snap?.channelAccounts ?? {};
-        const all = new Set([...Object.keys(channels), ...Object.keys(accounts)]);
-        const connected = [...all].filter(id => {
-          const s = channels[id];
-          const accs = accounts[id] ?? [];
-          return s?.configured || s?.running || s?.connected || s?.linked
-            || accs.some((a: any) => a.configured || a.running || a.connected || a.linked);
-        });
-        setAvailableChannels(connected.map(id => ({ id })));
-      })
-      .catch(() => setAvailableChannels([]))
-      .finally(() => setChannelsLoading(false));
-  }, []);
-
   useEffect(() => {
     setParticipantIds(prev => prev.filter(p => p !== hostId));
   }, [hostId]);
@@ -260,12 +206,8 @@ function MeetingSetupForm({ onStart }: { onStart: (record: MeetingRecord) => voi
 
   const canStart = topic.trim().length > 0 && hostId && participantIds.length > 0;
 
-  const previewChannel = (channelId && channelTarget.trim())
-    ? { channelId, target: channelTarget.trim() }
-    : undefined;
-
   const previewPrompt = (topic && hostId && participantIds.length > 0)
-    ? buildHostPrompt(topic.trim(), participantIds.map(id => ({ id, name: agents[id]?.name || id })), previewChannel)
+    ? buildHostPrompt(topic.trim(), participantIds.map(id => ({ id, name: agents[id]?.name || id })))
     : '填写主题、发起人和参会人后预览…';
 
   // Keep editedPrompt in sync with auto-generated prompt when user hasn't manually edited
@@ -291,7 +233,6 @@ function MeetingSetupForm({ onStart }: { onStart: (record: MeetingRecord) => voi
       result: '',
       sessionKey: `agent:${hostId}:mtg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       prompt: finalPrompt,
-      ...(channelId && channelTarget.trim() ? { channel: { channelId, target: channelTarget.trim() } } : {}),
     };
     upsertMeeting(record);
     onStart(record);
@@ -353,58 +294,6 @@ function MeetingSetupForm({ onStart }: { onStart: (record: MeetingRecord) => voi
                   <option key={id} value={id} className="bg-gray-900">{cfg.name || id}</option>
                 ))}
               </select>
-            )}
-          </div>
-
-          {/* Channel delivery */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-white/50 font-medium uppercase tracking-wide flex-1">
-                发送到频道（可选）
-              </label>
-              {channelsLoading && <Loader2 className="w-3 h-3 text-white/30 animate-spin" />}
-            </div>
-
-            {!channelsLoading && availableChannels.length === 0 && (
-              <p className="text-xs text-white/25">暂无已连接频道</p>
-            )}
-
-            {availableChannels.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => { setChannelId(''); setChannelTarget(''); }}
-                  className={`px-2.5 py-1 rounded-lg text-xs border transition-colors ${
-                    !channelId
-                      ? 'bg-white/12 border-white/25 text-white/70'
-                      : 'border-white/8 text-white/30 hover:text-white/50 hover:border-white/15'
-                  }`}
-                >
-                  不发送
-                </button>
-                {availableChannels.map(({ id }) => (
-                  <button
-                    key={id}
-                    onClick={() => { setChannelId(id); setChannelTarget(''); }}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs border transition-colors ${
-                      channelId === id
-                        ? 'bg-indigo-500/20 border-indigo-400/40 text-white'
-                        : 'glass border-white/10 text-white/50 hover:text-white hover:border-white/20'
-                    }`}
-                  >
-                    <span>{CHANNEL_ICONS[id] ?? '🔌'}</span>
-                    {CHANNEL_LABELS[id] ?? id}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {channelId && (
-              <input
-                value={channelTarget}
-                onChange={e => setChannelTarget(e.target.value)}
-                placeholder={CHANNEL_TARGET_PLACEHOLDER[channelId] ?? '发送目标'}
-                className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-indigo-400/60 focus:ring-1 focus:ring-indigo-400/30 transition-all"
-              />
             )}
           </div>
 
@@ -612,7 +501,7 @@ function MeetingRunner({
       name: agents[id]?.name || id,
     }));
     const prompt = initialMeeting.prompt
-      || buildHostPrompt(initialMeeting.topic, participants, initialMeeting.channel);
+      || buildHostPrompt(initialMeeting.topic, participants);
     client.chatSend(sessionKey, prompt).catch(() => {
       setDone(true);
       const updated = { ...meetingRef.current, status: 'error' as const };
@@ -710,17 +599,6 @@ function MeetingRunner({
           </div>
         ) : null}
       </div>
-
-      {/* Channel info tag */}
-      {initialMeeting.channel && (
-        <div className="flex items-center gap-2 px-4 py-2 rounded-xl glass border border-white/10 text-xs text-white/40">
-          <span>{CHANNEL_ICONS[initialMeeting.channel.channelId] ?? '🔌'}</span>
-          <span>{CHANNEL_LABELS[initialMeeting.channel.channelId] ?? initialMeeting.channel.channelId}</span>
-          <span className="text-white/20">→</span>
-          <span className="font-mono text-white/50">{initialMeeting.channel.target}</span>
-          <span className="ml-auto text-white/25">已含在提示词中</span>
-        </div>
-      )}
 
     </div>
   );
