@@ -573,7 +573,7 @@ function ChatBubble({ role, content, showThinking, usage, agentName, isFirst = t
           <ThinkingBlock key={i} text={b.text} forceOpen={showThinking || undefined} />
         ))}
         {displayText && (
-          <div className={`rounded-2xl px-3.5 py-2.5 overflow-hidden w-full select-text ${
+          <div data-msg-content className={`rounded-2xl px-3.5 py-2.5 overflow-hidden w-full select-text ${
             isUser
               ? `bg-indigo-600 text-white ${isFirst ? 'rounded-tr-sm' : ''}`
               : `bg-white/10 text-white/85 ${isFirst ? 'rounded-tl-sm' : ''}`
@@ -1197,8 +1197,8 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     if (e.button !== 0) return;
     const el = scrollContainerRef.current;
     if (!el) return;
-    // Don't drag inside message bubbles — let normal text selection work there
-    if ((e.target as HTMLElement).closest('[data-msg-bubble]')) return;
+    // Don't drag inside message content boxes — let text selection work there
+    if ((e.target as HTMLElement).closest('[data-msg-content]')) return;
     dragRef.current = { startY: e.clientY, startScrollTop: el.scrollTop };
     setIsDragging(true);
     e.preventDefault();
@@ -2174,7 +2174,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
                     )}
                     {/* Text stream */}
                     {streamText && (
-                      <div className="bg-white/10 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-white/85 select-text">
+                      <div data-msg-content className="bg-white/10 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-white/85 select-text">
                         <MarkdownBody text={streamText} dim={showThinking && !!streamThinking} />
                         {!streamThinking && <span className="inline-block w-0.5 h-3.5 bg-white/50 ml-0.5 align-middle animate-pulse" />}
                       </div>
