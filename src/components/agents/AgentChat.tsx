@@ -48,8 +48,38 @@ function renderMarkdown(text: string): string {
 
 function MarkdownBody({ text, dim }: { text: string; dim?: boolean }) {
   const html = useMemo(() => renderMarkdown(text), [text]);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const pres = el.querySelectorAll('pre');
+    pres.forEach(pre => {
+      if (pre.querySelector('.md-copy-btn')) return; // already added
+      pre.style.position = 'relative';
+      const btn = document.createElement('button');
+      btn.className = 'md-copy-btn';
+      btn.title = '复制代码';
+      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+      btn.onclick = async () => {
+        const code = pre.querySelector('code')?.innerText ?? pre.innerText;
+        try {
+          await navigator.clipboard.writeText(code);
+          btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+          btn.style.color = '#34d399';
+          setTimeout(() => {
+            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+            btn.style.color = '';
+          }, 1500);
+        } catch {}
+      };
+      pre.appendChild(btn);
+    });
+  }, [html]);
+
   return (
     <div
+      ref={ref}
       className={`md-body text-sm leading-relaxed transition-opacity break-words ${dim ? 'opacity-40' : 'opacity-100'}`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
