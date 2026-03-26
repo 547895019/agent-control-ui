@@ -575,7 +575,7 @@ function ChatBubble({ role, content, showThinking, usage, agentName, isFirst = t
         {displayText && (
           <div data-msg-content className={`rounded-2xl px-3.5 py-2.5 overflow-hidden w-full select-text ${
             isUser
-              ? `bg-indigo-600 text-white ${isFirst ? 'rounded-tr-sm' : ''}`
+              ? `bg-indigo-600/60 text-white ${isFirst ? 'rounded-tr-sm' : ''}`
               : `bg-white/10 text-white/85 ${isFirst ? 'rounded-tl-sm' : ''}`
           }`}>
             {/* Both user and assistant messages use MarkdownBody so image paths render as <img> */}
