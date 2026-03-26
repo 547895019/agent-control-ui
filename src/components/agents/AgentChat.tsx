@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { client } from '../../api/gateway';
+import { useAppStore } from '../../stores/useAppStore';
 import { ModelSelect } from '../shared/ModelSelect';
 
 // Configure marked once
@@ -828,6 +829,7 @@ export interface AgentChatProps {
 }
 
 export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMessage }: AgentChatProps) {
+  const { setAgentWorking } = useAppStore();
   // Session keys must use the gateway format: "agent:<agentId>:<scope>"
   // so the gateway can parse the agentId and route to the correct agent.
   const defaultSessionKey = `agent:${agentId}:main`;
@@ -1182,12 +1184,14 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     setSendError('');
     streamTextRef.current = '';
     setStreamText('');
+    setAgentWorking(agentId, true);
     client.chatSend(sessionKey, autoSendMessage).then(res => {
       activeRunIdRef.current = res.runId;
       setRunId(res.runId);
     }).catch((e: any) => {
       setSending(false);
       setSendError(e.message || 'Failed to send');
+      setAgentWorking(agentId, false);
     });
   }, [autoSendMessage, histLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1579,12 +1583,14 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
       setSendError('');
       streamTextRef.current = '';
       setStreamText('');
+      setAgentWorking(agentId, true);
       client.chatSend(sessionKey, trimmed).then(res => {
         activeRunIdRef.current = res.runId;
         setRunId(res.runId);
       }).catch((e: any) => {
         setSending(false);
         setSendError(e.message || 'Failed to send');
+        setAgentWorking(agentId, false);
       });
       return;
     }
@@ -1776,6 +1782,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     setSendError('');
     streamTextRef.current = '';
     setStreamText('');
+    setAgentWorking(agentId, true);
 
     try {
       const res = await client.chatSend(sessionKey, fullText);
@@ -1785,6 +1792,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     } catch (e: any) {
       setSending(false);
       setSendError(e.message || 'Failed to send');
+      setAgentWorking(agentId, false);
     }
   };
 

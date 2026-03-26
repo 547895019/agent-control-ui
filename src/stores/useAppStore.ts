@@ -11,6 +11,7 @@ interface AppState {
   disconnect: () => void;
   fetchAgents: () => Promise<void>;
   deleteAgent: (id: string) => Promise<void>;
+  setAgentWorking: (agentId: string, working: boolean) => void;
 }
 
 // Module-level to avoid duplicate subscriptions across reconnects
@@ -113,6 +114,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
   
+  setAgentWorking: (agentId: string, working: boolean) => {
+    if (working) {
+      const t = idleTimers.get(agentId);
+      if (t) { clearTimeout(t); idleTimers.delete(agentId); }
+      set(s => ({ workingAgents: new Set([...s.workingAgents, agentId]) }));
+    } else {
+      markIdle(agentId, set);
+    }
+  },
+
   deleteAgent: async (id: string) => {
     try {
       // mergeObjectArraysById can only add/update, not remove array items.
