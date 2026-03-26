@@ -1104,7 +1104,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
         }
       } catch {}
     };
-    const timer = setInterval(refresh, 3000);
+    const timer = setInterval(refresh, 10000);
     return () => {
       cancelled = true;
       clearInterval(timer);
