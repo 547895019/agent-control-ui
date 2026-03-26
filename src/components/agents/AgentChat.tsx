@@ -573,7 +573,7 @@ function ChatBubble({ role, content, showThinking, usage, agentName, isFirst = t
           <ThinkingBlock key={i} text={b.text} forceOpen={showThinking || undefined} />
         ))}
         {displayText && (
-          <div className={`rounded-2xl px-3.5 py-2.5 overflow-hidden w-full ${
+          <div className={`rounded-2xl px-3.5 py-2.5 overflow-hidden w-full select-text ${
             isUser
               ? `bg-indigo-600 text-white ${isFirst ? 'rounded-tr-sm' : ''}`
               : `bg-white/10 text-white/85 ${isFirst ? 'rounded-tl-sm' : ''}`
@@ -947,11 +947,16 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     setIsListening(true);
   };
 
-  // ── lock body scroll while dialog is open ────────────────────────────────────
+  // ── lock body scroll & selection while dialog is open ───────────────────────
   useEffect(() => {
-    const prev = document.body.style.overflow;
+    const prevOverflow = document.body.style.overflow;
+    const prevSelect = document.body.style.userSelect;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    document.body.style.userSelect = 'none';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.userSelect = prevSelect;
+    };
   }, []);
 
   // ── forward backdrop wheel events to scroll container ────────────────────────
@@ -2169,7 +2174,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
                     )}
                     {/* Text stream */}
                     {streamText && (
-                      <div className="bg-white/10 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-white/85">
+                      <div className="bg-white/10 rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-white/85 select-text">
                         <MarkdownBody text={streamText} dim={showThinking && !!streamThinking} />
                         {!streamThinking && <span className="inline-block w-0.5 h-3.5 bg-white/50 ml-0.5 align-middle animate-pulse" />}
                       </div>
