@@ -2026,10 +2026,11 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
           <div className="flex-1 flex flex-col min-w-0 relative">
 
             {/* Messages */}
+            <div className="flex-1 relative min-h-0">
             <div
               ref={scrollContainerRef}
               onScroll={() => { if (isNearBottom()) setShowNewMessages(false); }}
-              className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 space-y-4"
+              className="h-full overflow-y-auto overflow-x-hidden px-5 py-4 space-y-4"
             >
               {histLoading ? (
                 <div className="flex items-center justify-center py-16">
@@ -2122,13 +2123,14 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
                 <button
                   onClick={scrollToBottom}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/90 hover:bg-indigo-500 text-white text-xs font-medium shadow-lg backdrop-blur-sm transition-all animate-bounce-once"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/90 hover:bg-indigo-500 text-white text-xs font-medium shadow-lg backdrop-blur-sm transition-all"
                 >
                   <ChevronDown className="w-3.5 h-3.5" />
                   新消息
                 </button>
               </div>
             )}
+            </div>{/* end messages wrapper */}
 
             {/* Context usage warning */}
             {contextPct !== null && contextPct >= 85 && (
