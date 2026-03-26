@@ -1032,7 +1032,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     });
   }, [sessionKey, agentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── polling fallback ─────────────────────────────────────────────────────────
+  // ── polling fallback (sending) ────────────────────────────────────────────────
   useEffect(() => {
     if (!sending) return;
     const poll = async () => {
@@ -1053,6 +1053,33 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     const timer = setInterval(poll, 2000);
     return () => clearInterval(timer);
   }, [sending, sessionKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── background refresh (always-on) ───────────────────────────────────────────
+  // Catches cases where WebSocket events are missed or sending state was reset prematurely
+  useEffect(() => {
+    const refresh = async () => {
+      if (histLoading) return;
+      try {
+        const res = await client.chatHistory(sessionKey, 200);
+        const msgs = parseHistory(res);
+        setMessages(prev => {
+          if (msgs.length === prev.length) return prev; // no change
+          // New messages detected — apply and clear any stale sending state
+          if (msgs.length > prev.length && msgs[msgs.length - 1].role === 'assistant') {
+            streamTextRef.current = '';
+            streamThinkingRef.current = '';
+            setStreamText('');
+            setStreamThinking('');
+            setRunId(null);
+            setSending(false);
+          }
+          return msgs;
+        });
+      } catch {}
+    };
+    const timer = setInterval(refresh, 3000);
+    return () => clearInterval(timer);
+  }, [sessionKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── auto-send initial message ─────────────────────────────────────────────────
   useEffect(() => {
