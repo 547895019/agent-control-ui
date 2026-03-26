@@ -455,9 +455,19 @@ function MeetingRunner({
   const [done, setDone] = useState(initialMeeting.status !== 'running');
   const streamTextRef = useRef(initialMeeting.result);
   const meetingRef = useRef(initialMeeting);
+  const doneTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (initialMeeting.status !== 'running') return;
+
+    const markDone = (status: 'done' | 'error') => {
+      if (doneTimerRef.current) { clearTimeout(doneTimerRef.current); doneTimerRef.current = null; }
+      setDone(true);
+      const updated = { ...meetingRef.current, result: streamTextRef.current, status };
+      meetingRef.current = updated;
+      upsertMeeting(updated);
+      onDone(updated);
+    };
 
     const unsub = client.onEvent((event: any) => {
       if (event.event !== 'chat') return;
@@ -470,28 +480,25 @@ function MeetingRunner({
         : Array.isArray(raw) ? raw.map((c: any) => c.text ?? '').join('') : '';
 
       if (state === 'delta') {
+        // Cancel any pending done timer — agent is still working
+        if (doneTimerRef.current) { clearTimeout(doneTimerRef.current); doneTimerRef.current = null; }
         if (!streamTextRef.current || text.length >= streamTextRef.current.length) {
           streamTextRef.current = text;
           setStreamText(text);
         }
       } else if (state === 'final') {
-        const finalText = streamTextRef.current || text;
-        streamTextRef.current = finalText;
-        setStreamText(finalText);
-        setDone(true);
-        const updated = { ...meetingRef.current, result: finalText, status: 'done' as const };
-        meetingRef.current = updated;
-        upsertMeeting(updated);
-        onDone(updated);
+        // Debounce: wait 3s before marking done in case more deltas follow (tool → summary gap)
+        if (text.length >= streamTextRef.current.length) {
+          streamTextRef.current = text;
+          setStreamText(text);
+        }
+        if (doneTimerRef.current) clearTimeout(doneTimerRef.current);
+        doneTimerRef.current = setTimeout(() => markDone('done'), 3000);
       } else if (state === 'aborted' || state === 'error') {
-        setDone(true);
-        const updated = { ...meetingRef.current, result: streamTextRef.current, status: 'error' as const };
-        meetingRef.current = updated;
-        upsertMeeting(updated);
-        onDone(updated);
+        markDone('error');
       }
     });
-    return unsub;
+    return () => { unsub(); if (doneTimerRef.current) clearTimeout(doneTimerRef.current); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
