@@ -947,6 +947,20 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     setIsListening(true);
   };
 
+  // ── lock body scroll while dialog is open ────────────────────────────────────
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // ── forward backdrop wheel events to scroll container ────────────────────────
+  const handleBackdropWheel = (e: React.WheelEvent) => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTop += e.deltaY;
+  };
+
   // ── load sessions ────────────────────────────────────────────────────────────
   useEffect(() => {
     setSessionsLoading(true);
@@ -1847,7 +1861,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
 
   // ── render ────────────────────────────────────────────────────────────────────
   return (
-    <div className={`fixed inset-0 z-50 ${maximized ? '' : 'bg-black/50 backdrop-blur-sm flex items-center justify-center p-4'}`}>
+    <div onWheel={handleBackdropWheel} className={`fixed inset-0 z-50 ${maximized ? '' : 'bg-black/50 backdrop-blur-sm flex items-center justify-center p-4'}`}>
       <div className={`relative glass-heavy flex flex-col overflow-hidden ${maximized ? 'w-full h-full rounded-none' : 'rounded-2xl w-full max-w-4xl h-[85vh]'}`}>
 
         {/* Header */}
