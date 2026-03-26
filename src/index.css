@@ -405,19 +405,22 @@ select option {
   width: 26px;
   height: 26px;
   border-radius: 6px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.07);
-  color: rgba(255,255,255,0.40);
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(30,30,40,0.85);
+  color: rgba(255,255,255,0.50);
   cursor: pointer;
+  z-index: 10;
   opacity: 0;
   transition: opacity 0.15s, color 0.15s, background 0.15s;
+  pointer-events: none;
 }
-.md-body pre:hover .md-copy-btn {
+.md-copy-btn.visible {
   opacity: 1;
+  pointer-events: auto;
 }
 .md-copy-btn:hover {
-  background: rgba(255,255,255,0.14);
-  color: rgba(255,255,255,0.80);
+  background: rgba(60,60,80,0.95);
+  color: rgba(255,255,255,0.90);
 }
 .md-body blockquote {
   border-left: 3px solid rgba(139,92,246,0.55);
