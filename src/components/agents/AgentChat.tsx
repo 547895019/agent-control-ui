@@ -1189,12 +1189,11 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
   const [isDragging, setIsDragging] = useState(false);
 
   const handleScrollMouseDown = (e: React.MouseEvent) => {
-    // Only left button, ignore clicks on interactive elements
     if (e.button !== 0) return;
-    const target = e.target as HTMLElement;
-    if (target.closest('button,a,input,textarea,select,[contenteditable]')) return;
     const el = scrollContainerRef.current;
     if (!el) return;
+    // Only drag on the scroll container background itself, not on any message content
+    if (e.target !== el) return;
     dragRef.current = { startY: e.clientY, startScrollTop: el.scrollTop };
     setIsDragging(true);
     e.preventDefault();
