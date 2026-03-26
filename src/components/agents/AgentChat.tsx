@@ -1057,10 +1057,12 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
   // ── background refresh (always-on) ───────────────────────────────────────────
   // Catches cases where WebSocket events are missed or sending state was reset prematurely
   useEffect(() => {
+    let cancelled = false;
     const refresh = async () => {
-      if (histLoading) return;
+      if (cancelled || histLoading) return;
       try {
         const res = await client.chatHistory(sessionKey, 200);
+        if (cancelled) return;
         const msgs = parseHistory(res);
         setMessages(prev => {
           if (msgs.length === prev.length) return prev; // no change
@@ -1078,7 +1080,10 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
       } catch {}
     };
     const timer = setInterval(refresh, 3000);
-    return () => clearInterval(timer);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, [sessionKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── auto-send initial message ─────────────────────────────────────────────────
