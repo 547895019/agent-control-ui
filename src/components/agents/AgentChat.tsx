@@ -987,7 +987,15 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
           setStreamThinking(nextThinking);
         }
       } else if (state === 'final') {
-        const content = message?.content ?? streamTextRef.current ?? '';
+        // Extract content: message.content can be a string or array of blocks
+        let content = streamTextRef.current ?? '';
+        const rawContent = message?.content;
+        if (typeof rawContent === 'string' && rawContent) {
+          content = rawContent;
+        } else if (Array.isArray(rawContent)) {
+          const extracted = rawContent.filter((c: any) => c.type === 'text').map((c: any) => c.text ?? '').join('');
+          if (extracted) content = extracted;
+        }
         // Extract usage data from payload
         const rawUsage = payload.usage ?? payload.tokenUsage ?? null;
         const usage: MessageUsage | undefined = rawUsage ? {
@@ -1010,7 +1018,14 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
         setStreamThinking('');
         setRunId(null);
         setSending(false);
-        setMessages(prev => [...prev, { id: makeId(), role: 'assistant', content, usage }]);
+        // Reload history from server (like the original openclaw web UI does after final events)
+        // to ensure content is correctly rendered even if event payload format differs
+        client.chatHistory(sessionKey, 200)
+          .then(res => { if (!content) setMessages(parseHistory(res)); })
+          .catch(() => {});
+        if (content) {
+          setMessages(prev => [...prev, { id: makeId(), role: 'assistant', content, usage }]);
+        }
         // Refresh sessions list to update last-message preview
         client.sessionsList({ agentId, limit: 50, includeLastMessage: true, includeDerivedTitles: true })
           .then(res => setSessions((res?.sessions ?? []).sort((a: SessionMeta, b: SessionMeta) =>
@@ -1058,16 +1073,23 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
   // Catches cases where WebSocket events are missed or sending state was reset prematurely
   useEffect(() => {
     let cancelled = false;
+    let lastKnownCount = -1; // -1 = not yet initialized
     const refresh = async () => {
-      if (cancelled || histLoading) return;
+      if (cancelled) return;
       try {
         const res = await client.chatHistory(sessionKey, 200);
         if (cancelled) return;
         const msgs = parseHistory(res);
-        setMessages(prev => {
-          if (msgs.length === prev.length) return prev; // no change
-          // New messages detected — apply and clear any stale sending state
-          if (msgs.length > prev.length && msgs[msgs.length - 1].role === 'assistant') {
+        if (lastKnownCount === -1) {
+          // First run: record baseline, don't update (history just loaded)
+          lastKnownCount = msgs.length;
+          return;
+        }
+        if (msgs.length > lastKnownCount) {
+          lastKnownCount = msgs.length;
+          setMessages(msgs);
+          // If last message is from assistant, clear any stale streaming/sending state
+          if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
             streamTextRef.current = '';
             streamThinkingRef.current = '';
             setStreamText('');
@@ -1075,8 +1097,9 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
             setRunId(null);
             setSending(false);
           }
-          return msgs;
-        });
+        } else {
+          lastKnownCount = msgs.length;
+        }
       } catch {}
     };
     const timer = setInterval(refresh, 3000);
