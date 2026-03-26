@@ -61,7 +61,7 @@ function ModelBadge({ model }: { model?: string | { primary: string; fallbacks?:
 }
 
 export function AgentsPage() {
-  const { agents, deleteAgent, fetchAgents, connectionStatus } = useAppStore();
+  const { agents, deleteAgent, fetchAgents, connectionStatus, workingAgents } = useAppStore();
   const [showForm, setShowForm] = useState(false);
   const [editingAgent, setEditingAgent] = useState<{ id: string; config: any } | undefined>();
   const [filesAgent, setFilesAgent] = useState<{ id: string; config: any } | null>(null);
@@ -159,7 +159,9 @@ export function AgentsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {agentList.map(([id, config]: [string, any]) => (
+          {agentList.map(([id, config]: [string, any]) => {
+            const isWorking = workingAgents.has(id);
+            return (
             <div
               key={id}
               className="glass card-hover rounded-2xl p-4 group cursor-pointer shadow-xl shadow-black/25"
@@ -167,15 +169,27 @@ export function AgentsPage() {
             >
               {/* Card header */}
               <div className="flex items-start gap-3 mb-3">
-                <div className={`w-10 h-10 rounded-xl ${getAvatarColor(id)} flex items-center justify-center text-white font-semibold text-sm shrink-0 shadow-lg`}>
-                  {getInitials(id, config.name)}
+                <div className="relative shrink-0">
+                  <div className={`w-10 h-10 rounded-xl ${getAvatarColor(id)} flex items-center justify-center text-white font-semibold text-sm shadow-lg`}>
+                    {getInitials(id, config.name)}
+                  </div>
+                  {isWorking && (
+                    <span className="absolute -bottom-0.5 -right-0.5 flex w-3 h-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full w-3 h-3 bg-amber-400" />
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-white text-sm truncate">
                       {config.name || id}
                     </h3>
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.enabled !== false ? 'bg-emerald-400' : 'bg-white/20'}`} />
+                    {isWorking ? (
+                      <span className="text-xs text-amber-400 font-medium animate-pulse shrink-0">工作中</span>
+                    ) : (
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${config.enabled !== false ? 'bg-emerald-400' : 'bg-white/20'}`} />
+                    )}
                   </div>
                   <p className="text-white/40 text-xs font-mono mt-0.5 truncate">{id}</p>
                 </div>
@@ -277,7 +291,7 @@ export function AgentsPage() {
                 </button>
               </div>
             </div>
-          ))}
+          ); })}
         </div>
       )}
 

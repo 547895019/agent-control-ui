@@ -5,6 +5,7 @@ interface AppState {
   token: string | null;
   connectionStatus: ConnectionState;
   agents: Record<string, any>;
+  workingAgents: Set<string>;
   setToken: (token: string) => void;
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -12,22 +13,26 @@ interface AppState {
   deleteAgent: (id: string) => Promise<void>;
 }
 
+// Module-level to avoid duplicate subscriptions across reconnects
+let chatEventUnsub: (() => void) | null = null;
+
 export const useAppStore = create<AppState>((set, get) => ({
   token: sessionStorage.getItem('gateway_token'),
   connectionStatus: 'disconnected',
   agents: {},
-  
+  workingAgents: new Set<string>(),
+
   setToken: (token: string) => {
     sessionStorage.setItem('gateway_token', token);
     set({ token });
   },
-  
+
   connect: async () => {
     const { token } = get();
     if (!token) return;
-    
+
     set({ connectionStatus: 'connecting' });
-    
+
     // Subscribe to connection state changes
     client.onConnectionState((state) => {
       set({ connectionStatus: state });
@@ -35,7 +40,28 @@ export const useAppStore = create<AppState>((set, get) => ({
         get().fetchAgents();
       }
     });
-    
+
+    // Subscribe to chat events to track working status
+    chatEventUnsub?.();
+    chatEventUnsub = client.onEvent((event: any) => {
+      if (event.event !== 'chat') return;
+      const payload = event.payload;
+      if (!payload?.sessionKey) return;
+      // sessionKey format: "agent:<agentId>:<scope>"
+      const agentId = (payload.sessionKey as string).split(':')[1];
+      if (!agentId) return;
+      const { state } = payload;
+      if (state === 'delta') {
+        set(s => ({ workingAgents: new Set([...s.workingAgents, agentId]) }));
+      } else if (state === 'final' || state === 'aborted' || state === 'error') {
+        set(s => {
+          const next = new Set(s.workingAgents);
+          next.delete(agentId);
+          return { workingAgents: next };
+        });
+      }
+    });
+
     try {
       await client.connect(token);
     } catch (err) {
