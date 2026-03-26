@@ -53,30 +53,35 @@ function MarkdownBody({ text, dim }: { text: string; dim?: boolean }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const pres = el.querySelectorAll('pre');
+    const pres = el.querySelectorAll<HTMLPreElement>('pre');
     pres.forEach(pre => {
-      if (pre.querySelector('.md-copy-btn')) return; // already added
+      // Skip if already wrapped
+      if ((pre.parentElement as HTMLElement)?.dataset.preWrap) return;
 
+      // Wrap pre in a relative container so the button isn't clipped by pre's overflow-x:auto
+      const wrapper = document.createElement('div');
+      wrapper.dataset.preWrap = '1';
+      wrapper.style.cssText = 'position:relative;margin:0.6em 0;';
+      pre.style.margin = '0';
+      pre.parentNode!.insertBefore(wrapper, pre);
+      wrapper.appendChild(pre);
+
+      const iconCopy = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+      const iconCheck = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
       const btn = document.createElement('button');
       btn.className = 'md-copy-btn';
       btn.title = '复制代码';
-      const iconCopy = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
-      const iconCheck = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
       btn.innerHTML = iconCopy;
-
       btn.onclick = async () => {
         const code = pre.querySelector('code')?.innerText ?? pre.innerText;
         try {
           await navigator.clipboard.writeText(code);
           btn.innerHTML = iconCheck;
           btn.style.color = '#34d399';
-          setTimeout(() => {
-            btn.innerHTML = iconCopy;
-            btn.style.color = '';
-          }, 1500);
+          setTimeout(() => { btn.innerHTML = iconCopy; btn.style.color = ''; }, 1500);
         } catch {}
       };
-      pre.appendChild(btn);
+      wrapper.appendChild(btn);
     });
   }, [html]);
 
