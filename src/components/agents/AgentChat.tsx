@@ -566,7 +566,7 @@ function ChatBubble({ role, content, showThinking, usage, agentName, isFirst = t
   );
 
   return (
-    <div className={`flex gap-3 group w-full min-w-0 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div data-msg-bubble className={`flex gap-3 group w-full min-w-0 ${isUser ? 'flex-row-reverse' : ''}`}>
       {avatar}
       <div className={`max-w-[78%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-1 min-w-0`}>
         {thinkingBlocks.length > 0 && thinkingBlocks.map((b, i) => (
@@ -1192,8 +1192,8 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     if (e.button !== 0) return;
     const el = scrollContainerRef.current;
     if (!el) return;
-    // Only drag on the scroll container background itself, not on any message content
-    if (e.target !== el) return;
+    // Don't drag inside message bubbles — let normal text selection work there
+    if ((e.target as HTMLElement).closest('[data-msg-bubble]')) return;
     dragRef.current = { startY: e.clientY, startScrollTop: el.scrollTop };
     setIsDragging(true);
     e.preventDefault();
@@ -2151,7 +2151,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
 
               {/* Streaming bubble */}
               {(streamText || streamThinking) && (
-                <div className="flex gap-3 w-full min-w-0">
+                <div data-msg-bubble className="flex gap-3 w-full min-w-0">
                   <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 bg-white/10">
                     <Bot className="w-3.5 h-3.5 text-white/50" />
                   </div>
@@ -2180,7 +2180,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
 
               {/* Typing indicator */}
               {sending && !streamText && (
-                <div className="flex gap-3">
+                <div data-msg-bubble className="flex gap-3">
                   <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center mt-0.5 bg-white/10">
                     <Bot className="w-3.5 h-3.5 text-white/50" />
                   </div>
