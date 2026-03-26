@@ -3,10 +3,9 @@ import { useAppStore } from '../stores/useAppStore';
 import { client } from '../api/gateway';
 import { AgentForm } from '../components/agents/AgentForm';
 import { AgentFilesEditor } from '../components/agents/AgentFilesEditor';
-import { AgentSessionsViewer } from '../components/agents/AgentSessionsViewer';
 import { AgentChat } from '../components/agents/AgentChat';
 import { AgentSkillsPanel } from '../components/agents/AgentSkillsPanel';
-import { Plus, Pencil, Trash2, Bot, RefreshCw, FolderOpen, History, MessageSquare, Puzzle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Bot, RefreshCw, FolderOpen, MessageSquare, Puzzle } from 'lucide-react';
 
 const AVATAR_COLORS = [
   'bg-violet-500', 'bg-indigo-500', 'bg-blue-500', 'bg-cyan-500',
@@ -65,7 +64,6 @@ export function AgentsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingAgent, setEditingAgent] = useState<{ id: string; config: any } | undefined>();
   const [filesAgent, setFilesAgent] = useState<{ id: string; config: any } | null>(null);
-  const [sessionsAgent, setSessionsAgent] = useState<{ id: string; config: any } | null>(null);
   const [chatAgent, setChatAgent] = useState<{ id: string; config: any } | null>(null);
   const [skillsAgent, setSkillsAgent] = useState<{ id: string; config: any } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -268,13 +266,6 @@ export function AgentsPage() {
                   技能
                 </button>
                 <button
-                  onClick={() => setSessionsAgent({ id, config })}
-                  className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs text-white/60 bg-white/8 hover:bg-white/15 rounded-lg transition-colors border border-white/8"
-                >
-                  <History className="w-3 h-3" />
-                  历史
-                </button>
-                <button
                   onClick={() => { setEditingAgent({ id, config }); setShowForm(true); }}
                   className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs text-white/60 bg-white/8 hover:bg-white/15 rounded-lg transition-colors border border-white/8"
                 >
@@ -309,15 +300,6 @@ export function AgentsPage() {
           agentName={filesAgent.config.name || filesAgent.id}
           workspace={filesAgent.config.workspace || ''}
           onClose={() => setFilesAgent(null)}
-        />
-      )}
-
-      {sessionsAgent && (
-        <AgentSessionsViewer
-          agentId={sessionsAgent.id}
-          agentName={sessionsAgent.config.name || sessionsAgent.id}
-          workspace={sessionsAgent.config.workspace || ''}
-          onClose={() => setSessionsAgent(null)}
         />
       )}
 
