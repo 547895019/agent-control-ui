@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import JSZip from 'jszip';
 import { client } from '../api/gateway';
 import { useAppStore } from '../stores/useAppStore';
-import { Puzzle, RefreshCw, X, ChevronDown, ChevronRight, Eye, EyeOff, Search, Download, CheckCircle2, Loader2 } from 'lucide-react';
+import { Puzzle, RefreshCw, X, ChevronDown, ChevronRight, Eye, EyeOff, Search, Download, CheckCircle2, Loader2, Trash2 } from 'lucide-react';
 
 const CLAWHUB_BASE = 'https://clawhub.ai';
 const CLAWHUB_DOWNLOAD_BASE = 'https://wry-manatee-359.convex.site/api/v1/download';
@@ -183,6 +183,7 @@ function SkillCard({
   apiKeyEdit,
   onToggle,
   onInstall,
+  onUninstall,
   onEditKey,
   onSaveKey,
 }: {
@@ -192,6 +193,7 @@ function SkillCard({
   apiKeyEdit: string;
   onToggle: () => void;
   onInstall: (installId: string) => void;
+  onUninstall: () => void;
   onEditKey: (val: string) => void;
   onSaveKey: () => void;
 }) {
@@ -278,6 +280,18 @@ function SkillCard({
           </div>
         )}
 
+        {/* Uninstall (managed only) */}
+        {skill.source === 'openclaw-managed' && (
+          <button
+            onClick={onUninstall}
+            disabled={busy}
+            className="px-3 py-1.5 text-xs rounded-lg font-medium bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors disabled:opacity-50 flex items-center gap-1"
+          >
+            <Trash2 className="w-3 h-3" />
+            卸载
+          </button>
+        )}
+
         {/* Message */}
         {message && (
           <p className={`text-[10px] text-right max-w-[160px] ${
@@ -328,6 +342,7 @@ function SkillGroupSection({
   apiKeyEdits,
   onToggle,
   onInstall,
+  onUninstall,
   onEditKey,
   onSaveKey,
 }: {
@@ -337,6 +352,7 @@ function SkillGroupSection({
   apiKeyEdits: Record<string, string>;
   onToggle: (skillKey: string, disabled: boolean) => void;
   onInstall: (skillKey: string, name: string, installId: string) => void;
+  onUninstall: (skillKey: string, baseDir: string) => void;
   onEditKey: (skillKey: string, val: string) => void;
   onSaveKey: (skillKey: string) => void;
 }) {
@@ -380,6 +396,7 @@ function SkillGroupSection({
                 apiKeyEdit={apiKeyEdits[skill.skillKey] ?? ''}
                 onToggle={() => onToggle(skill.skillKey, skill.disabled)}
                 onInstall={installId => onInstall(skill.skillKey, skill.name, installId)}
+                onUninstall={() => onUninstall(skill.skillKey, skill.baseDir)}
                 onEditKey={val => onEditKey(skill.skillKey, val)}
                 onSaveKey={() => onSaveKey(skill.skillKey)}
               />
@@ -492,6 +509,23 @@ export function SkillsPage() {
   const handleEditKey = useCallback((skillKey: string, val: string) => {
     setApiKeyEdits(prev => ({ ...prev, [skillKey]: val }));
   }, []);
+
+  const handleUninstall = useCallback(async (skillKey: string, baseDir: string) => {
+    if (!window.confirm(`确认卸载技能 "${skillKey}"？此操作将删除目录：\n${baseDir}`)) return;
+    setBusyKey(skillKey);
+    setError(null);
+    try {
+      await client.deleteDir(baseDir);
+      await loadSkills();
+      setMessage(skillKey, { kind: 'success', text: '已卸载' });
+    } catch (e: any) {
+      const msg = e?.message || String(e);
+      setError(msg);
+      setMessage(skillKey, { kind: 'error', text: msg });
+    } finally {
+      setBusyKey(null);
+    }
+  }, [loadSkills, setMessage]);
 
   // ClawHub market handlers
   const runMarketSearch = useCallback(async (q: string) => {
@@ -677,6 +711,7 @@ export function SkillsPage() {
                 apiKeyEdits={apiKeyEdits}
                 onToggle={handleToggle}
                 onInstall={handleInstall}
+                onUninstall={handleUninstall}
                 onEditKey={handleEditKey}
                 onSaveKey={handleSaveKey}
               />
