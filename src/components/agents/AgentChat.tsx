@@ -1831,13 +1831,14 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
       draftRef.current = '';
     }
 
-    // ── @agent routing: "@agentId message" → send to that agent's session ──────
+    // ── @agent routing: "@agentId message" → /subagents spawn <agentId> <message> ──
     const atRouteMatch = fullText.match(/^@(\S+)\s+([\s\S]+)$/);
     const targetAgentId = atRouteMatch?.[1];
     const targetMsg = atRouteMatch?.[2];
     if (targetAgentId && targetMsg && agents[targetAgentId]) {
-      const targetSessionKey = `agent:${targetAgentId}:main`;
-      setMessages(prev => [...prev, { id: makeId(), role: 'user', content: fullText }]);
+      const spawnCmd = `/subagents spawn ${targetAgentId} ${targetMsg}`;
+      preSendCountRef.current = messages.length;
+      setMessages(prev => [...prev, { id: makeId(), role: 'user', content: spawnCmd }]);
       setInput('');
       setAttachments([]);
       setShowCmds(false);
@@ -1845,14 +1846,17 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
       setInputExpanded(false);
       setSending(true);
       setSendError('');
-      setAgentWorking(targetAgentId, true);
+      streamTextRef.current = '';
+      setStreamText('');
+      setAgentWorking(agentId, true);
       try {
-        await client.chatSend(targetSessionKey, targetMsg);
+        const res = await client.chatSend(sessionKey, spawnCmd);
+        activeRunIdRef.current = res.runId;
+        setRunId(res.runId);
       } catch (e: any) {
-        setSendError(e.message || 'Failed to send');
-        setAgentWorking(targetAgentId, false);
-      } finally {
         setSending(false);
+        setSendError(e.message || 'Failed to send');
+        setAgentWorking(agentId, false);
       }
       return;
     }
