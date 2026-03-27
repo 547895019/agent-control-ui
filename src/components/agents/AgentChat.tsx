@@ -849,7 +849,7 @@ export interface AgentChatProps {
 }
 
 export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMessage }: AgentChatProps) {
-  const { setAgentWorking } = useAppStore();
+  const { setAgentWorking, agents } = useAppStore();
   // Session keys must use the gateway format: "agent:<agentId>:<scope>"
   // so the gateway can parse the agentId and route to the correct agent.
   const defaultSessionKey = `agent:${agentId}:main`;
@@ -888,6 +888,11 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
   const [crossResults, setCrossResults] = useState<CrossSearchResult[]>([]);
   const [crossSearchLoading, setCrossSearchLoading] = useState(false);
   const crossSearchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── @mention picker ───────────────────────────────────────────────────────────
+  const [showAtPicker, setShowAtPicker] = useState(false);
+  const [atQuery, setAtQuery] = useState('');
+  const [atIdx, setAtIdx] = useState(0);
   const [maximized, setMaximized] = useState(false);
   const [showNewMessages, setShowNewMessages] = useState(false);
 
@@ -1626,6 +1631,25 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
+  // ── @mention helpers ──────────────────────────────────────────────────────────
+  const filteredAtAgents = useMemo(() => {
+    const all = Object.entries(agents)
+      .filter(([id]) => id !== agentId)
+      .map(([id, a]) => ({ id, name: (a.name || id) as string }));
+    if (!atQuery) return all;
+    const q = atQuery.toLowerCase();
+    return all.filter(a => a.id.toLowerCase().includes(q) || a.name.toLowerCase().includes(q));
+  }, [agents, agentId, atQuery]);
+
+  const selectAtAgent = useCallback((selectedId: string) => {
+    // Replace trailing @partial with @selectedId + space
+    const newVal = input.replace(/@\S*$/, `@${selectedId} `);
+    setInput(newVal);
+    setShowAtPicker(false);
+    setAtQuery('');
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }, [input]);
+
   // ── input change ──────────────────────────────────────────────────────────────
   // ── tab completion helpers ────────────────────────────────────────────────────
   /** Tab on a command: fill text; if it has argOptions switch to args mode */
@@ -1667,6 +1691,17 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     if (cmdMode === 'args') {
       setCmdMode('commands');
       setArgCmd(null);
+    }
+    // @mention detection: last word starting with @
+    const atMatch = val.match(/@(\S*)$/);
+    if (atMatch && !val.startsWith('/')) {
+      setAtQuery(atMatch[1]);
+      setShowAtPicker(true);
+      setAtIdx(0);
+      setShowCmds(false);
+      return;
+    } else {
+      setShowAtPicker(false);
     }
     if (val.startsWith('/')) {
       const q = val.slice(1).split(/\s/)[0].toLowerCase();
@@ -1795,6 +1830,33 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
       historyIdxRef.current = -1;
       draftRef.current = '';
     }
+
+    // ── @agent routing: "@agentId message" → send to that agent's session ──────
+    const atRouteMatch = fullText.match(/^@(\S+)\s+([\s\S]+)$/);
+    const targetAgentId = atRouteMatch?.[1];
+    const targetMsg = atRouteMatch?.[2];
+    if (targetAgentId && targetMsg && agents[targetAgentId]) {
+      const targetSessionKey = `agent:${targetAgentId}:main`;
+      setMessages(prev => [...prev, { id: makeId(), role: 'user', content: fullText }]);
+      setInput('');
+      setAttachments([]);
+      setShowCmds(false);
+      setShowAtPicker(false);
+      setInputExpanded(false);
+      setSending(true);
+      setSendError('');
+      setAgentWorking(targetAgentId, true);
+      try {
+        await client.chatSend(targetSessionKey, targetMsg);
+      } catch (e: any) {
+        setSendError(e.message || 'Failed to send');
+        setAgentWorking(targetAgentId, false);
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
     preSendCountRef.current = messages.length;
     setMessages(prev => [...prev, { id: makeId(), role: 'user', content: fullText }]);
     setInput('');
@@ -1827,6 +1889,18 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
 
   // ── keyboard in textarea ──────────────────────────────────────────────────────
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // ── @mention picker navigation ────────────────────────────────────────────
+    if (showAtPicker && filteredAtAgents.length > 0) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setAtIdx(i => (i + 1) % filteredAtAgents.length); return; }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); setAtIdx(i => (i - 1 + filteredAtAgents.length) % filteredAtAgents.length); return; }
+      if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) {
+        e.preventDefault();
+        selectAtAgent(filteredAtAgents[atIdx].id);
+        return;
+      }
+      if (e.key === 'Escape') { e.preventDefault(); setShowAtPicker(false); return; }
+    }
+
     // ── Input history navigation ─────────────────────────────────────────────
     if (!showCmds) {
       if (e.key === 'ArrowUp') {
@@ -2401,6 +2475,40 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
 
               {/* Input box with slash-command dropdown anchored just above it */}
               <div className="relative">
+
+                {/* @mention picker */}
+                {showAtPicker && filteredAtAgents.length > 0 && (
+                  <div className="absolute left-0 right-0 bottom-full mb-2 glass-heavy rounded-xl overflow-hidden z-10 max-h-60 overflow-y-auto shadow-2xl shadow-black/40">
+                    <div className="px-3 py-1.5 bg-white/8 border-b border-white/10 flex items-center gap-2">
+                      <span className="text-[10px] font-semibold text-indigo-300">@</span>
+                      <span className="text-[10px] text-white/40">选择发送目标 Agent</span>
+                      <span className="ml-auto text-[10px] text-white/30">↑↓ 选择 · Tab/Enter 确认</span>
+                    </div>
+                    {filteredAtAgents.map((a, i) => (
+                      <button
+                        key={a.id}
+                        onClick={() => selectAtAgent(a.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${
+                          i === atIdx ? 'bg-indigo-500/15' : 'hover:bg-white/8'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 text-[10px] font-bold ${
+                          i === atIdx ? 'bg-indigo-500/30 text-indigo-300' : 'bg-white/10 text-white/40'
+                        }`}>
+                          {a.name.slice(0, 1).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-xs font-mono font-medium ${i === atIdx ? 'text-indigo-300' : 'text-white/80'}`}>
+                            {a.id}
+                          </span>
+                          {a.name !== a.id && (
+                            <span className="text-[10px] text-white/40 ml-2">{a.name}</span>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Slash command dropdown */}
                 {showCmds && (
