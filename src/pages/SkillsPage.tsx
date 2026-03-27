@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { client } from '../api/gateway';
 import { useAppStore } from '../stores/useAppStore';
-import { Puzzle, RefreshCw, X, ChevronDown, ChevronRight, Eye, EyeOff, Search, Copy, CheckCircle2, Loader2 } from 'lucide-react';
+import { Puzzle, RefreshCw, X, ChevronDown, ChevronRight, Eye, EyeOff, Search, Download, CheckCircle2, Loader2 } from 'lucide-react';
 
 const CLAWHUB_BASE = 'https://clawhub.ai';
 
@@ -392,7 +393,8 @@ function SkillGroupSection({
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function SkillsPage() {
-  const { connectionStatus } = useAppStore();
+  const { connectionStatus, agents } = useAppStore();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'installed' | 'market'>('installed');
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<SkillStatusReport | null>(null);
@@ -407,7 +409,8 @@ export function SkillsPage() {
   const [marketResults, setMarketResults] = useState<ClawHubSkill[]>([]);
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketError, setMarketError] = useState('');
-  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [installSent, setInstallSent] = useState<Record<string, boolean>>({});
+  const [installSending, setInstallSending] = useState<string | null>(null);
   const marketDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setMessage = useCallback((skillKey: string, msg?: SkillMessage) => {
@@ -511,11 +514,23 @@ export function SkillsPage() {
     marketDebounce.current = setTimeout(() => runMarketSearch(q), 500);
   }, [runMarketSearch]);
 
-  const copyInstallCmd = useCallback((slug: string) => {
-    navigator.clipboard.writeText(`clawhub install ${slug}`);
-    setCopiedSlug(slug);
-    setTimeout(() => setCopiedSlug(null), 2000);
-  }, []);
+  const sendInstallToAgent = useCallback(async (slug: string) => {
+    const agentEntries = Object.entries(agents);
+    const mainAgent = agents['main'] ?? agentEntries[0]?.[1];
+    if (!mainAgent) { alert('未找到可用的 Agent，请先连接 Gateway'); return; }
+    const agentId = mainAgent.id ?? agentEntries[0]?.[0];
+    const sessionKey = `agent:${agentId}:main`;
+    setInstallSending(slug);
+    try {
+      await client.chatSend(sessionKey, `请帮我安装 ClawHub 技能包，运行命令：clawhub install ${slug}`);
+      setInstallSent(prev => ({ ...prev, [slug]: true }));
+      navigate('/agents');
+    } catch (e: any) {
+      alert(`发送失败：${e?.message || String(e)}`);
+    } finally {
+      setInstallSending(null);
+    }
+  }, [agents, navigate]);
 
   // Auto-load when connected
   useEffect(() => { if (connectionStatus === 'connected') loadSkills(true); }, [connectionStatus]);
@@ -681,7 +696,8 @@ export function SkillsPage() {
           {marketResults.length > 0 && (
             <div className="space-y-2.5">
               {marketResults.map(pkg => {
-                const copied = copiedSlug === pkg.name;
+                const sent = installSent[pkg.name];
+                const sending = installSending === pkg.name;
                 return (
                   <div key={pkg.name} className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-lg p-4 flex gap-4">
                     <div className="flex-1 min-w-0">
@@ -702,18 +718,24 @@ export function SkillsPage() {
                         </div>
                       )}
                     </div>
-                    <div className="shrink-0 flex flex-col items-end justify-center gap-1.5">
+                    <div className="shrink-0 flex flex-col items-end justify-center">
                       <button
-                        onClick={() => copyInstallCmd(pkg.name)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium bg-white/10 hover:bg-white/15 text-white/80 transition-colors"
+                        onClick={() => sendInstallToAgent(pkg.name)}
+                        disabled={sending || sent}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors disabled:opacity-60 ${
+                          sent
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                        }`}
                       >
-                        {copied
-                          ? <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                          : <Copy className="w-3 h-3" />
+                        {sending
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : sent
+                          ? <CheckCircle2 className="w-3 h-3" />
+                          : <Download className="w-3 h-3" />
                         }
-                        {copied ? '已复制' : '复制命令'}
+                        {sending ? '发送中...' : sent ? '已发送' : '安装'}
                       </button>
-                      <code className="text-[10px] text-white/30 font-mono">clawhub install {pkg.name}</code>
                     </div>
                   </div>
                 );
