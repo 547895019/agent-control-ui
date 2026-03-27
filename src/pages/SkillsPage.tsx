@@ -1,7 +1,26 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { client } from '../api/gateway';
 import { useAppStore } from '../stores/useAppStore';
-import { Puzzle, RefreshCw, X, ChevronDown, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { Puzzle, RefreshCw, X, ChevronDown, ChevronRight, Eye, EyeOff, Search, Download, CheckCircle2, Loader2 } from 'lucide-react';
+
+const CLAWHUB_BASE = 'https://clawhub.ai';
+
+interface ClawHubSkill {
+  name: string;
+  displayName?: string;
+  summary?: string;
+  latestVersion?: string;
+  channel?: string;
+  capabilityTags?: string[];
+}
+
+async function searchClawHubSkills(q: string): Promise<ClawHubSkill[]> {
+  const params = new URLSearchParams({ q, family: 'skill', limit: '20' });
+  const res = await fetch(`${CLAWHUB_BASE}/api/v1/packages/search?${params}`);
+  if (!res.ok) throw new Error(`搜索失败 (${res.status})`);
+  const data = await res.json();
+  return (data.results ?? []).map((r: any) => r.package as ClawHubSkill);
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -374,6 +393,7 @@ function SkillGroupSection({
 
 export function SkillsPage() {
   const { connectionStatus } = useAppStore();
+  const [tab, setTab] = useState<'installed' | 'market'>('installed');
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<SkillStatusReport | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -381,6 +401,15 @@ export function SkillsPage() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [messages, setMessages] = useState<Record<string, SkillMessage>>({});
   const [apiKeyEdits, setApiKeyEdits] = useState<Record<string, string>>({});
+
+  // ClawHub market state
+  const [marketQuery, setMarketQuery] = useState('');
+  const [marketResults, setMarketResults] = useState<ClawHubSkill[]>([]);
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketError, setMarketError] = useState('');
+  const [installing, setInstalling] = useState<string | null>(null);
+  const [installResults, setInstallResults] = useState<Record<string, { ok: boolean; msg: string }>>({});
+  const marketDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setMessage = useCallback((skillKey: string, msg?: SkillMessage) => {
     setMessages(prev => {
@@ -462,6 +491,39 @@ export function SkillsPage() {
     setApiKeyEdits(prev => ({ ...prev, [skillKey]: val }));
   }, []);
 
+  // ClawHub market handlers
+  const runMarketSearch = useCallback(async (q: string) => {
+    if (!q.trim()) { setMarketResults([]); setMarketError(''); return; }
+    setMarketLoading(true);
+    setMarketError('');
+    try {
+      const results = await searchClawHubSkills(q.trim());
+      setMarketResults(results);
+    } catch (e: any) {
+      setMarketError(e?.message || String(e));
+    } finally {
+      setMarketLoading(false);
+    }
+  }, []);
+
+  const handleMarketQueryChange = useCallback((q: string) => {
+    setMarketQuery(q);
+    if (marketDebounce.current) clearTimeout(marketDebounce.current);
+    marketDebounce.current = setTimeout(() => runMarketSearch(q), 500);
+  }, [runMarketSearch]);
+
+  const handleClawHubInstall = useCallback(async (pkg: ClawHubSkill) => {
+    setInstalling(pkg.name);
+    try {
+      const res = await client.skillsInstall(pkg.name, pkg.name);
+      setInstallResults(prev => ({ ...prev, [pkg.name]: { ok: true, msg: (res as any)?.message ?? '安装成功' } }));
+    } catch (e: any) {
+      setInstallResults(prev => ({ ...prev, [pkg.name]: { ok: false, msg: e?.message || String(e) } }));
+    } finally {
+      setInstalling(null);
+    }
+  }, []);
+
   // Auto-load when connected
   useEffect(() => { if (connectionStatus === 'connected') loadSkills(true); }, [connectionStatus]);
 
@@ -499,86 +561,198 @@ export function SkillsPage() {
         </button>
       </div>
 
-      {/* Search bar + stats */}
-      <div className="bg-white/8 backdrop-blur-xl rounded-xl border border-white/10 p-4 flex flex-wrap items-center gap-3">
-        <a
-          href="https://clawhub.com"
-          target="_blank"
-          rel="noreferrer"
-          className="px-3 py-1.5 text-sm bg-white/10 hover:bg-white/15 text-white/80 rounded-lg transition-colors font-medium whitespace-nowrap"
+      {/* Tabs */}
+      <div className="flex border-b border-white/10">
+        <button
+          onClick={() => setTab('installed')}
+          className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            tab === 'installed'
+              ? 'text-white border-indigo-500'
+              : 'text-white/50 border-transparent hover:text-white/70'
+          }`}
         >
-          技能商店 ↗
-        </a>
-        <input
-          type="text"
-          value={filter}
-          onChange={e => setFilter(e.target.value)}
-          placeholder="搜索技能..."
-          className="flex-1 min-w-[180px] border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-400 bg-white/10 text-white placeholder:text-white/30"
-        />
-        {report && (
-          <span className="text-xs text-white/50 whitespace-nowrap">
-            {filtered.length} / {report.skills.length} 个
-            {totalEligible < report.skills.length && (
-              <span className="text-amber-500 ml-1">({totalEligible} eligible)</span>
-            )}
-          </span>
-        )}
+          已安装
+        </button>
+        <button
+          onClick={() => setTab('market')}
+          className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            tab === 'market'
+              ? 'text-white border-indigo-500'
+              : 'text-white/50 border-transparent hover:text-white/70'
+          }`}
+        >
+          ClawHub 市场
+        </button>
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="bg-red-500/15 border border-red-500/30 text-red-300 text-sm rounded-xl px-4 py-3 flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={() => setError(null)}>
-            <X className="w-4 h-4 text-red-400 hover:text-red-300" />
-          </button>
+      {tab === 'installed' && (<>
+        {/* Search bar + stats */}
+        <div className="bg-white/8 backdrop-blur-xl rounded-xl border border-white/10 p-4 flex flex-wrap items-center gap-3">
+          <input
+            type="text"
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            placeholder="搜索技能..."
+            className="flex-1 min-w-[180px] border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-400 bg-white/10 text-white placeholder:text-white/30"
+          />
+          {report && (
+            <span className="text-xs text-white/50 whitespace-nowrap">
+              {filtered.length} / {report.skills.length} 个
+              {totalEligible < report.skills.length && (
+                <span className="text-amber-500 ml-1">({totalEligible} eligible)</span>
+              )}
+            </span>
+          )}
         </div>
-      )}
 
-      {/* Empty / loading states */}
-      {!report && !loading && (
-        <div className="text-center py-20 text-white/40">
-          <Puzzle className="w-12 h-12 mx-auto mb-3 opacity-20" />
-          <p className="text-sm mb-3">点击"刷新"加载技能列表</p>
-          <button
-            onClick={() => loadSkills(true)}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
-          >
-            加载技能
-          </button>
-        </div>
-      )}
+        {/* Error */}
+        {error && (
+          <div className="bg-red-500/15 border border-red-500/30 text-red-300 text-sm rounded-xl px-4 py-3 flex items-center justify-between">
+            <span>{error}</span>
+            <button onClick={() => setError(null)}>
+              <X className="w-4 h-4 text-red-400 hover:text-red-300" />
+            </button>
+          </div>
+        )}
 
-      {loading && (
-        <div className="text-center py-20 text-white/40">
-          <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin opacity-40" />
-          <p className="text-sm">加载中...</p>
-        </div>
-      )}
+        {/* Empty / loading states */}
+        {!report && !loading && (
+          <div className="text-center py-20 text-white/40">
+            <Puzzle className="w-12 h-12 mx-auto mb-3 opacity-20" />
+            <p className="text-sm mb-3">点击"刷新"加载技能列表</p>
+            <button
+              onClick={() => loadSkills(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-lg transition-colors"
+            >
+              加载技能
+            </button>
+          </div>
+        )}
 
-      {/* Skill groups */}
-      {!loading && groups.length > 0 && (
+        {loading && (
+          <div className="text-center py-20 text-white/40">
+            <RefreshCw className="w-8 h-8 mx-auto mb-3 animate-spin opacity-40" />
+            <p className="text-sm">加载中...</p>
+          </div>
+        )}
+
+        {/* Skill groups */}
+        {!loading && groups.length > 0 && (
+          <div className="space-y-4">
+            {groups.map(group => (
+              <SkillGroupSection
+                key={group.id}
+                group={group}
+                busy={busyKey}
+                messages={messages}
+                apiKeyEdits={apiKeyEdits}
+                onToggle={handleToggle}
+                onInstall={handleInstall}
+                onEditKey={handleEditKey}
+                onSaveKey={handleSaveKey}
+              />
+            ))}
+          </div>
+        )}
+
+        {!loading && report && filtered.length === 0 && (
+          <div className="text-center py-12 text-white/40">
+            <p className="text-sm">未找到匹配的技能</p>
+          </div>
+        )}
+      </>)}
+
+      {tab === 'market' && (
         <div className="space-y-4">
-          {groups.map(group => (
-            <SkillGroupSection
-              key={group.id}
-              group={group}
-              busy={busyKey}
-              messages={messages}
-              apiKeyEdits={apiKeyEdits}
-              onToggle={handleToggle}
-              onInstall={handleInstall}
-              onEditKey={handleEditKey}
-              onSaveKey={handleSaveKey}
+          {/* Search input */}
+          <div className="bg-white/8 backdrop-blur-xl rounded-xl border border-white/10 p-4 flex items-center gap-2">
+            <Search className="w-4 h-4 text-white/40 shrink-0" />
+            <input
+              type="text"
+              value={marketQuery}
+              onChange={e => handleMarketQueryChange(e.target.value)}
+              placeholder="搜索 ClawHub 技能市场..."
+              className="flex-1 bg-transparent text-sm text-white placeholder:text-white/30 outline-none"
             />
-          ))}
-        </div>
-      )}
+            {marketLoading && <Loader2 className="w-4 h-4 animate-spin text-white/40 shrink-0" />}
+          </div>
 
-      {!loading && report && filtered.length === 0 && (
-        <div className="text-center py-12 text-white/40">
-          <p className="text-sm">未找到匹配的技能</p>
+          {/* Market error */}
+          {marketError && (
+            <div className="bg-red-500/15 border border-red-500/30 text-red-300 text-sm rounded-xl px-4 py-3">
+              {marketError}
+            </div>
+          )}
+
+          {/* Results */}
+          {marketResults.length > 0 && (
+            <div className="space-y-2.5">
+              {marketResults.map(pkg => {
+                const result = installResults[pkg.name];
+                const isInstalling = installing === pkg.name;
+                return (
+                  <div key={pkg.name} className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-lg p-4 flex gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-white text-sm">{pkg.displayName ?? pkg.name}</div>
+                      <p className="text-xs text-white/40 mt-0.5">
+                        {pkg.name}{pkg.latestVersion ? ` · v${pkg.latestVersion}` : ''}
+                      </p>
+                      {pkg.summary && (
+                        <p className="text-xs text-white/50 mt-1 leading-relaxed">{clampText(pkg.summary, 140)}</p>
+                      )}
+                      {pkg.capabilityTags && pkg.capabilityTags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {pkg.capabilityTags.slice(0, 5).map(tag => (
+                            <span key={tag} className="px-1.5 py-0.5 text-[10px] rounded bg-indigo-500/20 text-indigo-300 font-medium">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="shrink-0 flex flex-col items-end justify-center gap-2">
+                      {result ? (
+                        <p className={`flex items-center gap-1 text-xs ${result.ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {result.ok
+                            ? <CheckCircle2 className="w-3 h-3" />
+                            : <X className="w-3 h-3" />
+                          }
+                          {result.msg}
+                        </p>
+                      ) : (
+                        <button
+                          onClick={() => handleClawHubInstall(pkg)}
+                          disabled={isInstalling}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50"
+                        >
+                          {isInstalling
+                            ? <Loader2 className="w-3 h-3 animate-spin" />
+                            : <Download className="w-3 h-3" />
+                          }
+                          {isInstalling ? '安装中...' : '安装'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* No results */}
+          {!marketLoading && !marketError && marketQuery && marketResults.length === 0 && (
+            <div className="text-center py-12 text-white/40">
+              <p className="text-sm">未找到匹配的技能</p>
+            </div>
+          )}
+
+          {/* Empty prompt */}
+          {!marketQuery && (
+            <div className="text-center py-16 text-white/40">
+              <Search className="w-12 h-12 mx-auto mb-3 opacity-20" />
+              <p className="text-sm">输入关键词搜索 ClawHub 技能市场</p>
+            </div>
+          )}
         </div>
       )}
     </div>
