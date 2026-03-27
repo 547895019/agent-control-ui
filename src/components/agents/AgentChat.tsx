@@ -164,6 +164,48 @@ function extractSnippet(text: string, q: string, ctx = 80): string {
   return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
 }
 
+/** Parse "@a1 @a2 msg1 @a3 msg2" into grouped spawn segments.
+ *  Consecutive @mentions (no text between) share the same message.
+ *  Returns [] if no valid @mentions found. */
+function parseAtSegments(
+  input: string,
+  validAgentIds: Set<string>,
+): Array<{ agents: string[]; message: string }> {
+  const regex = /@(\S+)/g;
+  let match: RegExpExecArray | null;
+  const mentions: Array<{ start: number; end: number; id: string }> = [];
+  while ((match = regex.exec(input)) !== null) {
+    if (validAgentIds.has(match[1])) {
+      mentions.push({ start: match.index, end: match.index + match[0].length, id: match[1] });
+    }
+  }
+  if (mentions.length === 0) return [];
+
+  const result: Array<{ agents: string[]; message: string }> = [];
+  let currentGroup: { agents: string[]; msgStart: number } | null = null;
+
+  for (const m of mentions) {
+    if (!currentGroup) {
+      currentGroup = { agents: [m.id], msgStart: m.end };
+    } else {
+      const between = input.slice(currentGroup.msgStart, m.start).trim();
+      if (between === '') {
+        // No text between — same group
+        currentGroup.agents.push(m.id);
+        currentGroup.msgStart = m.end;
+      } else {
+        result.push({ agents: currentGroup.agents, message: between });
+        currentGroup = { agents: [m.id], msgStart: m.end };
+      }
+    }
+  }
+  if (currentGroup) {
+    const message = input.slice(currentGroup.msgStart).trim();
+    if (message) result.push({ agents: currentGroup.agents, message });
+  }
+  return result;
+}
+
 interface CrossSearchMatch {
   id: string;
   role: 'user' | 'assistant';
@@ -1831,14 +1873,18 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
       draftRef.current = '';
     }
 
-    // ── @agent routing: "@agentId message" → /subagents spawn <agentId> <message> ──
-    const atRouteMatch = fullText.match(/^@(\S+)\s+([\s\S]+)$/);
-    const targetAgentId = atRouteMatch?.[1];
-    const targetMsg = atRouteMatch?.[2];
-    if (targetAgentId && targetMsg && agents[targetAgentId]) {
-      const spawnCmd = `/subagents spawn ${targetAgentId} ${targetMsg}`;
+    // ── @agent routing: "@a1 @a2 msg1 @a3 msg2" → multiple /subagents spawn ──
+    const atSegments = parseAtSegments(fullText, new Set(Object.keys(agents)));
+    if (atSegments.length > 0) {
+      const spawnCmds: string[] = [];
+      for (const seg of atSegments) {
+        for (const aid of seg.agents) {
+          spawnCmds.push(`/subagents spawn ${aid} ${seg.message}`);
+        }
+      }
+      const displayText = spawnCmds.join('\n');
       preSendCountRef.current = messages.length;
-      setMessages(prev => [...prev, { id: makeId(), role: 'user', content: spawnCmd }]);
+      setMessages(prev => [...prev, { id: makeId(), role: 'user', content: displayText }]);
       setInput('');
       setAttachments([]);
       setShowCmds(false);
@@ -1850,9 +1896,13 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
       setStreamText('');
       setAgentWorking(agentId, true);
       try {
-        const res = await client.chatSend(sessionKey, spawnCmd);
-        activeRunIdRef.current = res.runId;
-        setRunId(res.runId);
+        let lastRunId = '';
+        for (const cmd of spawnCmds) {
+          const res = await client.chatSend(sessionKey, cmd);
+          lastRunId = res.runId;
+        }
+        activeRunIdRef.current = lastRunId;
+        setRunId(lastRunId);
       } catch (e: any) {
         setSending(false);
         setSendError(e.message || 'Failed to send');
