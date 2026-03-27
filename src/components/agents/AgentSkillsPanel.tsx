@@ -213,26 +213,35 @@ export function AgentSkillsPanel({ agentId, agentName, onClose }: AgentSkillsPan
               <span className="text-white/40 text-xs ml-2">{enabledCount}/{skills.length} 已启用</span>
             )}
           </div>
-          {/* Tabs */}
-          <div className="flex items-center gap-1 bg-white/8 rounded-lg p-0.5 shrink-0">
-            <button
-              onClick={() => setTab('installed')}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${tab === 'installed' ? 'bg-white/15 text-white' : 'text-white/50 hover:text-white/70'}`}
-            >
-              已安装
-            </button>
-            <button
-              onClick={() => setTab('market')}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${tab === 'market' ? 'bg-white/15 text-white' : 'text-white/50 hover:text-white/70'}`}
-            >
-              ClawHub 市场
-            </button>
-          </div>
           <button
             onClick={onClose}
             className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors shrink-0"
           >
             <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Tab bar */}
+        <div className="flex border-b border-white/8 shrink-0">
+          <button
+            onClick={() => setTab('installed')}
+            className={`flex-1 py-2.5 text-xs font-medium transition-colors border-b-2 ${
+              tab === 'installed'
+                ? 'border-indigo-400 text-white'
+                : 'border-transparent text-white/40 hover:text-white/70'
+            }`}
+          >
+            已安装
+          </button>
+          <button
+            onClick={() => setTab('market')}
+            className={`flex-1 py-2.5 text-xs font-medium transition-colors border-b-2 ${
+              tab === 'market'
+                ? 'border-indigo-400 text-white'
+                : 'border-transparent text-white/40 hover:text-white/70'
+            }`}
+          >
+            ClawHub 市场
           </button>
         </div>
 
