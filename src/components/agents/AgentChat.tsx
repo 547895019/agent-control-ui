@@ -978,6 +978,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
   const draftRef = useRef('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const cmdListRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -1043,12 +1044,24 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
     };
   }, []);
 
-  // ── forward backdrop wheel events to scroll container ────────────────────────
-  const handleBackdropWheel = (e: React.WheelEvent) => {
-    const el = scrollContainerRef.current;
-    if (!el) return;
-    el.scrollTop += e.deltaY;
-  };
+  // ── forward all modal wheel events to scroll container (non-passive) ─────────
+  useEffect(() => {
+    const modal = modalRef.current;
+    if (!modal) return;
+    const handler = (e: WheelEvent) => {
+      const target = e.target as HTMLElement;
+      // Let naturally-scrollable sub-containers handle their own scroll
+      const scrollEl = scrollContainerRef.current;
+      if (scrollEl?.contains(target)) return;
+      if (target.closest('[data-sidebar-scroll]')) return;
+      // Forward to message list
+      if (!scrollEl) return;
+      e.preventDefault();
+      scrollEl.scrollTop += e.deltaY;
+    };
+    modal.addEventListener('wheel', handler, { passive: false });
+    return () => modal.removeEventListener('wheel', handler);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── load sessions ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -2116,8 +2129,8 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
 
   // ── render ────────────────────────────────────────────────────────────────────
   return (
-    <div onWheel={handleBackdropWheel} className={`fixed inset-0 z-50 ${maximized ? '' : 'bg-black/50 backdrop-blur-sm flex items-center justify-center p-4'}`}>
-      <div className={`relative glass-heavy flex flex-col overflow-hidden ${maximized ? 'w-full h-full rounded-none' : 'rounded-2xl w-full max-w-4xl h-[85vh]'}`}>
+    <div className={`fixed inset-0 z-50 ${maximized ? '' : 'bg-black/50 backdrop-blur-sm flex items-center justify-center p-4'}`}>
+      <div ref={modalRef} className={`relative glass-heavy flex flex-col overflow-hidden ${maximized ? 'w-full h-full rounded-none' : 'rounded-2xl w-full max-w-4xl h-[85vh]'}`}>
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/10 shrink-0">
@@ -2229,7 +2242,7 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
                 <ChevronDown className={`w-3 h-3 transition-transform ${sidebarCollapsed ? '-rotate-90' : 'rotate-90'}`} />
               </button>
             </div>
-            <div className={`flex-1 overflow-y-auto ${sidebarCollapsed ? 'hidden' : ''}`}>
+            <div data-sidebar-scroll className={`flex-1 overflow-y-auto ${sidebarCollapsed ? 'hidden' : ''}`}>
               {sessionsLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-4 h-4 animate-spin text-white/40" />
