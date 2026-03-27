@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { client } from '../api/gateway';
 import { useAppStore } from '../stores/useAppStore';
-import { Puzzle, RefreshCw, X, ChevronDown, ChevronRight, Eye, EyeOff, Search, Download, CheckCircle2, Loader2 } from 'lucide-react';
+import { Puzzle, RefreshCw, X, ChevronDown, ChevronRight, Eye, EyeOff, Search, Copy, CheckCircle2, Loader2 } from 'lucide-react';
 
 const CLAWHUB_BASE = 'https://clawhub.ai';
 
@@ -407,8 +407,7 @@ export function SkillsPage() {
   const [marketResults, setMarketResults] = useState<ClawHubSkill[]>([]);
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketError, setMarketError] = useState('');
-  const [installing, setInstalling] = useState<string | null>(null);
-  const [installResults, setInstallResults] = useState<Record<string, { ok: boolean; msg: string }>>({});
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
   const marketDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setMessage = useCallback((skillKey: string, msg?: SkillMessage) => {
@@ -512,16 +511,10 @@ export function SkillsPage() {
     marketDebounce.current = setTimeout(() => runMarketSearch(q), 500);
   }, [runMarketSearch]);
 
-  const handleClawHubInstall = useCallback(async (pkg: ClawHubSkill) => {
-    setInstalling(pkg.name);
-    try {
-      const res = await client.skillsInstall(pkg.name, pkg.name);
-      setInstallResults(prev => ({ ...prev, [pkg.name]: { ok: true, msg: (res as any)?.message ?? '安装成功' } }));
-    } catch (e: any) {
-      setInstallResults(prev => ({ ...prev, [pkg.name]: { ok: false, msg: e?.message || String(e) } }));
-    } finally {
-      setInstalling(null);
-    }
+  const copyInstallCmd = useCallback((slug: string) => {
+    navigator.clipboard.writeText(`clawhub install ${slug}`);
+    setCopiedSlug(slug);
+    setTimeout(() => setCopiedSlug(null), 2000);
   }, []);
 
   // Auto-load when connected
@@ -688,8 +681,7 @@ export function SkillsPage() {
           {marketResults.length > 0 && (
             <div className="space-y-2.5">
               {marketResults.map(pkg => {
-                const result = installResults[pkg.name];
-                const isInstalling = installing === pkg.name;
+                const copied = copiedSlug === pkg.name;
                 return (
                   <div key={pkg.name} className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-lg p-4 flex gap-4">
                     <div className="flex-1 min-w-0">
@@ -710,28 +702,18 @@ export function SkillsPage() {
                         </div>
                       )}
                     </div>
-                    <div className="shrink-0 flex flex-col items-end justify-center gap-2">
-                      {result ? (
-                        <p className={`flex items-center gap-1 text-xs ${result.ok ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {result.ok
-                            ? <CheckCircle2 className="w-3 h-3" />
-                            : <X className="w-3 h-3" />
-                          }
-                          {result.msg}
-                        </p>
-                      ) : (
-                        <button
-                          onClick={() => handleClawHubInstall(pkg)}
-                          disabled={isInstalling}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50"
-                        >
-                          {isInstalling
-                            ? <Loader2 className="w-3 h-3 animate-spin" />
-                            : <Download className="w-3 h-3" />
-                          }
-                          {isInstalling ? '安装中...' : '安装'}
-                        </button>
-                      )}
+                    <div className="shrink-0 flex flex-col items-end justify-center gap-1.5">
+                      <button
+                        onClick={() => copyInstallCmd(pkg.name)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium bg-white/10 hover:bg-white/15 text-white/80 transition-colors"
+                      >
+                        {copied
+                          ? <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          : <Copy className="w-3 h-3" />
+                        }
+                        {copied ? '已复制' : '复制命令'}
+                      </button>
+                      <code className="text-[10px] text-white/30 font-mono">clawhub install {pkg.name}</code>
                     </div>
                   </div>
                 );
