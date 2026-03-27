@@ -608,9 +608,10 @@ function UsageBadge({ usage }: { usage: MessageUsage }) {
   );
 }
 
-function ChatBubble({ role, content, showThinking, usage, agentName, isFirst = true, isLast = true, onDelete }: {
+function ChatBubble({ role, content, showThinking, usage, agentName, isFirst = true, isLast = true, onDelete, msgId, highlighted }: {
   role: 'user' | 'assistant'; content: any; showThinking: boolean; usage?: MessageUsage;
   agentName: string; isFirst?: boolean; isLast?: boolean; onDelete?: () => void;
+  msgId?: string; highlighted?: boolean;
 }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const blocks = extractContent(content);
@@ -638,7 +639,7 @@ function ChatBubble({ role, content, showThinking, usage, agentName, isFirst = t
   );
 
   return (
-    <div data-msg-bubble className={`flex gap-3 group w-full min-w-0 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div data-msg-bubble data-msg-id={msgId} className={`flex gap-3 group w-full min-w-0 transition-colors duration-300 rounded-xl ${highlighted ? 'bg-amber-400/15 ring-1 ring-amber-400/30' : ''} ${isUser ? 'flex-row-reverse' : ''}`}>
       {avatar}
       <div className={`max-w-[78%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-1 min-w-0`}>
         {thinkingBlocks.length > 0 && thinkingBlocks.map((b, i) => (
@@ -930,6 +931,8 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
   const [crossResults, setCrossResults] = useState<CrossSearchResult[]>([]);
   const [crossSearchLoading, setCrossSearchLoading] = useState(false);
   const crossSearchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pendingScrollMsgId, setPendingScrollMsgId] = useState<string | null>(null);
+  const [highlightMsgId, setHighlightMsgId] = useState<string | null>(null);
 
   // ── @mention picker ───────────────────────────────────────────────────────────
   const [showAtPicker, setShowAtPicker] = useState(false);
@@ -1328,6 +1331,22 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
       setShowNewMessages(true);
     }
   }, [messages, streamText]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── scroll-to and highlight message after search navigation ──────────────────
+  useEffect(() => {
+    if (!pendingScrollMsgId || messages.length === 0) return;
+    // Use rAF to ensure the DOM has rendered with the new messages
+    const rafId = requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-msg-id="${pendingScrollMsgId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightMsgId(pendingScrollMsgId);
+        setPendingScrollMsgId(null);
+        setTimeout(() => setHighlightMsgId(null), 2000);
+      }
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [messages, pendingScrollMsgId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── auto-TTS: speak new assistant messages ─────────────────────────────────
   useEffect(() => {
@@ -2341,7 +2360,12 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
                         <button
                           key={match.id}
                           className="w-full text-left px-3 py-2.5 hover:bg-white/5 transition-colors"
-                          onClick={() => { setActiveKey(result.sessionKey); handleSearchQueryChange(''); setShowSearch(false); }}
+                          onClick={() => {
+                            setActiveKey(result.sessionKey);
+                            setPendingScrollMsgId(match.id);
+                            handleSearchQueryChange('');
+                            setShowSearch(false);
+                          }}
                         >
                           <span className={`text-[10px] font-medium mr-2 ${match.role === 'user' ? 'text-indigo-400' : 'text-emerald-400'}`}>
                             {match.role === 'user' ? '用户' : agentName}
@@ -2384,6 +2408,8 @@ export function AgentChat({ agentId, agentName, workspace, onClose, autoSendMess
                   group.messages.map((msg, mi) => (
                     <ChatBubble
                       key={msg.id}
+                      msgId={msg.id}
+                      highlighted={msg.id === highlightMsgId}
                       role={msg.role}
                       content={msg.content}
                       showThinking={showThinking}
