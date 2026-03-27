@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import JSZip from 'jszip';
 import { client } from '../api/gateway';
 import { useAppStore } from '../stores/useAppStore';
 import { Puzzle, RefreshCw, X, ChevronDown, ChevronRight, Eye, EyeOff, Search, Download, CheckCircle2, Loader2 } from 'lucide-react';
 
 const CLAWHUB_BASE = 'https://clawhub.ai';
+const CLAWHUB_DOWNLOAD_BASE = 'https://wry-manatee-359.convex.site/api/v1/download';
 
 interface ClawHubSkill {
   name: string;
@@ -393,8 +394,7 @@ function SkillGroupSection({
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function SkillsPage() {
-  const { connectionStatus, agents } = useAppStore();
-  const navigate = useNavigate();
+  const { connectionStatus } = useAppStore();
   const [tab, setTab] = useState<'installed' | 'market'>('installed');
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<SkillStatusReport | null>(null);
@@ -409,8 +409,8 @@ export function SkillsPage() {
   const [marketResults, setMarketResults] = useState<ClawHubSkill[]>([]);
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketError, setMarketError] = useState('');
-  const [installSent, setInstallSent] = useState<Record<string, boolean>>({});
-  const [installSending, setInstallSending] = useState<string | null>(null);
+  const [installStatus, setInstallStatus] = useState<Record<string, { ok: boolean; msg: string }>>({});
+  const [installing, setInstalling] = useState<string | null>(null);
   const marketDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setMessage = useCallback((skillKey: string, msg?: SkillMessage) => {
@@ -514,23 +514,44 @@ export function SkillsPage() {
     marketDebounce.current = setTimeout(() => runMarketSearch(q), 500);
   }, [runMarketSearch]);
 
-  const sendInstallToAgent = useCallback(async (slug: string) => {
-    const agentEntries = Object.entries(agents);
-    const mainAgent = agents['main'] ?? agentEntries[0]?.[1];
-    if (!mainAgent) { alert('未找到可用的 Agent，请先连接 Gateway'); return; }
-    const agentId = mainAgent.id ?? agentEntries[0]?.[0];
-    const sessionKey = `agent:${agentId}:main`;
-    setInstallSending(slug);
+  const installFromClawHub = useCallback(async (slug: string) => {
+    setInstalling(slug);
+    setInstallStatus(prev => { const n = { ...prev }; delete n[slug]; return n; });
     try {
-      await client.chatSend(sessionKey, `请帮我安装 ClawHub 技能包，运行命令：clawhub install ${slug}`);
-      setInstallSent(prev => ({ ...prev, [slug]: true }));
-      navigate('/agents');
+      // 1. Determine install directory from skillsStatus
+      let skillsDir: string | undefined = report?.managedSkillsDir;
+      if (!skillsDir) {
+        const res = await client.skillsStatus();
+        skillsDir = res?.managedSkillsDir;
+      }
+      if (!skillsDir) throw new Error('无法获取技能安装目录');
+
+      // 2. Download ZIP
+      const res = await fetch(`${CLAWHUB_DOWNLOAD_BASE}?slug=${encodeURIComponent(slug)}`);
+      if (!res.ok) throw new Error(`下载失败 (${res.status})`);
+      const buf = await res.arrayBuffer();
+
+      // 3. Extract and write files
+      const zip = await JSZip.loadAsync(buf);
+      const writes: Promise<void>[] = [];
+      zip.forEach((relativePath, file) => {
+        if (file.dir) return;
+        writes.push(
+          file.async('string').then(content =>
+            client.writeFile(`${skillsDir}/${slug}/${relativePath}`, content)
+          )
+        );
+      });
+      await Promise.all(writes);
+
+      setInstallStatus(prev => ({ ...prev, [slug]: { ok: true, msg: '安装成功' } }));
+      loadSkills();
     } catch (e: any) {
-      alert(`发送失败：${e?.message || String(e)}`);
+      setInstallStatus(prev => ({ ...prev, [slug]: { ok: false, msg: e?.message || String(e) } }));
     } finally {
-      setInstallSending(null);
+      setInstalling(null);
     }
-  }, [agents, navigate]);
+  }, [report, loadSkills]);
 
   // Auto-load when connected
   useEffect(() => { if (connectionStatus === 'connected') loadSkills(true); }, [connectionStatus]);
@@ -696,8 +717,8 @@ export function SkillsPage() {
           {marketResults.length > 0 && (
             <div className="space-y-2.5">
               {marketResults.map(pkg => {
-                const sent = installSent[pkg.name];
-                const sending = installSending === pkg.name;
+                const status = installStatus[pkg.name];
+                const isInstalling = installing === pkg.name;
                 return (
                   <div key={pkg.name} className="bg-white/8 backdrop-blur-xl border border-white/10 rounded-lg p-4 flex gap-4">
                     <div className="flex-1 min-w-0">
@@ -717,24 +738,30 @@ export function SkillsPage() {
                           ))}
                         </div>
                       )}
+                      {status && (
+                        <p className={`text-xs mt-1.5 flex items-center gap-1 ${status.ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {status.ok ? <CheckCircle2 className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                          {status.msg}
+                        </p>
+                      )}
                     </div>
                     <div className="shrink-0 flex flex-col items-end justify-center">
                       <button
-                        onClick={() => sendInstallToAgent(pkg.name)}
-                        disabled={sending || sent}
+                        onClick={() => installFromClawHub(pkg.name)}
+                        disabled={isInstalling || status?.ok}
                         className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors disabled:opacity-60 ${
-                          sent
+                          status?.ok
                             ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                             : 'bg-indigo-600 hover:bg-indigo-700 text-white'
                         }`}
                       >
-                        {sending
+                        {isInstalling
                           ? <Loader2 className="w-3 h-3 animate-spin" />
-                          : sent
+                          : status?.ok
                           ? <CheckCircle2 className="w-3 h-3" />
                           : <Download className="w-3 h-3" />
                         }
-                        {sending ? '发送中...' : sent ? '已发送' : '安装'}
+                        {isInstalling ? '安装中...' : status?.ok ? '已安装' : '安装'}
                       </button>
                     </div>
                   </div>
