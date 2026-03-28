@@ -4,7 +4,7 @@ import { useAppStore } from '../../stores/useAppStore';
 import {
   Bot, ScrollText, LogOut, Building2, Clock, BarChart2, Puzzle, MessageSquare,
   WifiOff, RefreshCw, AlertCircle, Loader2, Zap, Users, ArrowUpCircle, X, RotateCcw,
-  ChevronLeft, ChevronRight, Maximize2, Minimize2,
+  ChevronLeft, ChevronRight, Maximize2, Minimize2, Network,
 } from 'lucide-react';
 
 // Safe accessor — older builds may not have __APP_VERSION__ substituted by Vite
@@ -69,6 +69,7 @@ const NAV_ITEMS = [
   { path: '/channels',    label: '频道', icon: MessageSquare },
   { path: '/meeting',     label: '会议', icon: Users },
   { path: '/automation',  label: '自动化', icon: Zap },
+  { path: '/gateway',     label: '网关',   icon: Network },
 ];
 
 function StatusDotCompact({ status }: { status: string }) {
