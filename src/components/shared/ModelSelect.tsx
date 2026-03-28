@@ -51,6 +51,7 @@ export function ModelSelect({ value, onChange, placeholder = 'provider/model', d
   const [query, setQuery] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!cachedModels) {
@@ -69,6 +70,16 @@ export function ModelSelect({ value, onChange, placeholder = 'provider/model', d
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  // Auto-scroll to selected model when dropdown opens
+  useEffect(() => {
+    if (!open || !listRef.current) return;
+    const selected = listRef.current.querySelector('[data-selected="true"]') as HTMLElement | null;
+    if (selected) {
+      // Use rAF so the list has fully rendered before scrolling
+      requestAnimationFrame(() => selected.scrollIntoView({ block: 'nearest' }));
+    }
   }, [open]);
 
   const handleOpen = useCallback(() => {
@@ -160,7 +171,7 @@ export function ModelSelect({ value, onChange, placeholder = 'provider/model', d
           )}
 
           {/* Model list */}
-          <div className="max-h-64 overflow-y-auto">
+          <div ref={listRef} data-sidebar-scroll className="max-h-64 overflow-y-auto">
             {providers.length === 0 ? (
               <p className="px-3 py-4 text-sm text-white/30 text-center">
                 {models.length === 0 ? '正在加载模型列表…' : '无匹配模型'}
@@ -177,6 +188,7 @@ export function ModelSelect({ value, onChange, placeholder = 'provider/model', d
                     return (
                       <button
                         key={ref}
+                        data-selected={isSelected ? 'true' : undefined}
                         onMouseDown={() => handleSelect(model)}
                         className={`w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-indigo-500/15 transition-colors ${
                           isSelected ? 'bg-indigo-500/20' : ''
