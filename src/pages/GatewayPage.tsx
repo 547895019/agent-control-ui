@@ -32,11 +32,19 @@ const SECTION_ICONS: Record<string, any> = {
   gateway: Network, tools: Wrench, models: Database, skills: Puzzle,
   plugins: Package, bindings: Link, hooks: Zap, session: Clock,
   update: RefreshCw, media: Radio, commands: Settings,
+  wizard: Settings, meta: FileJson, messages: MessageSquare,
 };
 
-function sectionIcon(key: string) {
-  return SECTION_ICONS[key] ?? Settings;
-}
+const SECTION_LABELS: Record<string, string> = {
+  env: '环境变量', auth: '认证', agents: '代理', channels: '频道',
+  gateway: '网关', tools: '工具', models: '模型', skills: '技能',
+  plugins: '插件', bindings: '绑定', hooks: '钩子', session: '会话',
+  update: '更新', media: '媒体', commands: '命令',
+  wizard: '向导', meta: '元信息', messages: '消息',
+};
+
+function sectionIcon(key: string) { return SECTION_ICONS[key] ?? Settings; }
+function sectionLabel(key: string) { return SECTION_LABELS[key] ?? key; }
 
 const SENSITIVE_KEYS = /key|token|secret|password|api[-_]?key|auth|credential/i;
 function isSensitive(key: string) { return SENSITIVE_KEYS.test(key); }
@@ -362,10 +370,11 @@ function SectionCard({ sectionKey, value, onChange, onDelete }: {
         <div className="w-7 h-7 rounded-lg bg-indigo-500/15 flex items-center justify-center shrink-0">
           <Icon className="w-3.5 h-3.5 text-indigo-300" />
         </div>
-        <div className="flex-1 min-w-0">
-          <span className="text-sm font-semibold text-white/90">{sectionKey}</span>
+        <div className="flex-1 min-w-0 flex items-baseline gap-2">
+          <span className="text-sm font-semibold text-white/90">{sectionLabel(sectionKey)}</span>
+          <span className="text-xs text-white/25 font-mono">{sectionKey}</span>
           {count !== null && (
-            <span className="text-xs text-white/25 font-mono ml-2">
+            <span className="text-xs text-white/20 font-mono">
               {type === 'array' ? `[${count}]` : `{${count}}`}
             </span>
           )}
