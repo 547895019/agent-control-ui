@@ -1,7 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import Editor from '@monaco-editor/react';
+import Editor, { loader } from '@monaco-editor/react';
+import * as monaco from 'monaco-editor';
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 import { client } from '../api/gateway';
 import { Save, RefreshCw, AlertCircle, CheckCircle2, FileJson, WrapText, Loader2 } from 'lucide-react';
+
+// Use locally installed monaco-editor — no CDN, CSP-safe
+(self as any).MonacoEnvironment = {
+  getWorker(_: unknown, label: string) {
+    if (label === 'json') return new JsonWorker();
+    return new EditorWorker();
+  },
+};
+loader.config({ monaco });
 
 const FILE_PATH = '~/.openclaw/openclaw.json';
 
