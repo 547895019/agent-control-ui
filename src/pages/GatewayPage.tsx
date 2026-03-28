@@ -15,11 +15,10 @@ import { Save, RefreshCw, AlertCircle, CheckCircle2, FileJson, WrapText, Loader2
 };
 loader.config({ monaco });
 
-const FILE_PATH = '~/.openclaw/openclaw.json';
-
 export function GatewayPage() {
   const [content, setContent] = useState('');
   const [original, setOriginal] = useState('');
+  const [configHash, setConfigHash] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -30,12 +29,14 @@ export function GatewayPage() {
     setLoading(true);
     setLoadError('');
     try {
-      const text = await client.readFile(FILE_PATH);
+      const res = await client.configGet();
+      const text = JSON.stringify(res?.config ?? {}, null, 2);
       setContent(text);
       setOriginal(text);
+      setConfigHash(res?.hash ?? '');
       setSavedAt(null);
     } catch (e: any) {
-      setLoadError(e.message || '读取文件失败');
+      setLoadError(e.message || '读取配置失败');
     } finally {
       setLoading(false);
     }
@@ -51,15 +52,20 @@ export function GatewayPage() {
   };
 
   const handleSave = async () => {
-    try { JSON.parse(content); } catch (e: any) {
+    let parsed: any;
+    try { parsed = JSON.parse(content); } catch (e: any) {
       setSaveError('JSON 格式错误：' + e.message);
       return;
     }
+    if (!configHash) { setSaveError('配置 Hash 未加载，请刷新'); return; }
     setSaving(true);
     setSaveError('');
     setSavedAt(null);
     try {
-      await client.writeFile(FILE_PATH, content);
+      await client.configApply(parsed, configHash);
+      // Reload to get the new hash after apply
+      const res = await client.configGet();
+      setConfigHash(res?.hash ?? configHash);
       setOriginal(content);
       setSavedAt(Date.now());
     } catch (e: any) {
@@ -80,7 +86,7 @@ export function GatewayPage() {
         </div>
         <div className="min-w-0">
           <h1 className="text-white font-semibold text-base leading-tight">网关配置</h1>
-          <p className="text-white/35 text-xs font-mono truncate">{FILE_PATH}</p>
+          <p className="text-white/35 text-xs font-mono truncate">~/.openclaw/openclaw.json · via config.get / config.apply</p>
         </div>
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           {saveError && (
