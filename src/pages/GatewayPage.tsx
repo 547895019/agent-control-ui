@@ -6,10 +6,11 @@ import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 import { client } from '../api/gateway';
 import {
   Save, RefreshCw, AlertCircle, CheckCircle2, FileJson, WrapText,
-  Loader2, ChevronRight, ChevronDown, Plus, Trash2, Code2, LayoutList,
+  Loader2, Plus, Trash2, Code2, LayoutList, Eye, EyeOff, ChevronDown,
+  Bot, Key, Shield, Network, MessageSquare, Zap, Puzzle, Package,
+  Settings, Database, Wrench, Link, Clock, Radio,
 } from 'lucide-react';
 
-// Use locally installed monaco-editor — no CDN, CSP-safe
 (self as any).MonacoEnvironment = {
   getWorker(_: unknown, label: string) {
     if (label === 'json') return new JsonWorker();
@@ -18,276 +19,419 @@ import {
 };
 loader.config({ monaco });
 
-// ─── JSON Visual Editor ───────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-type JsonPath = (string | number)[];
-
-function pathKey(path: JsonPath) { return path.join('\x00'); }
-
-function setAtPath(obj: any, path: JsonPath, value: any): any {
-  if (path.length === 0) return value;
-  const [key, ...rest] = path;
-  if (Array.isArray(obj)) {
-    const arr = [...obj];
-    arr[key as number] = setAtPath(arr[key as number], rest, value);
-    return arr;
-  }
-  return { ...obj, [key as string]: setAtPath(obj[key as string], rest, value) };
-}
-
-function deleteAtPath(obj: any, path: JsonPath): any {
-  const key = path[0];
-  if (path.length === 1) {
-    if (Array.isArray(obj)) return obj.filter((_, i) => i !== key);
-    const copy = { ...obj };
-    delete copy[key as string];
-    return copy;
-  }
-  if (Array.isArray(obj)) {
-    const arr = [...obj];
-    arr[key as number] = deleteAtPath(arr[key as number], path.slice(1));
-    return arr;
-  }
-  return { ...obj, [key as string]: deleteAtPath(obj[key as string], path.slice(1)) };
-}
-
-function typeLabel(val: any) {
+function typeOf(val: any): string {
   if (val === null) return 'null';
   if (Array.isArray(val)) return 'array';
   return typeof val;
 }
 
-// Primitive leaf editor
-function PrimitiveEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
-  const type = typeLabel(value);
-  if (type === 'boolean') {
-    return (
-      <button
-        onClick={() => onChange(!value)}
-        className={`px-2 py-0.5 rounded text-xs font-mono font-semibold transition-colors ${
-          value ? 'bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30' : 'bg-white/8 text-white/40 hover:bg-white/12'
-        }`}
-      >
-        {String(value)}
-      </button>
-    );
+const SECTION_ICONS: Record<string, any> = {
+  env: Key, auth: Shield, agents: Bot, channels: MessageSquare,
+  gateway: Network, tools: Wrench, models: Database, skills: Puzzle,
+  plugins: Package, bindings: Link, hooks: Zap, session: Clock,
+  update: RefreshCw, media: Radio, commands: Settings,
+};
+
+function sectionIcon(key: string) {
+  return SECTION_ICONS[key] ?? Settings;
+}
+
+const SENSITIVE_KEYS = /key|token|secret|password|api[-_]?key|auth|credential/i;
+function isSensitive(key: string) { return SENSITIVE_KEYS.test(key); }
+
+function setIn(obj: any, keys: string[], val: any): any {
+  if (keys.length === 0) return val;
+  const [head, ...tail] = keys;
+  if (Array.isArray(obj)) {
+    const arr = [...obj];
+    arr[Number(head)] = setIn(arr[Number(head)], tail, val);
+    return arr;
   }
-  if (type === 'null') {
-    return <span className="text-xs font-mono text-white/30 px-1 select-none">null</span>;
+  return { ...obj, [head]: setIn(obj[head], tail, val) };
+}
+
+function deleteIn(obj: any, keys: string[]): any {
+  const [head, ...tail] = keys;
+  if (tail.length === 0) {
+    if (Array.isArray(obj)) return obj.filter((_, i) => String(i) !== head);
+    const copy = { ...obj }; delete copy[head]; return copy;
   }
-  if (type === 'number') {
-    return (
+  if (Array.isArray(obj)) {
+    const arr = [...obj];
+    arr[Number(head)] = deleteIn(arr[Number(head)], tail);
+    return arr;
+  }
+  return { ...obj, [head]: deleteIn(obj[head], tail) };
+}
+
+// ─── Primitive editors ───────────────────────────────────────────────────────
+
+function ToggleSwitch({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 shrink-0 ${value ? 'bg-indigo-500' : 'bg-white/20'}`}
+    >
+      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${value ? 'translate-x-4' : 'translate-x-0'}`} />
+    </button>
+  );
+}
+
+function StringInput({ value, keyName, onChange }: { value: string; keyName: string; onChange: (v: string) => void }) {
+  const [show, setShow] = useState(false);
+  const sensitive = isSensitive(keyName);
+  return (
+    <div className="flex items-center gap-1.5 flex-1 min-w-0">
       <input
-        type="number"
+        type={sensitive && !show ? 'password' : 'text'}
         value={value}
-        onChange={e => onChange(e.target.value === '' ? 0 : Number(e.target.value))}
-        className="text-xs font-mono bg-white/8 border border-white/15 rounded px-2 py-0.5 text-amber-300 focus:outline-none focus:border-indigo-400 w-36 min-w-0"
+        onChange={e => onChange(e.target.value)}
+        className="flex-1 min-w-0 text-xs font-mono bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-white/80 focus:outline-none focus:border-indigo-400/60 focus:bg-black/40 transition-colors"
       />
-    );
-  }
-  // string
+      {sensitive && (
+        <button
+          type="button"
+          onClick={() => setShow(v => !v)}
+          className="w-6 h-6 flex items-center justify-center rounded text-white/25 hover:text-white/60 transition-colors shrink-0"
+        >
+          {show ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function NumberInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
     <input
-      type="text"
-      value={value as string}
-      onChange={e => onChange(e.target.value)}
-      className="text-xs font-mono bg-white/8 border border-white/15 rounded px-2 py-0.5 text-emerald-300 focus:outline-none focus:border-indigo-400 min-w-0 w-64 max-w-full"
+      type="number"
+      value={value}
+      onChange={e => onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+      className="w-36 text-xs font-mono bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-amber-300 focus:outline-none focus:border-indigo-400/60 transition-colors"
     />
   );
 }
 
-// Add-key dialog for objects
-function AddKeyRow({ onAdd }: { onAdd: (key: string) => void }) {
-  const [key, setKey] = useState('');
+// ─── Add-key input ────────────────────────────────────────────────────────────
+
+function AddKeyInput({ onAdd }: { onAdd: (key: string) => void }) {
+  const [val, setVal] = useState('');
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => { ref.current?.focus(); }, []);
   return (
-    <div className="flex items-center gap-1.5 ml-4 mt-1">
+    <div className="flex items-center gap-2 px-3 py-1.5">
       <input
         ref={ref}
-        value={key}
-        onChange={e => setKey(e.target.value)}
+        value={val}
+        onChange={e => setVal(e.target.value)}
         onKeyDown={e => {
-          if (e.key === 'Enter' && key.trim()) { onAdd(key.trim()); setKey(''); }
+          if (e.key === 'Enter' && val.trim()) { onAdd(val.trim()); setVal(''); }
           if (e.key === 'Escape') onAdd('');
         }}
-        placeholder="新键名 Enter 确认 Esc 取消"
-        className="text-xs font-mono bg-white/8 border border-indigo-400/40 rounded px-2 py-0.5 text-white/70 focus:outline-none focus:border-indigo-400 w-52 placeholder:text-white/25"
+        placeholder="新键名 · Enter 确认  Esc 取消"
+        className="flex-1 text-xs font-mono bg-black/30 border border-indigo-500/40 rounded-lg px-3 py-1.5 text-white/70 focus:outline-none focus:border-indigo-400 placeholder:text-white/20"
       />
     </div>
   );
 }
 
-// Recursive tree node
-function JsonNode({
-  keyLabel, value, path, depth, collapsed, onToggle, onChange, onDelete,
-}: {
-  keyLabel: string | number | null;
+// ─── Value editor (recursive) ─────────────────────────────────────────────────
+
+interface ValueEditorProps {
   value: any;
-  path: JsonPath;
+  keyName: string;
   depth: number;
-  collapsed: Set<string>;
-  onToggle: (p: JsonPath) => void;
-  onChange: (p: JsonPath, v: any) => void;
-  onDelete: (p: JsonPath) => void;
-}) {
-  const [addingKey, setAddingKey] = useState(false);
-  const type = typeLabel(value);
-  const isContainer = type === 'object' || type === 'array';
-  const pk = pathKey(path);
-  const isCollapsed = collapsed.has(pk);
+  onChange: (v: any) => void;
+  onDelete?: () => void;
+}
 
-  const indent = `${depth * 16}px`;
-  const typeColorMap: Record<string, string> = {
-    string: 'text-emerald-400', number: 'text-amber-400',
-    boolean: 'text-cyan-400', null: 'text-white/30',
-    object: 'text-indigo-300', array: 'text-purple-300',
-  };
-  const typeColor = typeColorMap[type] ?? 'text-white/60';
+function ValueEditor({ value, keyName, depth, onChange, onDelete }: ValueEditorProps) {
+  const type = typeOf(value);
 
-  const childCount = isContainer
-    ? (type === 'array' ? (value as any[]).length : Object.keys(value).length)
-    : 0;
-
+  if (type === 'object') return (
+    <ObjectEditor value={value} keyName={keyName} depth={depth} onChange={onChange} onDelete={onDelete} />
+  );
+  if (type === 'array') return (
+    <ArrayEditor value={value} keyName={keyName} depth={depth} onChange={onChange} onDelete={onDelete} />
+  );
+  // Primitive row
   return (
-    <div>
-      <div
-        className="flex items-center gap-1.5 py-0.5 group hover:bg-white/4 rounded pr-2"
-        style={{ paddingLeft: indent }}
-      >
-        {/* Collapse toggle */}
-        {isContainer ? (
-          <button
-            onClick={() => onToggle(path)}
-            className="w-4 h-4 flex items-center justify-center text-white/30 hover:text-white/70 shrink-0"
-          >
-            {isCollapsed
-              ? <ChevronRight className="w-3 h-3" />
-              : <ChevronDown className="w-3 h-3" />}
-          </button>
-        ) : (
-          <span className="w-4 shrink-0" />
-        )}
-
-        {/* Key */}
-        {keyLabel !== null && (
-          <span className="text-xs font-mono text-white/50 shrink-0 select-none">
-            {typeof keyLabel === 'number'
-              ? <span className="text-purple-300/60">{keyLabel}</span>
-              : keyLabel}
-            <span className="text-white/20 ml-0.5">:</span>
-          </span>
-        )}
-
-        {/* Value */}
-        {isContainer ? (
-          <span className={`text-xs font-mono ${typeColor} select-none`}>
-            {type === 'array' ? '[' : '{'}
-            {isCollapsed && (
-              <span className="text-white/25 ml-1">
-                {childCount} {type === 'array' ? '项' : '键'}
-              </span>
-            )}
-            {isCollapsed && <span className="ml-0.5">{type === 'array' ? ']' : '}'}</span>}
-          </span>
-        ) : (
-          <PrimitiveEditor value={value} onChange={v => onChange(path, v)} />
-        )}
-
-        {/* Actions */}
-        <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          {isContainer && !isCollapsed && (
-            <button
-              onClick={() => setAddingKey(true)}
-              title={type === 'array' ? '添加元素' : '添加键'}
-              className="w-5 h-5 flex items-center justify-center rounded text-white/30 hover:text-indigo-300 hover:bg-indigo-500/15 transition-colors"
-            >
-              <Plus className="w-3 h-3" />
-            </button>
-          )}
-          {path.length > 0 && (
-            <button
-              onClick={() => onDelete(path)}
-              title="删除"
-              className="w-5 h-5 flex items-center justify-center rounded text-white/30 hover:text-red-400 hover:bg-red-500/15 transition-colors"
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
-          )}
+    <div className="flex items-center gap-2 flex-1 min-w-0">
+      {type === 'boolean' && (
+        <div className="flex items-center gap-2 flex-1">
+          <ToggleSwitch value={value} onChange={onChange} />
+          <span className={`text-xs font-mono ${value ? 'text-indigo-300' : 'text-white/30'}`}>{String(value)}</span>
         </div>
-      </div>
+      )}
+      {type === 'string' && (
+        <StringInput value={value} keyName={keyName} onChange={onChange} />
+      )}
+      {type === 'number' && <NumberInput value={value} onChange={onChange} />}
+      {type === 'null' && (
+        <button
+          onClick={() => onChange('')}
+          className="text-xs font-mono text-white/25 border border-white/10 rounded px-2 py-0.5 hover:border-indigo-400/40 hover:text-white/50 transition-colors"
+        >
+          null
+        </button>
+      )}
+      {onDelete && (
+        <button
+          onClick={onDelete}
+          className="w-5 h-5 flex items-center justify-center rounded text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 ml-auto"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      )}
+    </div>
+  );
+}
 
-      {/* Add-key input */}
-      {isContainer && addingKey && (
-        <AddKeyRow onAdd={key => {
+// ─── Object editor ────────────────────────────────────────────────────────────
+
+function ObjectEditor({ value, keyName, depth, onChange, onDelete }: ValueEditorProps) {
+  const [open, setOpen] = useState(depth < 2);
+  const [addingKey, setAddingKey] = useState(false);
+  const keys = Object.keys(value);
+
+  const handleChange = (k: string, v: any) => onChange({ ...value, [k]: v });
+  const handleDelete = (k: string) => {
+    const copy = { ...value }; delete copy[k]; onChange(copy);
+  };
+
+  const body = (
+    <div className="divide-y divide-white/5">
+      {keys.map(k => (
+        <FormRow key={k} label={k} depth={depth}>
+          <ValueEditor
+            value={value[k]} keyName={k} depth={depth + 1}
+            onChange={v => handleChange(k, v)}
+            onDelete={() => handleDelete(k)}
+          />
+        </FormRow>
+      ))}
+      {addingKey && (
+        <AddKeyInput onAdd={k => {
           setAddingKey(false);
-          if (!key) return;
-          if (type === 'array') onChange(path, [...(value as any[]), '']);
-          else onChange(path, { ...value, [key]: '' });
+          if (k) onChange({ ...value, [k]: '' });
         }} />
       )}
+      <div className="px-3 py-1.5">
+        <button
+          onClick={() => setAddingKey(true)}
+          className="flex items-center gap-1.5 text-xs text-white/30 hover:text-indigo-300 transition-colors"
+        >
+          <Plus className="w-3 h-3" />添加键
+        </button>
+      </div>
+    </div>
+  );
 
-      {/* Children */}
-      {isContainer && !isCollapsed && (
-        <>
-          {type === 'array'
-            ? (value as any[]).map((item, i) => (
-                <JsonNode
-                  key={i} keyLabel={i} value={item}
-                  path={[...path, i]} depth={depth + 1}
-                  collapsed={collapsed} onToggle={onToggle}
-                  onChange={onChange} onDelete={onDelete}
-                />
-              ))
-            : Object.entries(value).map(([k, v]) => (
-                <JsonNode
-                  key={k} keyLabel={k} value={v}
-                  path={[...path, k]} depth={depth + 1}
-                  collapsed={collapsed} onToggle={onToggle}
-                  onChange={onChange} onDelete={onDelete}
-                />
-              ))
-          }
-          {/* Closing bracket */}
-          <div className="flex items-center py-0.5 select-none" style={{ paddingLeft: indent }}>
-            <span className="w-4 shrink-0" />
-            <span className="text-xs font-mono text-indigo-300/50">
-              {type === 'array' ? ']' : '}'}
+  // Depth 0 is the root — rendered by VisualRoot as cards
+  // Depth 1+ is a nested object → collapsible sub-section
+  if (depth >= 1) {
+    return (
+      <div className="flex-1 min-w-0">
+        <button
+          onClick={() => setOpen(v => !v)}
+          className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors mb-1"
+        >
+          <ChevronDown className={`w-3 h-3 transition-transform ${open ? '' : '-rotate-90'}`} />
+          <span className="font-mono">{`{${keys.length} 键}`}</span>
+          {onDelete && (
+            <span
+              onClick={e => { e.stopPropagation(); onDelete?.(); }}
+              className="ml-1 w-4 h-4 flex items-center justify-center rounded text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3 h-3" />
             </span>
+          )}
+        </button>
+        {open && (
+          <div className="border border-white/8 rounded-xl overflow-hidden bg-white/3 ml-1">
+            {body}
           </div>
-        </>
+        )}
+      </div>
+    );
+  }
+
+  return body;
+}
+
+// ─── Array editor ─────────────────────────────────────────────────────────────
+
+function ArrayEditor({ value, keyName, depth, onChange, onDelete }: ValueEditorProps) {
+  const [open, setOpen] = useState(depth < 2);
+  const arr = value as any[];
+
+  const handleChange = (i: number, v: any) => {
+    const copy = [...arr]; copy[i] = v; onChange(copy);
+  };
+  const handleDelete = (i: number) => onChange(arr.filter((_, idx) => idx !== i));
+  const handleAdd = () => onChange([...arr, typeOf(arr[0]) === 'object' ? {} : '']);
+
+  const body = (
+    <div className="divide-y divide-white/5">
+      {arr.map((item, i) => (
+        <FormRow key={i} label={String(i)} depth={depth} indexLabel>
+          <ValueEditor
+            value={item} keyName={keyName} depth={depth + 1}
+            onChange={v => handleChange(i, v)}
+            onDelete={() => handleDelete(i)}
+          />
+        </FormRow>
+      ))}
+      <div className="px-3 py-1.5">
+        <button
+          onClick={handleAdd}
+          className="flex items-center gap-1.5 text-xs text-white/30 hover:text-indigo-300 transition-colors"
+        >
+          <Plus className="w-3 h-3" />添加项
+        </button>
+      </div>
+    </div>
+  );
+
+  if (depth >= 1) {
+    return (
+      <div className="flex-1 min-w-0">
+        <button
+          onClick={() => setOpen(v => !v)}
+          className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors mb-1"
+        >
+          <ChevronDown className={`w-3 h-3 transition-transform ${open ? '' : '-rotate-90'}`} />
+          <span className="font-mono">{`[${arr.length} 项]`}</span>
+          {onDelete && (
+            <span
+              onClick={e => { e.stopPropagation(); onDelete?.(); }}
+              className="ml-1 w-4 h-4 flex items-center justify-center rounded text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3 h-3" />
+            </span>
+          )}
+        </button>
+        {open && (
+          <div className="border border-white/8 rounded-xl overflow-hidden bg-white/3 ml-1">
+            {body}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return body;
+}
+
+// ─── Form row ─────────────────────────────────────────────────────────────────
+
+function FormRow({ label, depth, indexLabel, children }: {
+  label: string; depth: number; indexLabel?: boolean; children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-3 px-3 py-2 hover:bg-white/3 transition-colors group">
+      <span className={`text-xs font-mono shrink-0 mt-1.5 select-none w-36 truncate ${indexLabel ? 'text-purple-300/50' : 'text-white/40'}`}>
+        {label}
+      </span>
+      <div className="flex-1 min-w-0">{children}</div>
+    </div>
+  );
+}
+
+// ─── Section card (top-level key) ─────────────────────────────────────────────
+
+function SectionCard({ sectionKey, value, onChange, onDelete }: {
+  sectionKey: string; value: any; onChange: (v: any) => void; onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const Icon = sectionIcon(sectionKey);
+  const type = typeOf(value);
+  const count = type === 'object' ? Object.keys(value).length
+    : type === 'array' ? (value as any[]).length : null;
+
+  return (
+    <div className="rounded-xl border border-white/10 overflow-hidden bg-white/3 backdrop-blur-sm">
+      {/* Card header */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center gap-3 px-4 py-3 bg-white/5 hover:bg-white/8 transition-colors text-left"
+      >
+        <div className="w-7 h-7 rounded-lg bg-indigo-500/15 flex items-center justify-center shrink-0">
+          <Icon className="w-3.5 h-3.5 text-indigo-300" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="text-sm font-semibold text-white/90">{sectionKey}</span>
+          {count !== null && (
+            <span className="text-xs text-white/25 font-mono ml-2">
+              {type === 'array' ? `[${count}]` : `{${count}}`}
+            </span>
+          )}
+        </div>
+        <ChevronDown className={`w-4 h-4 text-white/30 transition-transform shrink-0 ${open ? '' : '-rotate-90'}`} />
+      </button>
+
+      {/* Card body */}
+      {open && (
+        <div className="divide-y divide-white/5">
+          {type === 'object' && (
+            <ObjectEditor value={value} keyName={sectionKey} depth={1} onChange={onChange} />
+          )}
+          {type === 'array' && (
+            <ArrayEditor value={value} keyName={sectionKey} depth={1} onChange={onChange} />
+          )}
+          {type !== 'object' && type !== 'array' && (
+            <div className="px-4 py-3">
+              <ValueEditor value={value} keyName={sectionKey} depth={1} onChange={onChange} onDelete={onDelete} />
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
+// ─── Visual root ──────────────────────────────────────────────────────────────
+
 function JsonVisualEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [addingKey, setAddingKey] = useState(false);
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return (
+      <div className="p-4">
+        <ValueEditor value={value} keyName="root" depth={0} onChange={onChange} />
+      </div>
+    );
+  }
 
-  const onToggle = useCallback((path: JsonPath) => {
-    const k = pathKey(path);
-    setCollapsed(prev => {
-      const next = new Set(prev);
-      next.has(k) ? next.delete(k) : next.add(k);
-      return next;
-    });
-  }, []);
-
-  const onNodeChange = useCallback((path: JsonPath, v: any) => {
-    onChange(setAtPath(value, path, v));
-  }, [value, onChange]);
-
-  const onNodeDelete = useCallback((path: JsonPath) => {
-    onChange(deleteAtPath(value, path));
-  }, [value, onChange]);
-
+  const keys = Object.keys(value);
   return (
-    <div data-sidebar-scroll className="h-full overflow-y-auto px-3 py-3 text-sm">
-      <JsonNode
-        keyLabel={null} value={value} path={[]} depth={0}
-        collapsed={collapsed} onToggle={onToggle}
-        onChange={onNodeChange} onDelete={onNodeDelete}
-      />
+    <div data-sidebar-scroll className="h-full overflow-y-auto px-4 py-4 space-y-3">
+      {keys.map(k => (
+        <SectionCard
+          key={k}
+          sectionKey={k}
+          value={value[k]}
+          onChange={v => onChange({ ...value, [k]: v })}
+          onDelete={() => { const copy = { ...value }; delete copy[k]; onChange(copy); }}
+        />
+      ))}
+      {addingKey ? (
+        <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 overflow-hidden">
+          <AddKeyInput onAdd={k => {
+            setAddingKey(false);
+            if (k) onChange({ ...value, [k]: '' });
+          }} />
+        </div>
+      ) : (
+        <button
+          onClick={() => setAddingKey(true)}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-white/10 text-xs text-white/25 hover:text-white/50 hover:border-white/20 transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" />添加顶层配置项
+        </button>
+      )}
     </div>
   );
 }
@@ -328,21 +472,16 @@ export function GatewayPage() {
   useEffect(() => { load(); }, [load]);
 
   const handleFormat = () => {
-    try {
-      setContent(JSON.stringify(JSON.parse(content), null, 2));
-    } catch {}
+    try { setContent(JSON.stringify(JSON.parse(content), null, 2)); } catch {}
   };
 
   const handleSave = async () => {
     let parsed: any;
     try { parsed = JSON.parse(content); } catch (e: any) {
-      setSaveError('JSON 格式错误：' + e.message);
-      return;
+      setSaveError('JSON 格式错误：' + e.message); return;
     }
     if (!configHash) { setSaveError('配置 Hash 未加载，请刷新'); return; }
-    setSaving(true);
-    setSaveError('');
-    setSavedAt(null);
+    setSaving(true); setSaveError(''); setSavedAt(null);
     try {
       await client.configApply(parsed, configHash);
       const res = await client.configGet();
@@ -360,19 +499,17 @@ export function GatewayPage() {
     setSwitchError('');
     if (mode === 'visual') {
       try { JSON.parse(content); } catch (e: any) {
-        setSwitchError('JSON 格式错误，无法切换到可视化模式');
-        return;
+        setSwitchError('JSON 格式错误，无法切换到可视化模式'); return;
       }
     }
     setViewMode(mode);
   };
 
-  // Visual editor operates on parsed object; sync back to content string
   const parsedValue = (() => { try { return JSON.parse(content); } catch { return {}; } })();
+
   const handleVisualChange = useCallback((newVal: any) => {
     setContent(JSON.stringify(newVal, null, 2));
-    setSavedAt(null);
-    setSaveError('');
+    setSavedAt(null); setSaveError('');
   }, []);
 
   const isDirty = content !== original;
@@ -389,21 +526,17 @@ export function GatewayPage() {
           <p className="text-white/35 text-xs font-mono truncate">~/.openclaw/openclaw.json</p>
         </div>
 
-        {/* View mode toggle */}
+        {/* Mode toggle */}
         <div className="flex items-center rounded-lg bg-white/8 border border-white/10 p-0.5 shrink-0">
           <button
             onClick={() => switchMode('visual')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md transition-colors ${
-              viewMode === 'visual' ? 'bg-indigo-600 text-white' : 'text-white/50 hover:text-white'
-            }`}
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md transition-colors ${viewMode === 'visual' ? 'bg-indigo-600 text-white shadow' : 'text-white/50 hover:text-white'}`}
           >
             <LayoutList className="w-3.5 h-3.5" />可视化
           </button>
           <button
             onClick={() => switchMode('code')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md transition-colors ${
-              viewMode === 'code' ? 'bg-indigo-600 text-white' : 'text-white/50 hover:text-white'
-            }`}
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md transition-colors ${viewMode === 'code' ? 'bg-indigo-600 text-white shadow' : 'text-white/50 hover:text-white'}`}
           >
             <Code2 className="w-3.5 h-3.5" />代码
           </button>
@@ -421,44 +554,31 @@ export function GatewayPage() {
             </span>
           )}
           {viewMode === 'code' && (
-            <button
-              onClick={handleFormat}
-              disabled={loading || saving || !!loadError}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/60 hover:text-white bg-white/8 border border-white/10 rounded-lg hover:bg-white/12 transition-colors disabled:opacity-40"
-            >
+            <button onClick={handleFormat} disabled={loading || saving || !!loadError}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/60 hover:text-white bg-white/8 border border-white/10 rounded-lg hover:bg-white/12 transition-colors disabled:opacity-40">
               <WrapText className="w-3.5 h-3.5" />格式化
             </button>
           )}
-          <button
-            onClick={load}
-            disabled={loading || saving}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/60 hover:text-white bg-white/8 border border-white/10 rounded-lg hover:bg-white/12 transition-colors disabled:opacity-40"
-          >
+          <button onClick={load} disabled={loading || saving}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/60 hover:text-white bg-white/8 border border-white/10 rounded-lg hover:bg-white/12 transition-colors disabled:opacity-40">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />刷新
           </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || loading || !isDirty}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors disabled:opacity-50"
-          >
+          <button onClick={handleSave} disabled={saving || loading || !isDirty}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors disabled:opacity-50">
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             {saving ? '保存中…' : '保存'}
           </button>
         </div>
       </div>
 
-      {/* Load error */}
       {loadError && !loading && (
         <div className="flex items-center gap-2 p-3 bg-red-500/15 border border-red-400/25 rounded-xl text-sm text-red-300 shrink-0">
           <AlertCircle className="w-4 h-4 shrink-0" />{loadError}
         </div>
       )}
-
-      {/* Dirty indicator */}
       {isDirty && !loading && (
         <div className="flex items-center gap-1.5 text-xs text-amber-400/80 shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-          有未保存的修改
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />有未保存的修改
         </div>
       )}
 
@@ -470,22 +590,9 @@ export function GatewayPage() {
           </div>
         ) : viewMode === 'code' ? (
           <Editor
-            height="100%"
-            language="json"
-            value={content}
+            height="100%" language="json" value={content} theme="vs-dark"
             onChange={v => { setContent(v ?? ''); setSavedAt(null); setSaveError(''); setSwitchError(''); }}
-            theme="vs-dark"
-            options={{
-              minimap: { enabled: false },
-              fontSize: 13,
-              tabSize: 2,
-              scrollBeyondLastLine: false,
-              wordWrap: 'on',
-              lineNumbers: 'on',
-              renderLineHighlight: 'line',
-              automaticLayout: true,
-              padding: { top: 12, bottom: 12 },
-            }}
+            options={{ minimap: { enabled: false }, fontSize: 13, tabSize: 2, scrollBeyondLastLine: false, wordWrap: 'on', lineNumbers: 'on', renderLineHighlight: 'line', automaticLayout: true, padding: { top: 12, bottom: 12 } }}
           />
         ) : (
           <JsonVisualEditor value={parsedValue} onChange={handleVisualChange} />
