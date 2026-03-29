@@ -1749,6 +1749,100 @@ function McpServerForm({ server, isNew, existingNames, onSave, onCancel }: {
   );
 }
 
+// ─── MCP Market types & fetch helpers ─────────────────────────────────────────
+
+interface McpMarketEntry {
+  id: string;
+  name: string;
+  pkgName?: string;   // npm package → used for npx -y <pkgName>
+  description?: string;
+  source: 'official' | 'awesome' | 'npm' | 'clawhub';
+  url?: string;
+}
+
+function deriveMcpNameStr(pkgName: string): string {
+  let name = pkgName;
+  if (name.startsWith('@')) name = name.split('/').slice(1).join('/');
+  name = name.replace(/^mcp-server-/, '').replace(/-mcp-server$/, '').replace(/-mcp$/, '').replace(/^server-/, '');
+  return name || pkgName;
+}
+
+async function fetchOfficialMcpServers(): Promise<McpMarketEntry[]> {
+  const res = await fetch(
+    'https://api.github.com/repos/modelcontextprotocol/servers/contents/src',
+    { headers: { Accept: 'application/vnd.github.v3+json' } },
+  );
+  if (!res.ok) throw new Error(`GitHub API 错误: ${res.status}`);
+  const items: any[] = await res.json();
+  return items
+    .filter(item => item.type === 'dir' && !item.name.startsWith('.'))
+    .map(item => ({
+      id: `official-${item.name}`,
+      name: item.name,
+      pkgName: `@modelcontextprotocol/server-${item.name}`,
+      source: 'official' as const,
+      url: item.html_url,
+      description: '',
+    }));
+}
+
+async function fetchAwesomeMcpReadme(): Promise<McpMarketEntry[]> {
+  const res = await fetch(
+    'https://raw.githubusercontent.com/punkpeye/awesome-mcp-servers/main/README.md',
+  );
+  if (!res.ok) throw new Error(`获取失败: ${res.status}`);
+  const text = await res.text();
+
+  const entries: McpMarketEntry[] = [];
+  const seenUrls = new Set<string>();
+  const seenNpm = new Set<string>();
+
+  // 1. Extract npm package URLs (most reliable)
+  const npmPat = /https?:\/\/www\.npmjs\.com\/package\/([^\s)">\n,]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = npmPat.exec(text)) !== null) {
+    const pkgName = m[1].replace(/[)">,.]+$/, '');
+    if (seenNpm.has(pkgName)) continue;
+    seenNpm.add(pkgName);
+    entries.push({
+      id: `awesome-npm-${pkgName}`,
+      name: deriveMcpNameStr(pkgName),
+      pkgName,
+      source: 'awesome',
+      description: '',
+    });
+  }
+
+  // 2. Extract GitHub links from table rows
+  const rowPat = /\|\s*(?:[^|\n]*\|\s*)*\[([^\]]{1,60})\]\((https:\/\/github\.com\/[^\s)"]{3,80})\)\s*\|([^|\n]*)/g;
+  while ((m = rowPat.exec(text)) !== null) {
+    const [, rawName, url, rawDesc] = m;
+    const normUrl = url.replace(/\/+$/, '');
+    if (seenUrls.has(normUrl)) continue;
+    seenUrls.add(normUrl);
+
+    const name = rawName.trim();
+    const description = rawDesc.trim().replace(/^\||\|$/g, '').trim();
+    if (/^name$|^server$|^title$/i.test(name)) continue;
+
+    // Try to derive npm pkg from repo name
+    const repoName = normUrl.split('/').pop() ?? '';
+    let pkgName: string | undefined;
+    if (repoName.startsWith('mcp-server-')) pkgName = `@modelcontextprotocol/${repoName}`;
+    else if (repoName.endsWith('-mcp') || repoName.endsWith('-mcp-server')) pkgName = repoName;
+    if (pkgName && seenNpm.has(pkgName)) continue;
+
+    entries.push({
+      id: `awesome-gh-${normUrl}`,
+      name, pkgName, description,
+      source: 'awesome',
+      url: normUrl,
+    });
+  }
+
+  return entries;
+}
+
 // Derive a short server name from an npm package name
 function deriveMcpName(pkgName: string): string {
   let name = pkgName;
@@ -1770,10 +1864,15 @@ function McpTab() {
 
   // Marketplace state
   const [showMarketplace, setShowMarketplace] = useState(false);
+  const [mcpSource, setMcpSource] = useState<'npm' | 'official' | 'awesome' | 'clawhub'>('npm');
   const [searchQuery, setSearchQuery] = useState('');
   const [npmResults, setNpmResults] = useState<NpmSearchResponse['objects']>([]);
   const [clawhubMcpResults, setClawhubMcpResults] = useState<ClawHubSearchResponse['results']>([]);
+  const [officialResults, setOfficialResults] = useState<McpMarketEntry[]>([]);
+  const [awesomeResults, setAwesomeResults] = useState<McpMarketEntry[]>([]);
   const [searching, setSearching] = useState(false);
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketError, setMarketError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -1809,47 +1908,74 @@ function McpTab() {
     saveServers(updated);
   };
 
+  // Auto-load official / awesome when their tab is selected
+  useEffect(() => {
+    if (!showMarketplace) return;
+    if (mcpSource === 'official' && officialResults.length === 0) {
+      setMarketLoading(true); setMarketError('');
+      fetchOfficialMcpServers()
+        .then(setOfficialResults)
+        .catch(e => setMarketError(e.message))
+        .finally(() => setMarketLoading(false));
+    }
+    if (mcpSource === 'awesome' && awesomeResults.length === 0) {
+      setMarketLoading(true); setMarketError('');
+      fetchAwesomeMcpReadme()
+        .then(setAwesomeResults)
+        .catch(e => setMarketError(e.message))
+        .finally(() => setMarketLoading(false));
+    }
+  }, [mcpSource, showMarketplace]);
+
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    setSearching(true); setError('');
-    setNpmResults([]); setClawhubMcpResults([]);
-    try {
-      await Promise.all([
-        searchNpmPackages(`mcp-server ${searchQuery}`)
-          .then(res => setNpmResults(res.objects || []))
-          .catch(() => {}),
-        searchClawHubPackages(searchQuery, 'bundle-plugin')
-          .then(res => setClawhubMcpResults(
-            (res.results || []).filter(r => {
-              const n = r.package.name.toLowerCase();
-              return n.includes('mcp') || (r.package.capabilityTags ?? []).some(t => t.toLowerCase().includes('mcp'));
-            })
-          ))
-          .catch(() => {}),
-      ]);
-    } catch (e: any) { setError(e.message || '搜索失败'); }
-    finally { setSearching(false); }
+    if (mcpSource === 'npm' || mcpSource === 'clawhub') {
+      if (!searchQuery.trim()) return;
+      setSearching(true); setError('');
+      setNpmResults([]); setClawhubMcpResults([]);
+      try {
+        await Promise.all([
+          mcpSource !== 'clawhub' && searchNpmPackages(`mcp-server ${searchQuery}`)
+            .then(res => setNpmResults(res.objects || []))
+            .catch(() => {}),
+          mcpSource !== 'npm' && searchClawHubPackages(searchQuery, 'bundle-plugin')
+            .then(res => setClawhubMcpResults(
+              (res.results || []).filter(r => {
+                const n = r.package.name.toLowerCase();
+                return n.includes('mcp') || (r.package.capabilityTags ?? []).some(t => t.toLowerCase().includes('mcp'));
+              })
+            ))
+            .catch(() => {}),
+        ]);
+      } catch (e: any) { setError(e.message || '搜索失败'); }
+      finally { setSearching(false); }
+    }
   };
 
-  // Pre-fill form from npm package → npx -y <pkgName>
   const handleAddFromNpm = (pkg: NpmPackage) => {
-    const name = deriveMcpName(pkg.name);
     setIsNewServer(true);
-    setEditingServer({ name, command: 'npx', args: ['-y', pkg.name], env: [], cwd: '' });
+    setEditingServer({ name: deriveMcpName(pkg.name), command: 'npx', args: ['-y', pkg.name], env: [], cwd: '' });
   };
-
-  // Pre-fill form from ClawHub bundle → npx -y <pkgName>
   const handleAddFromClawhub = (pkg: ClawHubPackageListItem) => {
-    const name = deriveMcpName(pkg.name);
     setIsNewServer(true);
-    setEditingServer({ name, command: 'npx', args: ['-y', pkg.name], env: [], cwd: '' });
+    setEditingServer({ name: deriveMcpName(pkg.name), command: 'npx', args: ['-y', pkg.name], env: [], cwd: '' });
+  };
+  const handleAddFromMarket = (entry: McpMarketEntry) => {
+    setIsNewServer(true);
+    const args = entry.pkgName ? ['-y', entry.pkgName] : [];
+    setEditingServer({ name: entry.name, command: entry.pkgName ? 'npx' : '', args, env: [], cwd: '' });
   };
 
   const serverNames = Object.keys(servers);
-  const isInstalled = (pkgName: string) => serverNames.some(n => {
-    const cfg = servers[n];
-    return cfg.args?.includes(pkgName);
-  });
+  const isInstalled = (pkgName: string) => serverNames.some(n => servers[n].args?.includes(pkgName));
+
+  // Filter official/awesome results by search query (client-side)
+  const q = searchQuery.trim().toLowerCase();
+  const filteredOfficial = q
+    ? officialResults.filter(e => e.name.includes(q) || e.description?.toLowerCase().includes(q))
+    : officialResults;
+  const filteredAwesome = q
+    ? awesomeResults.filter(e => e.name.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q))
+    : awesomeResults;
 
   return (
     <div className="space-y-4">
@@ -1882,13 +2008,33 @@ function McpTab() {
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-indigo-300 border border-indigo-500/30 bg-indigo-500/15 hover:bg-indigo-500/20 rounded-lg transition-colors"
           >
             {showMarketplace ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            {showMarketplace ? '收起' : '搜索 MCP 服务器'}
+            {showMarketplace ? '收起' : '浏览 / 搜索'}
           </button>
         </div>
 
         {showMarketplace && (
           <div className="p-4 space-y-4">
-            {/* Search bar */}
+            {/* Source selector */}
+            <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1 w-fit">
+              {([
+                { id: 'official', label: '官方' },
+                { id: 'awesome', label: 'Awesome' },
+                { id: 'npm',     label: 'npmjs' },
+                { id: 'clawhub', label: 'ClawHub' },
+              ] as const).map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setMcpSource(s.id)}
+                  className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                    mcpSource === s.id ? 'bg-indigo-600 text-white' : 'text-white/60 hover:text-white/80'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Search bar — shown for all sources */}
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
@@ -1897,101 +2043,207 @@ function McpTab() {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                  placeholder="搜索 MCP 服务器，如 github、filesystem、postgres…"
+                  placeholder={
+                    mcpSource === 'official' ? '过滤官方服务器…'
+                    : mcpSource === 'awesome' ? '过滤 Awesome 列表…'
+                    : '搜索 MCP 服务器，如 github、postgres…'
+                  }
                 />
               </div>
-              <button
-                onClick={handleSearch}
-                disabled={searching || !searchQuery.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 text-xs text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg disabled:opacity-50"
-              >
-                {searching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                搜索
-              </button>
+              {(mcpSource === 'npm' || mcpSource === 'clawhub') && (
+                <button
+                  onClick={handleSearch}
+                  disabled={searching || !searchQuery.trim()}
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg disabled:opacity-50"
+                >
+                  {searching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                  搜索
+                </button>
+              )}
+              {(mcpSource === 'official' || mcpSource === 'awesome') && (
+                <button
+                  onClick={() => {
+                    if (mcpSource === 'official') { setOfficialResults([]); }
+                    else { setAwesomeResults([]); }
+                    setMarketError('');
+                  }}
+                  title="重新加载"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/70 border border-white/10 hover:bg-white/10"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
-            {/* ClawHub results */}
-            {clawhubMcpResults.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs text-white/50">ClawHub ({clawhubMcpResults.length})</p>
-                <div className="space-y-1.5 max-h-56 overflow-y-auto">
-                  {clawhubMcpResults.map(({ package: pkg }) => (
-                    <div key={pkg.name} className="flex items-start gap-3 p-3 bg-white/5 border border-white/10 rounded-lg">
+            {/* Market error */}
+            {marketError && <ErrorBanner msg={marketError} onDismiss={() => setMarketError('')} />}
+
+            {/* Official source */}
+            {mcpSource === 'official' && (
+              marketLoading ? (
+                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-white/40" /></div>
+              ) : filteredOfficial.length > 0 ? (
+                <div className="space-y-1.5 max-h-80 overflow-y-auto">
+                  <p className="text-xs text-white/40 mb-2">
+                    来源：<a href="https://github.com/modelcontextprotocol/servers" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">modelcontextprotocol/servers</a>
+                    {' '}·{' '}{filteredOfficial.length} 个
+                  </p>
+                  {filteredOfficial.map(entry => (
+                    <div key={entry.id} className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-lg">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-white">{pkg.displayName || pkg.name}</span>
-                          <span className="text-xs font-mono text-white/50">{pkg.name}</span>
-                          {pkg.latestVersion && <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60">v{pkg.latestVersion}</span>}
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${pkg.channel === 'official' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>{pkg.channel}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300">ClawHub</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-white">{entry.name}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">官方</span>
                         </div>
-                        {pkg.summary && <p className="text-xs text-white/50 mt-0.5">{pkg.summary}</p>}
+                        <p className="text-[11px] text-white/30 font-mono mt-0.5">npx -y {entry.pkgName}</p>
                       </div>
-                      <button
-                        onClick={() => handleAddFromClawhub(pkg)}
-                        disabled={isInstalled(pkg.name)}
-                        className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg shrink-0 transition-colors ${
-                          isInstalled(pkg.name)
-                            ? 'text-white/30 border border-white/10 cursor-not-allowed'
-                            : 'text-white bg-indigo-600 hover:bg-indigo-500'
-                        } disabled:opacity-60`}
-                      >
-                        {isInstalled(pkg.name) ? <><Check className="w-3.5 h-3.5" /> 已添加</> : <><Plus className="w-3.5 h-3.5" /> 添加</>}
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {entry.url && (
+                          <a href={entry.url} target="_blank" rel="noreferrer"
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white/60 hover:bg-white/10">
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleAddFromMarket(entry)}
+                          disabled={!!entry.pkgName && isInstalled(entry.pkgName)}
+                          className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                            entry.pkgName && isInstalled(entry.pkgName)
+                              ? 'text-white/30 border border-white/10 cursor-not-allowed'
+                              : 'text-white bg-indigo-600 hover:bg-indigo-500'
+                          } disabled:opacity-60`}
+                        >
+                          {entry.pkgName && isInstalled(entry.pkgName)
+                            ? <><Check className="w-3.5 h-3.5" /> 已添加</>
+                            : <><Plus className="w-3.5 h-3.5" /> 添加</>}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              ) : !marketLoading && officialResults.length === 0 && !marketError ? (
+                <div className="text-center py-8 text-white/40 text-sm">正在加载…</div>
+              ) : (
+                <div className="text-center py-8 text-white/40 text-sm">无匹配结果</div>
+              )
             )}
 
-            {/* npm results */}
-            {npmResults.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs text-white/50">npmjs ({npmResults.length})</p>
-                <div className="space-y-1.5 max-h-56 overflow-y-auto">
-                  {npmResults.map(({ package: pkg }) => (
-                    <div key={pkg.name} className="flex items-start gap-3 p-3 bg-white/5 border border-white/10 rounded-lg">
+            {/* Awesome source */}
+            {mcpSource === 'awesome' && (
+              marketLoading ? (
+                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-white/40" /></div>
+              ) : filteredAwesome.length > 0 ? (
+                <div className="space-y-1.5 max-h-80 overflow-y-auto">
+                  <p className="text-xs text-white/40 mb-2">
+                    来源：<a href="https://github.com/punkpeye/awesome-mcp-servers" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">awesome-mcp-servers</a>
+                    {' '}·{' '}{filteredAwesome.length} 个
+                  </p>
+                  {filteredAwesome.map(entry => (
+                    <div key={entry.id} className="flex items-start gap-3 p-3 bg-white/5 border border-white/10 rounded-lg">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-white">{pkg.name}</span>
-                          {pkg.version && <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60">v{pkg.version}</span>}
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300">npm</span>
+                          <span className="text-sm font-medium text-white">{entry.name}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">Awesome</span>
                         </div>
-                        {pkg.description && <p className="text-xs text-white/50 mt-0.5 truncate">{pkg.description}</p>}
-                        <p className="text-[11px] text-white/30 font-mono mt-0.5">npx -y {pkg.name}</p>
+                        {entry.description && <p className="text-xs text-white/50 mt-0.5 truncate">{entry.description}</p>}
+                        {entry.pkgName
+                          ? <p className="text-[11px] text-white/30 font-mono mt-0.5">npx -y {entry.pkgName}</p>
+                          : entry.url && <p className="text-[11px] text-white/30 mt-0.5 truncate">{entry.url}</p>
+                        }
                       </div>
-                      <button
-                        onClick={() => handleAddFromNpm(pkg)}
-                        disabled={isInstalled(pkg.name)}
-                        className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg shrink-0 transition-colors ${
-                          isInstalled(pkg.name)
-                            ? 'text-white/30 border border-white/10 cursor-not-allowed'
-                            : 'text-white bg-indigo-600 hover:bg-indigo-500'
-                        } disabled:opacity-60`}
-                      >
-                        {isInstalled(pkg.name) ? <><Check className="w-3.5 h-3.5" /> 已添加</> : <><Plus className="w-3.5 h-3.5" /> 添加</>}
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {entry.url && (
+                          <a href={entry.url} target="_blank" rel="noreferrer"
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white/60 hover:bg-white/10">
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleAddFromMarket(entry)}
+                          disabled={!!entry.pkgName && isInstalled(entry.pkgName)}
+                          className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                            entry.pkgName && isInstalled(entry.pkgName)
+                              ? 'text-white/30 border border-white/10 cursor-not-allowed'
+                              : 'text-white bg-indigo-600 hover:bg-indigo-500'
+                          } disabled:opacity-60`}
+                        >
+                          {entry.pkgName && isInstalled(entry.pkgName)
+                            ? <><Check className="w-3.5 h-3.5" /> 已添加</>
+                            : <><Plus className="w-3.5 h-3.5" /> 添加</>}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              ) : !marketLoading && awesomeResults.length === 0 && !marketError ? (
+                <div className="text-center py-8 text-white/40 text-sm">正在加载…</div>
+              ) : (
+                <div className="text-center py-8 text-white/40 text-sm">无匹配结果</div>
+              )
             )}
 
-            {npmResults.length === 0 && clawhubMcpResults.length === 0 && searchQuery && !searching && (
-              <div className="text-center py-8 text-white/40">
-                <Server className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">未找到 MCP 服务器</p>
-                <p className="text-xs mt-1">试试其他关键词，或手动添加</p>
+            {/* npm source */}
+            {mcpSource === 'npm' && npmResults.length > 0 && (
+              <div className="space-y-1.5 max-h-80 overflow-y-auto">
+                <p className="text-xs text-white/40 mb-2">npmjs · {npmResults.length} 个结果</p>
+                {npmResults.map(({ package: pkg }) => (
+                  <div key={pkg.name} className="flex items-start gap-3 p-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-white">{pkg.name}</span>
+                        {pkg.version && <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60">v{pkg.version}</span>}
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300">npm</span>
+                      </div>
+                      {pkg.description && <p className="text-xs text-white/50 mt-0.5 truncate">{pkg.description}</p>}
+                      <p className="text-[11px] text-white/30 font-mono mt-0.5">npx -y {pkg.name}</p>
+                    </div>
+                    <button
+                      onClick={() => handleAddFromNpm(pkg)}
+                      disabled={isInstalled(pkg.name)}
+                      className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg shrink-0 transition-colors ${
+                        isInstalled(pkg.name)
+                          ? 'text-white/30 border border-white/10 cursor-not-allowed'
+                          : 'text-white bg-indigo-600 hover:bg-indigo-500'
+                      } disabled:opacity-60`}
+                    >
+                      {isInstalled(pkg.name) ? <><Check className="w-3.5 h-3.5" /> 已添加</> : <><Plus className="w-3.5 h-3.5" /> 添加</>}
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
+            {mcpSource === 'npm' && npmResults.length === 0 && !searching && searchQuery && (
+              <div className="text-center py-8 text-white/40 text-sm">未找到结果，试试其他关键词</div>
+            )}
 
-            {!searchQuery && !searching && npmResults.length === 0 && (
-              <div className="text-center py-6 text-white/30 text-xs space-y-1">
-                <p>常用搜索：<span className="text-indigo-400 cursor-pointer hover:text-indigo-300" onClick={() => { setSearchQuery('github'); handleSearch(); }}>github</span>
-                  {' · '}<span className="text-indigo-400 cursor-pointer hover:text-indigo-300" onClick={() => { setSearchQuery('filesystem'); }}>filesystem</span>
-                  {' · '}<span className="text-indigo-400 cursor-pointer hover:text-indigo-300" onClick={() => { setSearchQuery('postgres'); }}>postgres</span>
-                  {' · '}<span className="text-indigo-400 cursor-pointer hover:text-indigo-300" onClick={() => { setSearchQuery('context7'); }}>context7</span>
-                </p>
+            {/* ClawHub source */}
+            {mcpSource === 'clawhub' && clawhubMcpResults.length > 0 && (
+              <div className="space-y-1.5 max-h-80 overflow-y-auto">
+                <p className="text-xs text-white/40 mb-2">ClawHub · {clawhubMcpResults.length} 个结果</p>
+                {clawhubMcpResults.map(({ package: pkg }) => (
+                  <div key={pkg.name} className="flex items-start gap-3 p-3 bg-white/5 border border-white/10 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-white">{pkg.displayName || pkg.name}</span>
+                        <span className="text-xs font-mono text-white/40">{pkg.name}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${pkg.channel === 'official' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>{pkg.channel}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300">ClawHub</span>
+                      </div>
+                      {pkg.summary && <p className="text-xs text-white/50 mt-0.5">{pkg.summary}</p>}
+                    </div>
+                    <button
+                      onClick={() => handleAddFromClawhub(pkg)}
+                      disabled={isInstalled(pkg.name)}
+                      className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg shrink-0 transition-colors ${
+                        isInstalled(pkg.name)
+                          ? 'text-white/30 border border-white/10 cursor-not-allowed'
+                          : 'text-white bg-indigo-600 hover:bg-indigo-500'
+                      } disabled:opacity-60`}
+                    >
+                      {isInstalled(pkg.name) ? <><Check className="w-3.5 h-3.5" /> 已添加</> : <><Plus className="w-3.5 h-3.5" /> 添加</>}
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
