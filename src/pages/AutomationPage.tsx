@@ -1756,7 +1756,7 @@ interface McpMarketEntry {
   name: string;
   pkgName?: string;   // npm package → used for npx -y <pkgName>
   description?: string;
-  source: 'official' | 'awesome' | 'npm' | 'clawhub';
+  source: 'official' | 'npm' | 'clawhub';
   url?: string;
 }
 
@@ -1786,62 +1786,6 @@ async function fetchOfficialMcpServers(): Promise<McpMarketEntry[]> {
     }));
 }
 
-async function fetchAwesomeMcpReadme(): Promise<McpMarketEntry[]> {
-  const res = await fetch(
-    'https://raw.githubusercontent.com/punkpeye/awesome-mcp-servers/main/README.md',
-  );
-  if (!res.ok) throw new Error(`获取失败: ${res.status}`);
-  const text = await res.text();
-
-  const entries: McpMarketEntry[] = [];
-  const seenUrls = new Set<string>();
-  const seenNpm = new Set<string>();
-
-  // 1. Extract npm package URLs (most reliable)
-  const npmPat = /https?:\/\/www\.npmjs\.com\/package\/([^\s)">\n,]+)/g;
-  let m: RegExpExecArray | null;
-  while ((m = npmPat.exec(text)) !== null) {
-    const pkgName = m[1].replace(/[)">,.]+$/, '');
-    if (seenNpm.has(pkgName)) continue;
-    seenNpm.add(pkgName);
-    entries.push({
-      id: `awesome-npm-${pkgName}`,
-      name: deriveMcpNameStr(pkgName),
-      pkgName,
-      source: 'awesome',
-      description: '',
-    });
-  }
-
-  // 2. Extract GitHub links from table rows
-  const rowPat = /\|\s*(?:[^|\n]*\|\s*)*\[([^\]]{1,60})\]\((https:\/\/github\.com\/[^\s)"]{3,80})\)\s*\|([^|\n]*)/g;
-  while ((m = rowPat.exec(text)) !== null) {
-    const [, rawName, url, rawDesc] = m;
-    const normUrl = url.replace(/\/+$/, '');
-    if (seenUrls.has(normUrl)) continue;
-    seenUrls.add(normUrl);
-
-    const name = rawName.trim();
-    const description = rawDesc.trim().replace(/^\||\|$/g, '').trim();
-    if (/^name$|^server$|^title$/i.test(name)) continue;
-
-    // Try to derive npm pkg from repo name
-    const repoName = normUrl.split('/').pop() ?? '';
-    let pkgName: string | undefined;
-    if (repoName.startsWith('mcp-server-')) pkgName = `@modelcontextprotocol/${repoName}`;
-    else if (repoName.endsWith('-mcp') || repoName.endsWith('-mcp-server')) pkgName = repoName;
-    if (pkgName && seenNpm.has(pkgName)) continue;
-
-    entries.push({
-      id: `awesome-gh-${normUrl}`,
-      name, pkgName, description,
-      source: 'awesome',
-      url: normUrl,
-    });
-  }
-
-  return entries;
-}
 
 // Derive a short server name from an npm package name
 function deriveMcpName(pkgName: string): string {
@@ -1864,12 +1808,11 @@ function McpTab() {
 
   // Marketplace state
   const [showMarketplace, setShowMarketplace] = useState(false);
-  const [mcpSource, setMcpSource] = useState<'npm' | 'official' | 'awesome' | 'clawhub'>('npm');
+  const [mcpSource, setMcpSource] = useState<'npm' | 'official' | 'clawhub'>('npm');
   const [searchQuery, setSearchQuery] = useState('');
   const [npmResults, setNpmResults] = useState<NpmSearchResponse['objects']>([]);
   const [clawhubMcpResults, setClawhubMcpResults] = useState<ClawHubSearchResponse['results']>([]);
   const [officialResults, setOfficialResults] = useState<McpMarketEntry[]>([]);
-  const [awesomeResults, setAwesomeResults] = useState<McpMarketEntry[]>([]);
   const [searching, setSearching] = useState(false);
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketError, setMarketError] = useState('');
@@ -1908,20 +1851,13 @@ function McpTab() {
     saveServers(updated);
   };
 
-  // Auto-load official / awesome when their tab is selected
+  // Auto-load official when tab is selected
   useEffect(() => {
     if (!showMarketplace) return;
     if (mcpSource === 'official' && officialResults.length === 0) {
       setMarketLoading(true); setMarketError('');
       fetchOfficialMcpServers()
         .then(setOfficialResults)
-        .catch(e => setMarketError(e.message))
-        .finally(() => setMarketLoading(false));
-    }
-    if (mcpSource === 'awesome' && awesomeResults.length === 0) {
-      setMarketLoading(true); setMarketError('');
-      fetchAwesomeMcpReadme()
-        .then(setAwesomeResults)
         .catch(e => setMarketError(e.message))
         .finally(() => setMarketLoading(false));
     }
@@ -1968,14 +1904,11 @@ function McpTab() {
   const serverNames = Object.keys(servers);
   const isInstalled = (pkgName: string) => serverNames.some(n => servers[n].args?.includes(pkgName));
 
-  // Filter official/awesome results by search query (client-side)
+  // Filter official results by search query (client-side)
   const q = searchQuery.trim().toLowerCase();
   const filteredOfficial = q
     ? officialResults.filter(e => e.name.includes(q) || e.description?.toLowerCase().includes(q))
     : officialResults;
-  const filteredAwesome = q
-    ? awesomeResults.filter(e => e.name.toLowerCase().includes(q) || e.description?.toLowerCase().includes(q))
-    : awesomeResults;
 
   return (
     <div className="space-y-4">
@@ -2018,9 +1951,8 @@ function McpTab() {
             <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1 w-fit">
               {([
                 { id: 'official', label: '官方' },
-                { id: 'awesome', label: 'Awesome' },
-                { id: 'npm',     label: 'npmjs' },
-                { id: 'clawhub', label: 'ClawHub' },
+                { id: 'npm',      label: 'npmjs' },
+                { id: 'clawhub',  label: 'ClawHub' },
               ] as const).map(s => (
                 <button
                   key={s.id}
@@ -2045,7 +1977,6 @@ function McpTab() {
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
                   placeholder={
                     mcpSource === 'official' ? '过滤官方服务器…'
-                    : mcpSource === 'awesome' ? '过滤 Awesome 列表…'
                     : '搜索 MCP 服务器，如 github、postgres…'
                   }
                 />
@@ -2060,11 +1991,10 @@ function McpTab() {
                   搜索
                 </button>
               )}
-              {(mcpSource === 'official' || mcpSource === 'awesome') && (
+              {mcpSource === 'official' && (
                 <button
                   onClick={() => {
-                    if (mcpSource === 'official') { setOfficialResults([]); }
-                    else { setAwesomeResults([]); }
+                    setOfficialResults([]);
                     setMarketError('');
                   }}
                   title="重新加载"
@@ -2122,60 +2052,6 @@ function McpTab() {
                   ))}
                 </div>
               ) : !marketLoading && officialResults.length === 0 && !marketError ? (
-                <div className="text-center py-8 text-white/40 text-sm">正在加载…</div>
-              ) : (
-                <div className="text-center py-8 text-white/40 text-sm">无匹配结果</div>
-              )
-            )}
-
-            {/* Awesome source */}
-            {mcpSource === 'awesome' && (
-              marketLoading ? (
-                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-white/40" /></div>
-              ) : filteredAwesome.length > 0 ? (
-                <div className="space-y-1.5 max-h-80 overflow-y-auto">
-                  <p className="text-xs text-white/40 mb-2">
-                    来源：<a href="https://github.com/punkpeye/awesome-mcp-servers" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">awesome-mcp-servers</a>
-                    {' '}·{' '}{filteredAwesome.length} 个
-                  </p>
-                  {filteredAwesome.map(entry => (
-                    <div key={entry.id} className="flex items-start gap-3 p-3 bg-white/5 border border-white/10 rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-white">{entry.name}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">Awesome</span>
-                        </div>
-                        {entry.description && <p className="text-xs text-white/50 mt-0.5 truncate">{entry.description}</p>}
-                        {entry.pkgName
-                          ? <p className="text-[11px] text-white/30 font-mono mt-0.5">npx -y {entry.pkgName}</p>
-                          : entry.url && <p className="text-[11px] text-white/30 mt-0.5 truncate">{entry.url}</p>
-                        }
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {entry.url && (
-                          <a href={entry.url} target="_blank" rel="noreferrer"
-                            className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white/60 hover:bg-white/10">
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
-                        )}
-                        <button
-                          onClick={() => handleAddFromMarket(entry)}
-                          disabled={!!entry.pkgName && isInstalled(entry.pkgName)}
-                          className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                            entry.pkgName && isInstalled(entry.pkgName)
-                              ? 'text-white/30 border border-white/10 cursor-not-allowed'
-                              : 'text-white bg-indigo-600 hover:bg-indigo-500'
-                          } disabled:opacity-60`}
-                        >
-                          {entry.pkgName && isInstalled(entry.pkgName)
-                            ? <><Check className="w-3.5 h-3.5" /> 已添加</>
-                            : <><Plus className="w-3.5 h-3.5" /> 添加</>}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : !marketLoading && awesomeResults.length === 0 && !marketError ? (
                 <div className="text-center py-8 text-white/40 text-sm">正在加载…</div>
               ) : (
                 <div className="text-center py-8 text-white/40 text-sm">无匹配结果</div>
