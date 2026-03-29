@@ -6,7 +6,7 @@ import {
   Terminal, Webhook, Puzzle, Plus, Trash2, Pencil, X,
   Loader2, AlertCircle, Save, RefreshCw, ChevronDown, ChevronRight,
   HelpCircle, BookOpen, Search, Package, Download, ExternalLink,
-  Check, Store,
+  Check, Store, Server,
 } from 'lucide-react';
 
 // ─── shared helpers ───────────────────────────────────────────────────────────
@@ -138,7 +138,7 @@ async function searchNpmPackages(query: string): Promise<NpmSearchResponse> {
   return res.json();
 }
 
-type HelpTabId = 'commands' | 'hooks' | 'plugins';
+type HelpTabId = 'commands' | 'hooks' | 'plugins' | 'mcp';
 
 const HELP_CONTENT: Record<HelpTabId, React.ReactNode> = {
   commands: (
@@ -365,6 +365,50 @@ const HELP_CONTENT: Record<HelpTabId, React.ReactNode> = {
       </div>
     </div>
   ),
+
+  mcp: (
+    <div className="space-y-5 text-sm text-white/80">
+      <div>
+        <h4 className="font-semibold text-white mb-1">MCP 是什么？</h4>
+        <p className="text-white/50 leading-relaxed">
+          MCP（Model Context Protocol）是一种开放协议，让 AI 模型可以安全地与本地和远程资源交互。
+          通过 MCP 服务器，Agent 可以访问文件系统、数据库、API 等外部工具。
+        </p>
+      </div>
+
+      <div>
+        <h4 className="font-semibold text-white mb-2">服务器配置说明</h4>
+        <div className="space-y-1.5 text-xs text-white/50 leading-relaxed">
+          <p>• <span className="text-white/80 font-medium">服务器名称</span>：唯一标识符，Agent 通过此名称引用 MCP 服务器</p>
+          <p>• <span className="text-white/80 font-medium">命令</span>：启动 MCP 服务器的可执行文件，如 <code className="bg-white/10 px-1 rounded">uvx</code>、<code className="bg-white/10 px-1 rounded">npx</code></p>
+          <p>• <span className="text-white/80 font-medium">参数列表</span>：传给命令的参数，如包名和选项</p>
+          <p>• <span className="text-white/80 font-medium">环境变量</span>：服务器运行时的环境变量，通常用于传递 API 密钥</p>
+          <p>• <span className="text-white/80 font-medium">工作目录</span>：服务器进程的工作目录，可选</p>
+        </div>
+      </div>
+
+      <div>
+        <h4 className="font-semibold text-white mb-2">示例配置</h4>
+        <div className="bg-slate-900 rounded-lg p-3 text-xs font-mono space-y-1">
+          <p className="text-white/40">{'// 使用 uvx 运行 MCP 文件系统服务器'}</p>
+          <p className="text-blue-300">{'名称: filesystem'}</p>
+          <p className="text-green-300">{'命令: uvx'}</p>
+          <p className="text-yellow-300">{'参数: mcp-server-filesystem, /home/user/docs'}</p>
+        </div>
+        <div className="bg-slate-900 rounded-lg p-3 text-xs font-mono space-y-1 mt-2">
+          <p className="text-white/40">{'// 使用 npx 运行 GitHub MCP 服务器'}</p>
+          <p className="text-blue-300">{'名称: github'}</p>
+          <p className="text-green-300">{'命令: npx'}</p>
+          <p className="text-yellow-300">{'参数: -y, @modelcontextprotocol/server-github'}</p>
+          <p className="text-purple-300">{'环境变量: GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxx'}</p>
+        </div>
+      </div>
+
+      <div className="bg-amber-500/15 border border-amber-500/30 rounded-lg p-3 text-xs text-amber-300 leading-relaxed">
+        ⚠️ <span className="font-medium">注意</span>：目前只支持 stdio 传输协议。配置修改后需重启 Gateway 服务生效。
+      </div>
+    </div>
+  ),
 };
 
 function HelpPanel({ activeTab, onClose }: { activeTab: HelpTabId; onClose: () => void }) {
@@ -377,6 +421,7 @@ function HelpPanel({ activeTab, onClose }: { activeTab: HelpTabId; onClose: () =
     commands: { label: '命令', icon: Terminal },
     hooks:    { label: '钩子', icon: Webhook },
     plugins:  { label: '插件', icon: Puzzle },
+    mcp:      { label: 'MCP',  icon: Server },
   };
 
   return (
@@ -1521,12 +1566,330 @@ function PluginsTab() {
   );
 }
 
+// ─── MCP TAB ──────────────────────────────────────────────────────────────────
+
+interface McpServerConfig {
+  command?: string;
+  args?: string[];
+  env?: Record<string, string>;
+  cwd?: string;
+}
+
+interface McpServerEntry {
+  name: string;
+  command: string;
+  args: string[];
+  env: { key: string; value: string }[];
+  cwd: string;
+}
+
+function mcpConfigToEntry(name: string, cfg: McpServerConfig): McpServerEntry {
+  return {
+    name,
+    command: cfg.command ?? '',
+    args: cfg.args ?? [],
+    env: Object.entries(cfg.env ?? {}).map(([key, value]) => ({ key, value })),
+    cwd: cfg.cwd ?? '',
+  };
+}
+
+function mcpEntryToConfig(entry: McpServerEntry): McpServerConfig {
+  const cfg: McpServerConfig = {};
+  if (entry.command) cfg.command = entry.command;
+  const filteredArgs = entry.args.filter(a => a !== '');
+  if (filteredArgs.length > 0) cfg.args = filteredArgs;
+  const filteredEnv: Record<string, string> = {};
+  for (const { key, value } of entry.env) {
+    if (key) filteredEnv[key] = value;
+  }
+  if (Object.keys(filteredEnv).length > 0) cfg.env = filteredEnv;
+  if (entry.cwd) cfg.cwd = entry.cwd;
+  return cfg;
+}
+
+function McpServerForm({ server, isNew, existingNames, onSave, onCancel }: {
+  server: McpServerEntry;
+  isNew: boolean;
+  existingNames: string[];
+  onSave: (s: McpServerEntry) => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState<McpServerEntry>({
+    ...server,
+    args: [...server.args],
+    env: server.env.map(e => ({ ...e })),
+  });
+  const set = <K extends keyof McpServerEntry>(k: K, v: McpServerEntry[K]) =>
+    setForm(f => ({ ...f, [k]: v }));
+
+  const addArg = () => setForm(f => ({ ...f, args: [...f.args, ''] }));
+  const setArg = (i: number, v: string) =>
+    setForm(f => ({ ...f, args: f.args.map((a, idx) => idx === i ? v : a) }));
+  const removeArg = (i: number) =>
+    setForm(f => ({ ...f, args: f.args.filter((_, idx) => idx !== i) }));
+
+  const addEnv = () => setForm(f => ({ ...f, env: [...f.env, { key: '', value: '' }] }));
+  const setEnvField = (i: number, k: 'key' | 'value', v: string) =>
+    setForm(f => ({ ...f, env: f.env.map((e, idx) => idx === i ? { ...e, [k]: v } : e) }));
+  const removeEnv = (i: number) =>
+    setForm(f => ({ ...f, env: f.env.filter((_, idx) => idx !== i) }));
+
+  const nameError = isNew && existingNames.includes(form.name.trim()) ? '名称已存在' : '';
+  const canSave = form.name.trim() && !nameError && form.command.trim();
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="glass-heavy rounded-2xl shadow-2xl shadow-black/60 ring-1 ring-white/10 w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 shrink-0">
+          <h3 className="text-sm font-semibold text-white">
+            {isNew ? '添加 MCP 服务器' : `编辑 MCP 服务器：${server.name}`}
+          </h3>
+          <button onClick={onCancel} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:bg-white/10">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+          <Field label="服务器名称" hint="唯一标识符">
+            <input
+              className={inputCls}
+              value={form.name}
+              onChange={e => set('name', e.target.value)}
+              placeholder="my-mcp-server"
+              disabled={!isNew}
+            />
+            {nameError && <p className="text-xs text-red-400 mt-1">{nameError}</p>}
+          </Field>
+
+          <Field label="命令" hint="可执行文件路径，如 uvx、npx">
+            <input
+              className={inputCls}
+              value={form.command}
+              onChange={e => set('command', e.target.value)}
+              placeholder="uvx"
+            />
+          </Field>
+
+          <div>
+            <label className={labelCls}>参数列表</label>
+            <div className="space-y-1.5">
+              {form.args.map((arg, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    className={`${inputCls} flex-1 font-mono text-xs`}
+                    value={arg}
+                    onChange={e => setArg(i, e.target.value)}
+                    placeholder={`参数 ${i + 1}`}
+                  />
+                  <button
+                    onClick={() => removeArg(i)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-red-400 hover:bg-red-500/20 shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              <button onClick={addArg} className="flex items-center gap-1.5 text-xs text-indigo-300 hover:text-indigo-500">
+                <Plus className="w-3.5 h-3.5" /> 添加参数
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className={labelCls}>环境变量</label>
+            <div className="space-y-1.5">
+              {form.env.map((e, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    className={`${inputCls} w-36 shrink-0 font-mono text-xs`}
+                    value={e.key}
+                    onChange={ev => setEnvField(i, 'key', ev.target.value)}
+                    placeholder="KEY"
+                  />
+                  <input
+                    className={`${inputCls} flex-1 font-mono text-xs`}
+                    value={e.value}
+                    onChange={ev => setEnvField(i, 'value', ev.target.value)}
+                    placeholder="value"
+                  />
+                  <button
+                    onClick={() => removeEnv(i)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-red-400 hover:bg-red-500/20 shrink-0"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              <button onClick={addEnv} className="flex items-center gap-1.5 text-xs text-indigo-300 hover:text-indigo-500">
+                <Plus className="w-3.5 h-3.5" /> 添加环境变量
+              </button>
+            </div>
+          </div>
+
+          <Field label="工作目录" hint="cwd，可选">
+            <input
+              className={inputCls}
+              value={form.cwd}
+              onChange={e => set('cwd', e.target.value)}
+              placeholder="/path/to/workdir"
+            />
+          </Field>
+        </div>
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-white/8 shrink-0">
+          <button onClick={onCancel} className="px-4 py-2 text-sm text-white/70 bg-white/10 hover:bg-white/15 rounded-lg transition-colors">取消</button>
+          <button
+            onClick={() => onSave(form)}
+            disabled={!canSave}
+            className="px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors disabled:opacity-50"
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function McpTab() {
+  const { connectionStatus } = useAppStore();
+  const [servers, setServers] = useState<Record<string, McpServerConfig>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [editingServer, setEditingServer] = useState<McpServerEntry | null>(null);
+  const [isNewServer, setIsNewServer] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError('');
+    try {
+      const res = await loadConfig();
+      setServers(res?.config?.mcp?.servers ?? {});
+    } catch (e: any) { setError(e.message || '加载失败'); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { if (connectionStatus === 'connected') load(); }, [connectionStatus]);
+
+  const saveServers = async (updated: Record<string, McpServerConfig>) => {
+    setSaving(true); setError('');
+    try {
+      const res = await loadConfig();
+      await client.configPatchRaw({ mcp: { servers: updated } }, res.hash);
+      setServers(updated);
+    } catch (e: any) { setError(e.message || '保存失败'); }
+    finally { setSaving(false); }
+  };
+
+  const handleSaveServer = (entry: McpServerEntry) => {
+    const updated = { ...servers, [entry.name.trim()]: mcpEntryToConfig(entry) };
+    setEditingServer(null);
+    saveServers(updated);
+  };
+
+  const handleDelete = (name: string) => {
+    if (!confirm(`确认删除 MCP 服务器 "${name}"？`)) return;
+    const updated = { ...servers };
+    delete updated[name];
+    saveServers(updated);
+  };
+
+  const serverNames = Object.keys(servers);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-white/50">MCP (Model Context Protocol) 服务器配置</p>
+        <div className="flex gap-2">
+          <button onClick={load} disabled={loading} className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/70 border border-white/10 bg-white/8 backdrop-blur-xl rounded-lg hover:bg-white/5 disabled:opacity-50">
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> 刷新
+          </button>
+          <button
+            onClick={() => { setIsNewServer(true); setEditingServer({ name: '', command: '', args: [], env: [], cwd: '' }); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg"
+          >
+            <Plus className="w-3.5 h-3.5" /> 添加服务器
+          </button>
+        </div>
+      </div>
+
+      {error && <ErrorBanner msg={error} onDismiss={() => setError('')} />}
+
+      {loading ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-white/40" /></div>
+      ) : serverNames.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center gap-2 text-white/40">
+          <Server className="w-10 h-10 opacity-30" />
+          <p className="text-sm">暂无 MCP 服务器</p>
+          <button
+            onClick={() => { setIsNewServer(true); setEditingServer({ name: '', command: '', args: [], env: [], cwd: '' }); }}
+            className="text-xs text-indigo-300 hover:text-indigo-500"
+          >
+            + 添加第一个
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {serverNames.map(name => {
+            const cfg = servers[name];
+            const cmdDisplay = [cfg.command, ...(cfg.args ?? [])].filter(Boolean).join(' ');
+            const envCount = Object.keys(cfg.env ?? {}).length;
+            return (
+              <div key={name} className="glass rounded-2xl px-4 py-3 flex items-start gap-3 hover:border-indigo-500/30 transition-colors">
+                <Server className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-white">{name}</span>
+                    {envCount > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">{envCount} env</span>
+                    )}
+                  </div>
+                  {cmdDisplay && (
+                    <p className="text-xs text-white/50 font-mono mt-0.5 truncate">{cmdDisplay}</p>
+                  )}
+                  {cfg.cwd && (
+                    <p className="text-xs text-white/40 mt-0.5 truncate">cwd: {cfg.cwd}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => { setIsNewServer(false); setEditingServer(mcpConfigToEntry(name, cfg)); }}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-indigo-300 hover:bg-indigo-500/15"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(name)}
+                    disabled={saving}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-red-500 hover:bg-red-500/20"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {editingServer && (
+        <McpServerForm
+          server={editingServer}
+          isNew={isNewServer}
+          existingNames={isNewServer ? serverNames : serverNames.filter(n => n !== editingServer.name)}
+          onSave={handleSaveServer}
+          onCancel={() => setEditingServer(null)}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const TABS = [
   { id: 'commands', label: '命令', icon: Terminal, desc: 'Webhook 命令映射' },
   { id: 'hooks',    label: '钩子', icon: Webhook,  desc: '内部事件钩子' },
   { id: 'plugins',  label: '插件', icon: Puzzle,   desc: '插件配置' },
+  { id: 'mcp',      label: 'MCP',  icon: Server,   desc: 'MCP 服务器管理' },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -1583,6 +1946,7 @@ export function AutomationPage() {
           {tab === 'commands' && <CommandsTab />}
           {tab === 'hooks'    && <HooksTab />}
           {tab === 'plugins'  && <PluginsTab />}
+          {tab === 'mcp'      && <McpTab />}
         </div>
       </div>
 
