@@ -1,6 +1,6 @@
 {
   "name": "agent-control-ui",
-  "version": "2026.3.27",
+  "version": "2026.4.2",
   "description": "OpenClaw Agent Control UI — web control panel for OpenClaw gateway",
   "repository": {
     "type": "git",
